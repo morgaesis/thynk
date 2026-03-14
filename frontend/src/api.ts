@@ -44,7 +44,11 @@ export async function updateNote(
 }
 
 export async function deleteNote(id: string): Promise<void> {
-  await fetch(`${API_BASE}/notes/${id}`, { method: 'DELETE' });
+  const res = await fetch(`${API_BASE}/notes/${id}`, { method: 'DELETE' });
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`API ${res.status}: ${body}`);
+  }
 }
 
 export async function searchNotes(query: string): Promise<SearchResult[]> {

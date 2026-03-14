@@ -1,4 +1,5 @@
 import { useEffect, useRef, useCallback } from 'react';
+import ReconnectingWebSocket from 'partysocket/ws';
 import { Layout } from './components/Layout';
 import { CommandPalette } from './components/CommandPalette';
 import { ToastContainer } from './components/Toast';
@@ -13,7 +14,7 @@ function App() {
   const activeNote = useNoteStore((s) => s.activeNote);
   const updateNote = useNoteStore((s) => s.updateNote);
   const fetchNotes = useNoteStore((s) => s.fetchNotes);
-  const openNote = useNoteStore((s) => s.openNote);
+  const openNoteByPath = useNoteStore((s) => s.openNoteByPath);
 
   // Keep a ref to editor content for Ctrl+S force-save.
   // The Editor component manages its own debounce; we expose a save trigger via store.
@@ -52,57 +53,35 @@ function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [toggleCommandPalette, createNote, activeNote, updateNote]);
 
-  // WebSocket connection — reconnect on disconnect
+  // WebSocket connection — auto-reconnects via ReconnectingWebSocket
   useEffect(() => {
-    let ws: WebSocket | null = null;
-    let reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
-    let closed = false;
+    const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const host = window.location.host;
+    const ws = new ReconnectingWebSocket(`${proto}//${host}/api/ws`);
 
-    function connect() {
-      if (closed) return;
-      const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const host = window.location.host;
-      ws = new WebSocket(`${proto}//${host}/api/ws`);
-
-      ws.onmessage = (ev) => {
-        try {
-          const event = JSON.parse(ev.data as string) as {
-            type: string;
-            path: string;
-          };
-          if (
-            event.type === 'file_created' ||
-            event.type === 'file_modified' ||
-            event.type === 'file_deleted'
-          ) {
-            // Refresh notes list when the filesystem changes
-            fetchNotes();
-            if (event.type === 'file_created') {
-              addToast('info', `New file detected: ${event.path}`);
-            }
+    ws.onmessage = (ev) => {
+      try {
+        const event = JSON.parse(ev.data as string) as {
+          type: string;
+          path: string;
+        };
+        if (
+          event.type === 'file_created' ||
+          event.type === 'file_modified' ||
+          event.type === 'file_deleted'
+        ) {
+          fetchNotes();
+          if (event.type === 'file_created') {
+            addToast('info', `New file detected: ${event.path}`);
           }
-        } catch {
-          // ignore malformed messages
         }
-      };
-
-      ws.onclose = () => {
-        if (!closed) {
-          reconnectTimeout = setTimeout(connect, 3000);
-        }
-      };
-
-      ws.onerror = () => {
-        ws?.close();
-      };
-    }
-
-    connect();
+      } catch {
+        // ignore malformed messages
+      }
+    };
 
     return () => {
-      closed = true;
-      if (reconnectTimeout) clearTimeout(reconnectTimeout);
-      ws?.close();
+      ws.close();
     };
   }, [fetchNotes, addToast]);
 
@@ -121,12 +100,22 @@ function App() {
     const handlePopState = () => {
       const match = window.location.pathname.match(/^\/notes\/(.+)$/);
       if (match) {
-        openNote(match[1]);
+        const path = decodeURIComponent(match[1]);
+        openNoteByPath(path);
       }
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [openNote]);
+  }, [openNoteByPath]);
+
+  // Open note from URL on initial page load
+  useEffect(() => {
+    const match = window.location.pathname.match(/^\/notes\/(.+)$/);
+    if (match) {
+      const path = decodeURIComponent(match[1]);
+      openNoteByPath(path);
+    }
+  }, [openNoteByPath]);
 
   return (
     <div className="h-full bg-surface dark:bg-surface-dark">

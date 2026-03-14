@@ -16,6 +16,7 @@ export function Sidebar() {
   const loading = useNoteStore((s) => s.loading);
   const fetchNotes = useNoteStore((s) => s.fetchNotes);
   const openNote = useNoteStore((s) => s.openNote);
+  const openNoteByPath = useNoteStore((s) => s.openNoteByPath);
   const createNote = useNoteStore((s) => s.createNote);
   const deleteNote = useNoteStore((s) => s.deleteNote);
   const sidebarOpen = useUIStore((s) => s.sidebarOpen);
@@ -28,7 +29,7 @@ export function Sidebar() {
     fetchNotes().then(() => {
       const match = window.location.pathname.match(/^\/notes\/(.+)$/);
       if (match) {
-        openNote(match[1]);
+        openNoteByPath(decodeURIComponent(match[1]));
       }
     });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps

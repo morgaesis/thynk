@@ -12,6 +12,7 @@ interface NoteStore {
 
   fetchNotes: () => Promise<void>;
   openNote: (id: string) => Promise<void>;
+  openNoteByPath: (path: string) => Promise<void>;
   createNote: (title: string, path?: string) => Promise<void>;
   updateNote: (
     id: string,
@@ -41,16 +42,23 @@ export const useNoteStore = create<NoteStore>((set, get) => ({
   },
 
   openNote: async (id: string) => {
-    // Update browser URL
-    window.history.pushState({}, '', `/notes/${id}`);
     set({ loading: true, error: null });
     try {
       const note = await api.getNote(id);
+      window.history.pushState({}, '', `/notes/${encodeURIComponent(note.path)}`);
       set({ activeNote: note, loading: false });
     } catch (e) {
       const msg = (e as Error).message;
       set({ error: msg, loading: false });
       useUIStore.getState().addToast('error', `Failed to open note: ${msg}`);
+    }
+  },
+
+  openNoteByPath: async (path: string) => {
+    const { notes, openNote } = get();
+    const note = notes.find((n) => n.path === path);
+    if (note) {
+      await openNote(note.id);
     }
   },
 

@@ -1,0 +1,163 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import * as api from '../api';
+
+const mockFetch = vi.fn();
+vi.stubGlobal('fetch', mockFetch);
+
+function makeJsonResponse(body: unknown, status = 200) {
+  return {
+    ok: status >= 200 && status < 300,
+    status,
+    json: () => Promise.resolve(body),
+    text: () => Promise.resolve(JSON.stringify(body)),
+  };
+}
+
+function makeErrorResponse(body: string, status: number) {
+  return {
+    ok: false,
+    status,
+    json: () => Promise.resolve({}),
+    text: () => Promise.resolve(body),
+  };
+}
+
+beforeEach(() => {
+  mockFetch.mockReset();
+});
+
+describe('api.listNotes', () => {
+  it('calls GET /api/notes and returns parsed JSON', async () => {
+    const notes = [{ id: 'n1', path: 'notes/a.md', title: 'A' }];
+    mockFetch.mockResolvedValue(makeJsonResponse(notes));
+
+    const result = await api.listNotes();
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      '/api/notes',
+      expect.objectContaining({ headers: { 'Content-Type': 'application/json' } }),
+    );
+    expect(result).toEqual(notes);
+  });
+});
+
+describe('api.getNote', () => {
+  it('calls GET /api/notes/:id and returns the note', async () => {
+    const note = { id: 'n1', path: 'notes/a.md', title: 'A', content: '# A' };
+    mockFetch.mockResolvedValue(makeJsonResponse(note));
+
+    const result = await api.getNote('n1');
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      '/api/notes/n1',
+      expect.objectContaining({ headers: { 'Content-Type': 'application/json' } }),
+    );
+    expect(result).toEqual(note);
+  });
+});
+
+describe('api.createNote', () => {
+  it('calls POST /api/notes with correct body', async () => {
+    const note = { id: 'new-1', path: 'notes/new.md', title: 'New Note', content: '' };
+    mockFetch.mockResolvedValue(makeJsonResponse(note));
+
+    const result = await api.createNote({ title: 'New Note' });
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      '/api/notes',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ title: 'New Note' }),
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+    expect(result).toEqual(note);
+  });
+
+  it('calls POST /api/notes with title and path', async () => {
+    const note = { id: 'new-2', path: 'docs/guide.md', title: 'Guide', content: '' };
+    mockFetch.mockResolvedValue(makeJsonResponse(note));
+
+    await api.createNote({ title: 'Guide', path: 'docs/guide.md' });
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      '/api/notes',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ title: 'Guide', path: 'docs/guide.md' }),
+      }),
+    );
+  });
+});
+
+describe('api.updateNote', () => {
+  it('calls PUT /api/notes/:id with correct body', async () => {
+    const updated = { id: 'n1', path: 'notes/a.md', title: 'Updated', content: 'new content' };
+    mockFetch.mockResolvedValue(makeJsonResponse(updated));
+
+    const result = await api.updateNote('n1', { title: 'Updated', content: 'new content' });
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      '/api/notes/n1',
+      expect.objectContaining({
+        method: 'PUT',
+        body: JSON.stringify({ title: 'Updated', content: 'new content' }),
+      }),
+    );
+    expect(result).toEqual(updated);
+  });
+});
+
+describe('api.deleteNote', () => {
+  it('calls DELETE /api/notes/:id on success', async () => {
+    mockFetch.mockResolvedValue({ ok: true, status: 204, text: () => Promise.resolve('') });
+
+    await expect(api.deleteNote('n1')).resolves.toBeUndefined();
+    expect(mockFetch).toHaveBeenCalledWith('/api/notes/n1', { method: 'DELETE' });
+  });
+
+  it('throws an error on non-ok response', async () => {
+    mockFetch.mockResolvedValue(makeErrorResponse('Not Found', 404));
+
+    await expect(api.deleteNote('bad-id')).rejects.toThrow('API 404: Not Found');
+  });
+});
+
+describe('api.searchNotes', () => {
+  it('calls GET /api/search?q=... with URL encoding', async () => {
+    const results = [{ note_id: 'n1', title: 'A', path: 'a.md', snippet: '...', rank: 1.0 }];
+    mockFetch.mockResolvedValue(makeJsonResponse(results));
+
+    const result = await api.searchNotes('hello world');
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      '/api/search?q=hello%20world',
+      expect.objectContaining({ headers: { 'Content-Type': 'application/json' } }),
+    );
+    expect(result).toEqual(results);
+  });
+
+  it('URL-encodes special characters in the query', async () => {
+    mockFetch.mockResolvedValue(makeJsonResponse([]));
+
+    await api.searchNotes('foo & bar=baz');
+
+    const calledUrl = mockFetch.mock.calls[0][0] as string;
+    expect(calledUrl).toBe('/api/search?q=foo%20%26%20bar%3Dbaz');
+  });
+
+  it('returns empty array when no results', async () => {
+    mockFetch.mockResolvedValue(makeJsonResponse([]));
+
+    const result = await api.searchNotes('noresults');
+    expect(result).toEqual([]);
+  });
+});
+
+describe('api error handling (request helper)', () => {
+  it('throws with status and body on non-ok response', async () => {
+    mockFetch.mockResolvedValue(makeErrorResponse('Unauthorized', 401));
+
+    await expect(api.listNotes()).rejects.toThrow('API 401: Unauthorized');
+  });
+});

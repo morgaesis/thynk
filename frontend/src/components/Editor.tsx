@@ -6,11 +6,20 @@ import {
 } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
+import { CodeBlockLowlight } from '@tiptap/extension-code-block-lowlight';
+import { Extension } from '@tiptap/core';
+import { Plugin, PluginKey } from '@tiptap/pm/state';
+import { Decoration, DecorationSet } from '@tiptap/pm/view';
+import { createLowlight, common } from 'lowlight';
 import {
   defaultMarkdownSerializer,
   defaultMarkdownParser,
 } from '@tiptap/pm/markdown';
 import { useNoteStore } from '../stores/noteStore';
+import { DictationButton } from './DictationButton';
+
+// Create lowlight instance with common languages
+const lowlight = createLowlight(common);
 
 interface Props {
   onRegisterSave?: (saveFn: () => void) => void;
@@ -25,6 +34,74 @@ function setMarkdownContent(ed: TipTapEditor, markdown: string) {
   const doc = defaultMarkdownParser.parse(markdown || '');
   ed.commands.setContent(doc ? doc.toJSON() : '');
 }
+
+// Plugin key for active node decoration
+const activeNodePluginKey = new PluginKey('activeNode');
+
+// Custom extension: decorates the node containing the cursor with data-active="true"
+// Used by CSS to show heading prefix markers only on the active heading
+const ActiveNodeDecoration = Extension.create({
+  name: 'activeNodeDecoration',
+
+  addProseMirrorPlugins() {
+    return [
+      new Plugin({
+        key: activeNodePluginKey,
+        props: {
+          decorations(state) {
+            const { doc, selection } = state;
+            const { $from } = selection;
+
+            // Walk up to the top-level block node containing the cursor
+            let depth = $from.depth;
+            while (depth > 0 && $from.node(depth).isInline) {
+              depth--;
+            }
+            const node = $from.node(depth);
+            const pos = depth === 0 ? 0 : $from.before(depth);
+
+            if (!node || node.type.name === 'doc') {
+              return DecorationSet.empty;
+            }
+
+            const deco = Decoration.node(pos, pos + node.nodeSize, {
+              'data-active': 'true',
+            });
+            return DecorationSet.create(doc, [deco]);
+          },
+        },
+      }),
+    ];
+  },
+});
+
+// Custom extension: fix Backspace at the start of a heading
+// When cursor is at position 0 inside a heading, convert it to a paragraph
+// instead of joining with the previous node (which would delete the newline above).
+const HeadingBackspaceFix = Extension.create({
+  name: 'headingBackspaceFix',
+
+  addKeyboardShortcuts() {
+    return {
+      Backspace: ({ editor }) => {
+        const { state } = editor;
+        const { selection } = state;
+        const { $from, empty } = selection;
+
+        // Only act on collapsed selections
+        if (!empty) return false;
+
+        // Check if cursor is at the very start of a heading node
+        const node = $from.parent;
+        if (!node.type.name.startsWith('heading')) return false;
+        if ($from.parentOffset !== 0) return false;
+
+        // Convert heading to paragraph
+        return editor.commands.setParagraph();
+      },
+    };
+  },
+});
 
 export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
   const activeNote = useNoteStore((s) => s.activeNote);
@@ -41,10 +118,18 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
 
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      StarterKit.configure({
+        // Disable built-in CodeBlock since we use CodeBlockLowlight
+        codeBlock: false,
+      }),
+      CodeBlockLowlight.configure({
+        lowlight,
+      }),
       Placeholder.configure({
         placeholder: 'Start writing…',
       }),
+      ActiveNodeDecoration,
+      HeadingBackspaceFix,
     ],
     content: '',
     editorProps: {
@@ -104,7 +189,10 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
 
   // Register focusTitle function with parent so F2 can trigger it
   useEffect(() => {
-    onRegisterFocusTitle?.(() => titleRef.current?.focus());
+    onRegisterFocusTitle?.(() => {
+      titleRef.current?.focus();
+      titleRef.current?.select();
+    });
   }, [onRegisterFocusTitle]);
 
   const handleTitleBlur = useCallback(() => {
@@ -178,6 +266,9 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
           <span>·</span>
           <span className="tabular-nums">
             {new Date(activeNote.updated_at).toLocaleString()}
+          </span>
+          <span className="ml-auto">
+            <DictationButton editor={editor} />
           </span>
         </div>
 

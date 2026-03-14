@@ -77,32 +77,153 @@ body {
   padding: 0;
 }
 
-/* Show markdown heading syntax in editor */
-.tiptap h1::before {
+/* Fix empty blockquote — collapse to single line with > prefix */
+.tiptap blockquote {
+  border-left: 3px solid var(--color-border);
+  padding-left: 1rem;
+  margin: 0.5rem 0;
+  color: var(--color-text-muted);
+}
+
+.dark .tiptap blockquote {
+  border-left-color: var(--color-border-dark);
+  color: var(--color-text-muted-dark);
+}
+
+.tiptap blockquote p {
+  margin: 0;
+  min-height: 1.5em;
+}
+
+/* Show markdown heading syntax only on the active (cursor-containing) heading */
+.tiptap h1[data-active='true']::before {
   content: '# ';
   opacity: 0.4;
   font-weight: 400;
   user-select: none;
   pointer-events: none;
 }
-.tiptap h2::before {
+.tiptap h2[data-active='true']::before {
   content: '## ';
   opacity: 0.4;
   font-weight: 400;
   user-select: none;
   pointer-events: none;
 }
-.tiptap h3::before {
+.tiptap h3[data-active='true']::before {
   content: '### ';
   opacity: 0.4;
   font-weight: 400;
   user-select: none;
   pointer-events: none;
 }
-.tiptap h4::before {
+.tiptap h4[data-active='true']::before {
   content: '#### ';
   opacity: 0.4;
   font-weight: 400;
   user-select: none;
   pointer-events: none;
+}
+
+/* Show triple-backtick fence markers on active code blocks */
+.tiptap pre[data-active='true']::before {
+  content: attr(data-language, '```') '```';
+  display: block;
+  opacity: 0.5;
+  font-size: 0.75rem;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  color: #94a3b8;
+  margin-bottom: 0.25rem;
+  user-select: none;
+  pointer-events: none;
+}
+
+.tiptap pre[data-active='true']::after {
+  content: '```';
+  display: block;
+  opacity: 0.5;
+  font-size: 0.75rem;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  color: #94a3b8;
+  margin-top: 0.25rem;
+  user-select: none;
+  pointer-events: none;
+}
+
+/* Syntax highlighting token colors (lowlight/highlight.js classes) */
+.tiptap pre .hljs-comment,
+.tiptap pre .hljs-quote {
+  color: #6a9955;
+  font-style: italic;
+}
+.tiptap pre .hljs-keyword,
+.tiptap pre .hljs-selector-tag,
+.tiptap pre .hljs-built_in,
+.tiptap pre .hljs-name,
+.tiptap pre .hljs-tag {
+  color: #569cd6;
+}
+.tiptap pre .hljs-string,
+.tiptap pre .hljs-title,
+.tiptap pre .hljs-section,
+.tiptap pre .hljs-attribute,
+.tiptap pre .hljs-literal,
+.tiptap pre .hljs-template-tag,
+.tiptap pre .hljs-template-variable,
+.tiptap pre .hljs-type,
+.tiptap pre .hljs-addition {
+  color: #ce9178;
+}
+.tiptap pre .hljs-deletion,
+.tiptap pre .hljs-selector-attr,
+.tiptap pre .hljs-selector-pseudo,
+.tiptap pre .hljs-meta {
+  color: #d7ba7d;
+}
+.tiptap pre .hljs-doctag,
+.tiptap pre .hljs-attr {
+  color: #9cdcfe;
+}
+.tiptap pre .hljs-symbol,
+.tiptap pre .hljs-bullet,
+.tiptap pre .hljs-link,
+.tiptap pre .hljs-variable,
+.tiptap pre .hljs-template-variable,
+.tiptap pre .hljs-selector-id {
+  color: #4fc1ff;
+}
+.tiptap pre .hljs-number,
+.tiptap pre .hljs-regexp {
+  color: #b5cea8;
+}
+.tiptap pre .hljs-class .hljs-title,
+.tiptap pre .hljs-title.class_ {
+  color: #4ec9b0;
+}
+.tiptap pre .hljs-function .hljs-title,
+.tiptap pre .hljs-title.function_ {
+  color: #dcdcaa;
+}
+.tiptap pre .hljs-params {
+  color: #cdd6f4;
+}
+.tiptap pre .hljs-emphasis {
+  font-style: italic;
+}
+.tiptap pre .hljs-strong {
+  font-weight: bold;
+}
+
+/* Dictation / voice input recording pulse animation */
+@keyframes pulse-recording {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+.recording-pulse {
+  animation: pulse-recording 1s ease-in-out infinite;
 }

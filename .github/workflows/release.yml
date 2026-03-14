@@ -1,0 +1,52 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Parse version info
+        id: version
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Releasing $TAG"
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          PREV_TAG=$(git tag --sort=-v:refname | head -2 | tail -1) || true
+          if [ -n "$PREV_TAG" ] && [ "$PREV_TAG" != "${{ steps.version.outputs.tag }}" ]; then
+            CHANGELOG=$(git log --pretty=format:"- %s" "$PREV_TAG"..HEAD)
+          else
+            CHANGELOG=$(git log --pretty=format:"- %s")
+          fi
+          {
+            echo "changelog<<EOF"
+            echo "$CHANGELOG"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: ${{ steps.version.outputs.tag }}
+          body: |
+            ## Changes
+
+            ${{ steps.changelog.outputs.changelog }}
+          draft: false
+          prerelease: ${{ contains(steps.version.outputs.tag, '-') }}

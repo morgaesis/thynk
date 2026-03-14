@@ -1,0 +1,84 @@
+name: QA
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Markdown lint
+        uses: DavidAnson/markdownlint-cli2-action@v19
+
+      - name: Prettier check
+        run: |
+          npm install -g prettier
+          prettier --check "**/*.md" --prose-wrap preserve
+
+  rust:
+    name: Rust QA
+    runs-on: ubuntu-latest
+    if: hashFiles('Cargo.toml') != ''
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Check
+        run: cargo check --quiet
+
+      - name: Clippy
+        run: cargo clippy --quiet -- -D warnings
+
+      - name: Format
+        run: cargo fmt --check
+
+  frontend:
+    name: Frontend QA
+    runs-on: ubuntu-latest
+    if: hashFiles('package.json') != ''
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Lint
+        run: bun run lint
+
+  secret-scan:
+    name: Secret Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Infisical CLI
+        run: |
+          curl -1sLf 'https://dl.cloudsmith.io/public/infisical/infisical-cli/setup.deb.sh' | sudo -E bash
+          sudo apt-get update && sudo apt-get install -y infisical
+
+      - name: Scan for secrets
+        run: infisical scan --verbose --silent --redact --exit-code 1

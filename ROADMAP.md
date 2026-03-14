@@ -103,6 +103,7 @@ Add intelligence, cloud sync, and production-readiness.
 | Auth System              | JWT/session auth, OAuth (GitHub, Google) login methods   |
 | Onboarding Flow          | Guided tutorial, progressive complexity                  |
 | Performance Optimization | Meet all performance benchmarks                          |
+| Cloud Dictation          | ElevenLabs/Whisper transcription as a paid feature       |
 
 ### Exit Criteria
 

@@ -62,7 +62,7 @@ jobs:
 
       - name: Format
         if: steps.check.outputs.exists == 'true'
-        run: cargo fmt --check
+        run: cargo fmt --all --check
 
   frontend:
     name: Frontend QA
@@ -73,7 +73,7 @@ jobs:
       - name: Check if frontend project exists
         id: check
         run: |
-          if [ -f package.json ]; then
+          if [ -f frontend/package.json ]; then
             echo "exists=true" >> "$GITHUB_OUTPUT"
           else
             echo "exists=false" >> "$GITHUB_OUTPUT"
@@ -85,10 +85,12 @@ jobs:
 
       - name: Install dependencies
         if: steps.check.outputs.exists == 'true'
+        working-directory: frontend
         run: bun install --frozen-lockfile
 
       - name: Lint
         if: steps.check.outputs.exists == 'true'
+        working-directory: frontend
         run: bun run lint
 
   secret-scan:

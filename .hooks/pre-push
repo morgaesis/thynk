@@ -6,7 +6,7 @@ echo "==> Running QA checks (pre-push)"
 # Lint markdown files
 if command -v markdownlint-cli2 &>/dev/null; then
   echo "  -> Markdown lint"
-  markdownlint-cli2 "**/*.md" "#node_modules"
+  markdownlint-cli2 "**/*.md"
 elif command -v markdownlint &>/dev/null; then
   echo "  -> Markdown lint"
   markdownlint '**/*.md' --ignore node_modules
@@ -23,16 +23,16 @@ if [ -f Cargo.toml ]; then
   cargo clippy --quiet -- -D warnings 2>&1
 
   echo "  -> cargo fmt check"
-  cargo fmt --check 2>&1
+  cargo fmt --all --check 2>&1
 fi
 
 # Frontend checks (when frontend exists)
-if [ -f package.json ]; then
+if [ -f frontend/package.json ]; then
   echo "  -> frontend lint"
   if command -v bun &>/dev/null; then
-    bun run lint 2>&1 || true
+    (cd frontend && bun run lint 2>&1) || true
   elif command -v npm &>/dev/null; then
-    npm run lint 2>&1 || true
+    (cd frontend && npm run lint 2>&1) || true
   fi
 fi
 

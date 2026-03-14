@@ -1,9 +1,9 @@
 # STATE.md - Thynk Current Status
 
-## Project Status: PLANNING COMPLETE
+## Project Status: PHASE 1 IN PROGRESS
 
-**Current Phase:** Pre-development (architecture finalized, ready to scaffold)
-**Overall Progress:** Planning done, 0% code
+**Current Phase:** Phase 1 -- Foundation
+**Overall Progress:** Scaffold complete, core API functional
 
 ---
 
@@ -43,12 +43,12 @@
 
 | Component           | Status      | Phase   |
 | ------------------- | ----------- | ------- |
-| Project Scaffold    | Not Started | Phase 1 |
-| Rust Backend (Axum) | Not Started | Phase 1 |
-| SQLite Layer        | Not Started | Phase 1 |
-| TipTap Editor       | Not Started | Phase 1 |
-| File Tree / Sidebar | Not Started | Phase 1 |
-| Search (FTS5)       | Not Started | Phase 1 |
+| Project Scaffold    | Done        | Phase 1 |
+| Rust Backend (Axum) | Done        | Phase 1 |
+| SQLite Layer        | Done        | Phase 1 |
+| TipTap Editor       | Scaffolded  | Phase 1 |
+| File Tree / Sidebar | Scaffolded  | Phase 1 |
+| Search (FTS5)       | Done        | Phase 1 |
 | Linking System      | Not Started | Phase 2 |
 | Database Views      | Not Started | Phase 2 |
 | Page Locking        | Not Started | Phase 2 |
@@ -68,7 +68,7 @@
 | PROJECT.md          | Current (v2.0) | Vision and architecture  |
 | ROADMAP.md          | Current (v2.0) | 4-phase development plan |
 | STATE.md            | Current        | This file                |
-| ARCHITECTURE.md     | Not Started    | Detailed system design   |
+| ARCHITECTURE.md     | Current (v1.0) | Detailed system design   |
 | Competitor Analysis | Done           | .planning/research/      |
 | Tech Stack Analysis | Done           | .planning/research/      |
 
@@ -76,9 +76,11 @@
 
 ## Next Steps
 
-1. **Create ARCHITECTURE.md** -- detailed system design, API surface, data model
-2. **Scaffold project** -- Rust workspace, Vite + React frontend, project structure
-3. **Implement Phase 1** -- server, editor, note CRUD, search, basic UI
+1. **Wire frontend to backend** -- connect React app to Rust API, dev proxy working
+2. **Command palette** -- Ctrl+K fuzzy search with MiniSearch
+3. **Theming** -- light/dark theme with CSS variables + Tailwind
+4. **Polish editor** -- markdown serialization, slash commands, code block highlighting
+5. **End-to-end tests** -- integration tests for the full stack
 
 ---
 

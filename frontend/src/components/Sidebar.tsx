@@ -25,8 +25,13 @@ export function Sidebar() {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchNotes();
-  }, [fetchNotes]);
+    fetchNotes().then(() => {
+      const match = window.location.pathname.match(/^\/notes\/(.+)$/);
+      if (match) {
+        openNote(match[1]);
+      }
+    });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleNewNote = useCallback(() => {
     const title = `Untitled ${new Date().toISOString().slice(0, 10)}`;
@@ -185,7 +190,7 @@ export function Sidebar() {
         </span>
         <p className="text-xs text-text-muted dark:text-text-muted-dark">
           <kbd className="px-1 py-0.5 rounded bg-border dark:bg-border-dark text-[10px]">
-            Ctrl+N
+            Ctrl+Shift+N
           </kbd>{' '}
           New
         </p>

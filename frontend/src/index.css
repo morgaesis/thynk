@@ -76,3 +76,33 @@ body {
   background: none;
   padding: 0;
 }
+
+/* Show markdown heading syntax in editor */
+.tiptap h1::before {
+  content: '# ';
+  opacity: 0.4;
+  font-weight: 400;
+  user-select: none;
+  pointer-events: none;
+}
+.tiptap h2::before {
+  content: '## ';
+  opacity: 0.4;
+  font-weight: 400;
+  user-select: none;
+  pointer-events: none;
+}
+.tiptap h3::before {
+  content: '### ';
+  opacity: 0.4;
+  font-weight: 400;
+  user-select: none;
+  pointer-events: none;
+}
+.tiptap h4::before {
+  content: '#### ';
+  opacity: 0.4;
+  font-weight: 400;
+  user-select: none;
+  pointer-events: none;
+}

@@ -41,6 +41,8 @@ export const useNoteStore = create<NoteStore>((set, get) => ({
   },
 
   openNote: async (id: string) => {
+    // Update browser URL
+    window.history.pushState({}, '', `/notes/${id}`);
     set({ loading: true, error: null });
     try {
       const note = await api.getNote(id);

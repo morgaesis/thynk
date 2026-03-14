@@ -1,8 +1,7 @@
-use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 
 use crate::error::{Result, ThynkError};
 use crate::note::Note;
@@ -62,111 +61,36 @@ impl FilesystemStorage {
     }
 }
 
-/// Serialize a Note to markdown with YAML frontmatter.
-fn serialize_note(note: &Note) -> String {
-    let mut parts = vec!["---".to_string()];
-    parts.push(format!("id: {}", note.id));
-    parts.push(format!("title: {}", note.title));
-    parts.push(format!("created_at: {}", note.created_at.to_rfc3339()));
-    parts.push(format!("updated_at: {}", note.updated_at.to_rfc3339()));
-    for (k, v) in &note.frontmatter {
-        parts.push(format!("{k}: {v}"));
-    }
-    parts.push("---".to_string());
-    parts.push(String::new());
-    parts.push(note.content.clone());
-    parts.join("\n")
-}
-
-/// Parse markdown with YAML frontmatter into a Note.
-fn parse_note(content: &str, relative_path: &Path) -> Result<Note> {
-    let trimmed = content.trim_start();
-    if !trimmed.starts_with("---") {
-        return Err(ThynkError::ParseError(
-            "missing frontmatter delimiter".to_string(),
-        ));
-    }
-
-    let after_first = &trimmed[3..];
-    let end = after_first
-        .find("\n---")
-        .ok_or_else(|| ThynkError::ParseError("unclosed frontmatter".to_string()))?;
-
-    let frontmatter_block = &after_first[..end];
-    let body = after_first[end + 4..].trim_start_matches('\n');
-
-    let mut id = String::new();
-    let mut title = String::new();
-    let mut created_at: Option<DateTime<Utc>> = None;
-    let mut updated_at: Option<DateTime<Utc>> = None;
-    let mut frontmatter = HashMap::new();
-
-    for line in frontmatter_block.lines() {
-        let line = line.trim();
-        if line.is_empty() {
-            continue;
-        }
-        if let Some((key, value)) = line.split_once(':') {
-            let key = key.trim();
-            let value = value.trim();
-            match key {
-                "id" => id = value.to_string(),
-                "title" => title = value.to_string(),
-                "created_at" => {
-                    created_at = DateTime::parse_from_rfc3339(value)
-                        .ok()
-                        .map(|dt| dt.with_timezone(&Utc));
-                }
-                "updated_at" => {
-                    updated_at = DateTime::parse_from_rfc3339(value)
-                        .ok()
-                        .map(|dt| dt.with_timezone(&Utc));
-                }
-                _ => {
-                    frontmatter.insert(key.to_string(), value.to_string());
-                }
-            }
-        }
-    }
-
-    if id.is_empty() {
-        return Err(ThynkError::ParseError(
-            "missing id in frontmatter".to_string(),
-        ));
-    }
-
-    let now = Utc::now();
-    let body_str = body.to_string();
-    let content_hash = crate::note::compute_hash(&body_str);
-    Ok(Note {
-        id,
-        path: relative_path.to_path_buf(),
-        title,
-        content: body_str,
-        content_hash,
-        frontmatter,
-        created_at: created_at.unwrap_or(now),
-        updated_at: updated_at.unwrap_or(now),
-    })
-}
-
 impl NoteStorage for FilesystemStorage {
+    /// Read raw content from file. Returns a Note with only content+path set;
+    /// caller is responsible for filling in id, title, and timestamps from DB.
     fn read_note(&self, relative_path: &Path) -> Result<Note> {
         let full_path = self.safe_resolve(relative_path)?;
         if !full_path.exists() {
             return Err(ThynkError::NotFound(relative_path.display().to_string()));
         }
         let content = fs::read_to_string(&full_path)?;
-        parse_note(&content, relative_path)
+        let content_hash = crate::note::compute_hash(&content);
+        let now = Utc::now();
+        Ok(Note {
+            id: String::new(),
+            path: relative_path.to_path_buf(),
+            title: String::new(),
+            content,
+            content_hash,
+            frontmatter: std::collections::HashMap::new(),
+            created_at: now,
+            updated_at: now,
+        })
     }
 
+    /// Write only the note's content to disk (no frontmatter).
     fn write_note(&self, note: &Note) -> Result<()> {
         let full_path = self.safe_resolve(&note.path)?;
         if let Some(parent) = full_path.parent() {
             fs::create_dir_all(parent)?;
         }
-        let content = serialize_note(note);
-        fs::write(&full_path, content)?;
+        fs::write(&full_path, &note.content)?;
         Ok(())
     }
 
@@ -213,6 +137,7 @@ fn collect_md_files(base: &Path, dir: &Path, files: &mut Vec<PathBuf>) -> Result
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::note::Note;
 
     #[test]
     fn test_path_traversal_prevention() {
@@ -248,9 +173,14 @@ mod tests {
         storage.write_note(&note).unwrap();
         let loaded = storage.read_note(Path::new("hello.md")).unwrap();
 
-        assert_eq!(loaded.id, note.id);
-        assert_eq!(loaded.title, "Hello");
+        // Storage only persists content+path; id/title come from DB in real usage.
         assert_eq!(loaded.content, "World");
+        assert_eq!(loaded.path, PathBuf::from("hello.md"));
+
+        // Verify the file on disk contains plain content (no frontmatter).
+        let disk_content = std::fs::read_to_string(dir.path().join("hello.md")).unwrap();
+        assert_eq!(disk_content, "World");
+        assert!(!disk_content.contains("---"));
     }
 
     #[test]

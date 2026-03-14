@@ -13,10 +13,12 @@ function App() {
   const activeNote = useNoteStore((s) => s.activeNote);
   const updateNote = useNoteStore((s) => s.updateNote);
   const fetchNotes = useNoteStore((s) => s.fetchNotes);
+  const openNote = useNoteStore((s) => s.openNote);
 
   // Keep a ref to editor content for Ctrl+S force-save.
   // The Editor component manages its own debounce; we expose a save trigger via store.
   const activeSaveRef = useRef<(() => void) | null>(null);
+  const focusTitleRef = useRef<(() => void) | null>(null);
 
   // Apply theme class to document root
   useEffect(() => {
@@ -28,10 +30,10 @@ function App() {
     function handleKeyDown(e: KeyboardEvent) {
       const ctrl = e.metaKey || e.ctrlKey;
 
-      if (ctrl && e.key === 'k') {
+      if ((ctrl && e.key === 'p') || (ctrl && e.key === 'k')) {
         e.preventDefault();
         toggleCommandPalette();
-      } else if (ctrl && e.key === 'n') {
+      } else if (ctrl && e.shiftKey && e.key === 'N') {
         e.preventDefault();
         const title = `Untitled ${new Date().toISOString().slice(0, 10)}`;
         createNote(title);
@@ -41,6 +43,9 @@ function App() {
         if (activeSaveRef.current) {
           activeSaveRef.current();
         }
+      } else if (e.key === 'F2') {
+        e.preventDefault();
+        focusTitleRef.current?.();
       }
     }
     window.addEventListener('keydown', handleKeyDown);
@@ -106,9 +111,29 @@ function App() {
     activeSaveRef.current = saveFn;
   }, []);
 
+  // Expose focusTitle trigger to global ref so F2 can call it
+  const handleRegisterFocusTitle = useCallback((fn: () => void) => {
+    focusTitleRef.current = fn;
+  }, []);
+
+  // Handle browser back/forward navigation
+  useEffect(() => {
+    const handlePopState = () => {
+      const match = window.location.pathname.match(/^\/notes\/(.+)$/);
+      if (match) {
+        openNote(match[1]);
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [openNote]);
+
   return (
     <div className="h-full bg-surface dark:bg-surface-dark">
-      <Layout onEditorSave={handleEditorSave} />
+      <Layout
+        onEditorSave={handleEditorSave}
+        onRegisterFocusTitle={handleRegisterFocusTitle}
+      />
       <CommandPalette />
       <ToastContainer />
     </div>

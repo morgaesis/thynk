@@ -82,14 +82,40 @@ fn index_all_files(db: &Database, storage: &FilesystemStorage) {
     match storage.list_files() {
         Ok(files) => {
             let count = files.len();
-            for path in files {
-                match storage.read_note(&path) {
-                    Ok(note) => {
-                        if let Err(e) = db.index_note(&note) {
-                            warn!("Failed to index {}: {e}", path.display());
-                        }
+            for path in &files {
+                // Read raw content from file.
+                let raw = match storage.read_note(path) {
+                    Ok(n) => n,
+                    Err(e) => {
+                        warn!("Failed to read {}: {e}", path.display());
+                        continue;
                     }
-                    Err(e) => warn!("Failed to read {}: {e}", path.display()),
+                };
+                // Look up existing note by path to preserve ID, or create a new one.
+                let note = match db.get_note_by_path(path) {
+                    Ok(meta) => {
+                        let mut n = thynk_core::Note::new(meta.title, raw.content, path.clone());
+                        n.id = meta.id;
+                        n.created_at = meta.created_at;
+                        n
+                    }
+                    Err(_) => {
+                        // New file: derive title from filename.
+                        let title = path
+                            .file_stem()
+                            .unwrap_or_default()
+                            .to_string_lossy()
+                            .replace(['-', '_'], " ");
+                        let title = if title.is_empty() {
+                            "Untitled".to_string()
+                        } else {
+                            title
+                        };
+                        thynk_core::Note::new(title, raw.content, path.clone())
+                    }
+                };
+                if let Err(e) = db.index_note(&note) {
+                    warn!("Failed to index {}: {e}", path.display());
                 }
             }
             info!("Startup indexing complete: {count} file(s) indexed");
@@ -146,23 +172,49 @@ async fn handle_file_event(event: notify::Event, state: &AppState, data_dir: &Pa
 
         match event.kind {
             EventKind::Create(_) | EventKind::Modify(_) => {
-                let storage = state.storage.lock().await;
-                match storage.read_note(&rel) {
-                    Ok(note) => {
-                        drop(storage);
-                        let db = state.db.lock().await;
-                        if let Err(e) = db.index_note(&note) {
-                            warn!("Re-index failed for {rel_str}: {e}");
-                        } else {
-                            let ev = if matches!(event.kind, EventKind::Create(_)) {
-                                WsEvent::FileCreated { path: rel_str }
-                            } else {
-                                WsEvent::FileModified { path: rel_str }
-                            };
-                            let _ = state.events.send(ev);
+                let raw = {
+                    let storage = state.storage.lock().await;
+                    match storage.read_note(&rel) {
+                        Ok(n) => n,
+                        Err(e) => {
+                            warn!("Failed to read {rel_str} after change: {e}");
+                            continue;
                         }
                     }
-                    Err(e) => warn!("Failed to read {rel_str} after change: {e}"),
+                };
+
+                let db = state.db.lock().await;
+                let note = match db.get_note_by_path(&rel) {
+                    Ok(meta) => {
+                        let mut n = thynk_core::Note::new(meta.title, raw.content, rel.clone());
+                        n.id = meta.id;
+                        n.created_at = meta.created_at;
+                        n
+                    }
+                    Err(_) => {
+                        let title = rel
+                            .file_stem()
+                            .unwrap_or_default()
+                            .to_string_lossy()
+                            .replace(['-', '_'], " ");
+                        let title = if title.is_empty() {
+                            "Untitled".to_string()
+                        } else {
+                            title
+                        };
+                        thynk_core::Note::new(title, raw.content, rel.clone())
+                    }
+                };
+
+                if let Err(e) = db.index_note(&note) {
+                    warn!("Re-index failed for {rel_str}: {e}");
+                } else {
+                    let ev = if matches!(event.kind, EventKind::Create(_)) {
+                        WsEvent::FileCreated { path: rel_str }
+                    } else {
+                        WsEvent::FileModified { path: rel_str }
+                    };
+                    let _ = state.events.send(ev);
                 }
             }
             EventKind::Remove(_) => {
@@ -430,6 +482,50 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(res.status(), StatusCode::NO_CONTENT);
+    }
+
+    #[tokio::test]
+    async fn test_search_finds_note_after_update() {
+        let state = test_state();
+
+        // Create a note.
+        let app = routes::router().with_state(state.clone());
+        let res = app
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/notes")
+                    .header("content-type", "application/json")
+                    .body(Body::from(
+                        serde_json::json!({ "title": "Search Test", "content": "findme keyword" })
+                            .to_string(),
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(res.status(), StatusCode::CREATED);
+
+        // Search for it.
+        let app = routes::router().with_state(state);
+        let res = app
+            .oneshot(
+                Request::builder()
+                    .uri("/api/search?q=findme")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(res.status(), StatusCode::OK);
+        let body = axum::body::to_bytes(res.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let results: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert!(
+            results.as_array().unwrap().len() >= 1,
+            "should find the note"
+        );
     }
 
     #[tokio::test]

@@ -25,6 +25,33 @@ impl<'a> SearchEngine<'a> {
 
     /// Full-text search across notes. Returns results ranked by relevance.
     pub fn search(&self, query: &str) -> Result<Vec<SearchResult>, thynk_core::ThynkError> {
+        let query = query.trim();
+        if query.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        // Build an FTS5 query with prefix wildcards on each term.
+        // Filter out FTS5 special characters to avoid parse errors.
+        let fts_query: String = query
+            .split_whitespace()
+            .filter_map(|word| {
+                let clean: String = word
+                    .chars()
+                    .filter(|c| c.is_alphanumeric() || *c == '_' || *c == '-')
+                    .collect();
+                if clean.is_empty() {
+                    None
+                } else {
+                    Some(format!("{clean}*"))
+                }
+            })
+            .collect::<Vec<_>>()
+            .join(" ");
+
+        if fts_query.is_empty() {
+            return Ok(Vec::new());
+        }
+
         let conn = self.db.conn();
 
         let mut stmt = conn.prepare(
@@ -35,7 +62,7 @@ impl<'a> SearchEngine<'a> {
              ORDER BY rank",
         )?;
 
-        let rows = stmt.query_map(params![query], |row| {
+        let rows = stmt.query_map(params![fts_query], |row| {
             Ok(SearchResult {
                 note_id: row.get(0)?,
                 title: row.get(1)?,
@@ -88,6 +115,23 @@ mod tests {
         let engine = SearchEngine::new(&db);
         let results = engine.search("nonexistent").unwrap();
         assert!(results.is_empty());
+    }
+
+    #[test]
+    fn test_search_prefix_match() {
+        let db = Database::open_in_memory().unwrap();
+        let note = Note::new(
+            "Hello Note".into(),
+            "This note contains the word hello.".into(),
+            PathBuf::from("hello.md"),
+        );
+        db.index_note(&note).unwrap();
+
+        let engine = SearchEngine::new(&db);
+        // Partial prefix "hel" should match "hello".
+        let results = engine.search("hel").unwrap();
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].title, "Hello Note");
     }
 
     #[test]

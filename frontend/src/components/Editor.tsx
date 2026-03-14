@@ -6,13 +6,27 @@ import {
 } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
+import {
+  defaultMarkdownSerializer,
+  defaultMarkdownParser,
+} from '@tiptap/pm/markdown';
 import { useNoteStore } from '../stores/noteStore';
 
 interface Props {
   onRegisterSave?: (saveFn: () => void) => void;
+  onRegisterFocusTitle?: (fn: () => void) => void;
 }
 
-export function Editor({ onRegisterSave }: Props) {
+function getMarkdown(ed: TipTapEditor): string {
+  return defaultMarkdownSerializer.serialize(ed.state.doc);
+}
+
+function setMarkdownContent(ed: TipTapEditor, markdown: string) {
+  const doc = defaultMarkdownParser.parse(markdown || '');
+  ed.commands.setContent(doc ? doc.toJSON() : '');
+}
+
+export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
   const activeNote = useNoteStore((s) => s.activeNote);
   const updateNote = useNoteStore((s) => s.updateNote);
   const saving = useNoteStore((s) => s.saving);
@@ -44,14 +58,14 @@ export function Editor({ onRegisterSave }: Props) {
       if (!note) return;
       if (debounceRef.current) clearTimeout(debounceRef.current);
       debounceRef.current = setTimeout(() => {
-        updateNote(note.id, { content: e.getHTML() });
+        updateNote(note.id, { content: getMarkdown(e) });
       }, 1000);
     },
     onBlur: ({ editor: e }) => {
       const note = activeNoteRef.current;
       if (!note) return;
       if (debounceRef.current) clearTimeout(debounceRef.current);
-      updateNote(note.id, { content: e.getHTML() });
+      updateNote(note.id, { content: getMarkdown(e) });
     },
   });
 
@@ -63,7 +77,7 @@ export function Editor({ onRegisterSave }: Props) {
   // Sync editor content when active note changes
   useEffect(() => {
     if (editor && activeNote) {
-      editor.commands.setContent(activeNote.content || '');
+      setMarkdownContent(editor, activeNote.content || '');
     }
   }, [editor, activeNote?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -72,7 +86,7 @@ export function Editor({ onRegisterSave }: Props) {
     const ed = editorRef.current;
     if (!note || !ed) return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    updateNote(note.id, { content: ed.getHTML() });
+    updateNote(note.id, { content: getMarkdown(ed) });
     if (titleRef.current) {
       const newTitle = titleRef.current.value.trim();
       if (newTitle && newTitle !== note.title) {
@@ -87,6 +101,11 @@ export function Editor({ onRegisterSave }: Props) {
       onRegisterSave(forceSave);
     }
   }, [onRegisterSave, forceSave]);
+
+  // Register focusTitle function with parent so F2 can trigger it
+  useEffect(() => {
+    onRegisterFocusTitle?.(() => titleRef.current?.focus());
+  }, [onRegisterFocusTitle]);
 
   const handleTitleBlur = useCallback(() => {
     const note = activeNoteRef.current;
@@ -124,7 +143,7 @@ export function Editor({ onRegisterSave }: Props) {
           <p className="text-sm text-text-muted dark:text-text-muted-dark mt-2">
             Press{' '}
             <kbd className="px-1.5 py-0.5 rounded bg-border dark:bg-border-dark text-xs">
-              Ctrl+N
+              Ctrl+Shift+N
             </kbd>{' '}
             to create a note or{' '}
             <kbd className="px-1.5 py-0.5 rounded bg-border dark:bg-border-dark text-xs">

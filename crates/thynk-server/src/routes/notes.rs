@@ -55,15 +55,24 @@ pub async fn get_note(State(state): State<AppState>, Path(id): Path<String>) -> 
     };
 
     let storage = state.storage.lock().await;
-    match storage.read_note(&meta.path) {
-        Ok(note) => (StatusCode::OK, Json(serde_json::to_value(note).unwrap())).into_response(),
-        Err(e) => err(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "storage_error",
-            &e.to_string(),
-        )
-        .into_response(),
-    }
+    let mut note = match storage.read_note(&meta.path) {
+        Ok(n) => n,
+        Err(e) => {
+            return err(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "storage_error",
+                &e.to_string(),
+            )
+            .into_response();
+        }
+    };
+    // Fill in metadata from DB (storage only knows content+path).
+    note.id = meta.id;
+    note.title = meta.title;
+    note.content_hash = meta.content_hash;
+    note.created_at = meta.created_at;
+    note.updated_at = meta.updated_at;
+    (StatusCode::OK, Json(serde_json::to_value(note).unwrap())).into_response()
 }
 
 // ── POST /api/notes ──────────────────────────────────────────────────────────
@@ -192,6 +201,40 @@ pub async fn update_note(
             .into_response();
         }
     };
+    // Fill in metadata from DB (storage only knows content+path).
+    note.id = meta.id.clone();
+    note.title = meta.title.clone();
+    note.created_at = meta.created_at;
+    note.updated_at = meta.updated_at;
+
+    // Auto-rename file based on new title (if no explicit path change requested).
+    if body.path.is_none() {
+        if let Some(ref new_title) = body.title {
+            let slug: String = new_title
+                .to_lowercase()
+                .chars()
+                .map(|c| {
+                    if c.is_alphanumeric() || c == '-' {
+                        c
+                    } else {
+                        '-'
+                    }
+                })
+                .collect::<String>()
+                .trim_matches('-')
+                .to_string();
+            let slug = if slug.is_empty() {
+                "untitled".to_string()
+            } else {
+                slug
+            };
+            let new_path = PathBuf::from(format!("{slug}.md"));
+            if new_path != note.path && !storage.exists(&new_path) {
+                let _ = storage.delete_note(&note.path);
+                note.path = new_path;
+            }
+        }
+    }
 
     if let Some(title) = body.title {
         note.title = title;

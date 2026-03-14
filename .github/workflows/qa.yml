@@ -24,16 +24,26 @@ jobs:
   rust:
     name: Rust QA
     runs-on: ubuntu-latest
-    if: hashFiles('Cargo.toml') != ''
     steps:
       - uses: actions/checkout@v4
 
+      - name: Check if Rust project exists
+        id: check
+        run: |
+          if [ -f Cargo.toml ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Install Rust toolchain
+        if: steps.check.outputs.exists == 'true'
         uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy, rustfmt
 
       - name: Cache cargo
+        if: steps.check.outputs.exists == 'true'
         uses: actions/cache@v4
         with:
           path: |
@@ -43,28 +53,42 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Check
+        if: steps.check.outputs.exists == 'true'
         run: cargo check --quiet
 
       - name: Clippy
+        if: steps.check.outputs.exists == 'true'
         run: cargo clippy --quiet -- -D warnings
 
       - name: Format
+        if: steps.check.outputs.exists == 'true'
         run: cargo fmt --check
 
   frontend:
     name: Frontend QA
     runs-on: ubuntu-latest
-    if: hashFiles('package.json') != ''
     steps:
       - uses: actions/checkout@v4
 
+      - name: Check if frontend project exists
+        id: check
+        run: |
+          if [ -f package.json ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Setup Bun
+        if: steps.check.outputs.exists == 'true'
         uses: oven-sh/setup-bun@v2
 
       - name: Install dependencies
+        if: steps.check.outputs.exists == 'true'
         run: bun install --frozen-lockfile
 
       - name: Lint
+        if: steps.check.outputs.exists == 'true'
         run: bun run lint
 
   secret-scan:

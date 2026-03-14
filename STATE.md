@@ -1,9 +1,9 @@
 # STATE.md - Thynk Current Status
 
-## Project Status: PHASE 1 IN PROGRESS
+## Project Status: PHASE 1 COMPLETE
 
-**Current Phase:** Phase 1 -- Foundation
-**Overall Progress:** Scaffold complete, core API functional
+**Current Phase:** Phase 2 -- Knowledge & Data (starting next)
+**Overall Progress:** Phase 1 complete and production-quality
 
 ---
 
@@ -41,23 +41,44 @@
 
 ### Code Progress
 
-| Component           | Status      | Phase   |
-| ------------------- | ----------- | ------- |
-| Project Scaffold    | Done        | Phase 1 |
-| Rust Backend (Axum) | Done        | Phase 1 |
-| SQLite Layer        | Done        | Phase 1 |
-| TipTap Editor       | Scaffolded  | Phase 1 |
-| File Tree / Sidebar | Scaffolded  | Phase 1 |
-| Search (FTS5)       | Done        | Phase 1 |
-| Linking System      | Not Started | Phase 2 |
-| Database Views      | Not Started | Phase 2 |
-| Page Locking        | Not Started | Phase 2 |
-| Automations         | Not Started | Phase 2 |
-| AI Integration      | Not Started | Phase 3 |
-| Sync Engine         | Not Started | Phase 3 |
-| Cloud Deployment    | Not Started | Phase 3 |
-| P2P Collaboration   | Not Started | Phase 4 |
-| Desktop Apps        | Not Started | Phase 4 |
+| Component               | Status      | Phase   |
+| ----------------------- | ----------- | ------- |
+| Project Scaffold        | Done        | Phase 1 |
+| Rust Backend (Axum)     | Done        | Phase 1 |
+| SQLite Layer + FTS5     | Done        | Phase 1 |
+| Note CRUD API           | Done        | Phase 1 |
+| Content Hash (SHA-256)  | Done        | Phase 1 |
+| If-Match concurrency    | Done        | Phase 1 |
+| Startup file indexing   | Done        | Phase 1 |
+| File watcher (notify)   | Done        | Phase 1 |
+| WebSocket (/api/ws)     | Done        | Phase 1 |
+| Static file serving     | Done        | Phase 1 |
+| TipTap Editor           | Done        | Phase 1 |
+| Sidebar + File tree     | Done        | Phase 1 |
+| Command palette (FTS5)  | Done        | Phase 1 |
+| Delete notes            | Done        | Phase 1 |
+| Error toasts            | Done        | Phase 1 |
+| Keyboard shortcuts      | Done        | Phase 1 |
+| Dark/light theme        | Done        | Phase 1 |
+| THYNK_DATA_DIR env var  | Done        | Phase 1 |
+| Linking System          | Not Started | Phase 2 |
+| Graph View              | Not Started | Phase 2 |
+| Tags                    | Not Started | Phase 2 |
+| Templates / Daily Notes | Not Started | Phase 2 |
+| Database Views          | Not Started | Phase 2 |
+| Page Locking            | Not Started | Phase 2 |
+| Automations             | Not Started | Phase 2 |
+| AI Integration          | Not Started | Phase 3 |
+| Sync Engine             | Not Started | Phase 3 |
+| Cloud Deployment        | Not Started | Phase 3 |
+| P2P Collaboration       | Not Started | Phase 4 |
+| Desktop Apps            | Not Started | Phase 4 |
+
+### Phase 1 Exit Criteria (all met)
+
+- [x] Create and edit markdown notes in the browser, backed by real files on the filesystem
+- [x] Search across all notes with sub-100ms results (SQLite FTS5)
+- [x] Clean, responsive UI with sidebar navigation and command palette
 
 ---
 
@@ -74,13 +95,14 @@
 
 ---
 
-## Next Steps
+## Phase 2 Next Steps
 
-1. **Wire frontend to backend** -- connect React app to Rust API, dev proxy working
-2. **Command palette** -- Ctrl+K fuzzy search with MiniSearch
-3. **Theming** -- light/dark theme with CSS variables + Tailwind
-4. **Polish editor** -- markdown serialization, slash commands, code block highlighting
-5. **End-to-end tests** -- integration tests for the full stack
+1. **Wiki-links** -- `[[note title]]` syntax with backlinks and hover previews
+2. **Graph view** -- D3.js or similar, visualize note connections
+3. **Tags** -- frontmatter tags, tag browser, filter by tag
+4. **Templates** -- note templates, daily note shortcut
+5. **Tables / database views** -- structured data in notes
+6. **Import/export** -- Obsidian vault import, markdown export zip
 
 ---
 

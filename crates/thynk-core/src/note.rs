@@ -3,6 +3,7 @@ use std::path::PathBuf;
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 
 /// Full note representation including content.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -11,6 +12,7 @@ pub struct Note {
     pub path: PathBuf,
     pub title: String,
     pub content: String,
+    pub content_hash: String,
     pub frontmatter: HashMap<String, String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -22,17 +24,26 @@ pub struct NoteMetadata {
     pub id: String,
     pub path: PathBuf,
     pub title: String,
+    pub content_hash: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+}
+
+pub fn compute_hash(content: &str) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(content.as_bytes());
+    format!("{:x}", hasher.finalize())
 }
 
 impl Note {
     pub fn new(title: String, content: String, path: PathBuf) -> Self {
         let now = Utc::now();
+        let content_hash = compute_hash(&content);
         Self {
             id: uuid::Uuid::new_v4().to_string(),
             path,
             title,
+            content_hash,
             content,
             frontmatter: HashMap::new(),
             created_at: now,
@@ -40,11 +51,16 @@ impl Note {
         }
     }
 
+    pub fn update_hash(&mut self) {
+        self.content_hash = compute_hash(&self.content);
+    }
+
     pub fn metadata(&self) -> NoteMetadata {
         NoteMetadata {
             id: self.id.clone(),
             path: self.path.clone(),
             title: self.title.clone(),
+            content_hash: self.content_hash.clone(),
             created_at: self.created_at,
             updated_at: self.updated_at,
         }
@@ -67,6 +83,7 @@ mod tests {
         assert_eq!(note.content, "Some content");
         assert_eq!(note.path, PathBuf::from("test.md"));
         assert!(!note.id.is_empty());
+        assert!(!note.content_hash.is_empty());
         assert!(note.frontmatter.is_empty());
         assert!(note.created_at <= Utc::now());
     }
@@ -83,5 +100,22 @@ mod tests {
         assert_eq!(meta.id, note.id);
         assert_eq!(meta.title, note.title);
         assert_eq!(meta.path, note.path);
+        assert_eq!(meta.content_hash, note.content_hash);
+    }
+
+    #[test]
+    fn test_content_hash_changes_with_content() {
+        let note1 = Note::new("T".to_string(), "Hello".to_string(), PathBuf::from("a.md"));
+        let note2 = Note::new("T".to_string(), "World".to_string(), PathBuf::from("b.md"));
+        assert_ne!(note1.content_hash, note2.content_hash);
+    }
+
+    #[test]
+    fn test_update_hash() {
+        let mut note = Note::new("T".to_string(), "old".to_string(), PathBuf::from("a.md"));
+        let old_hash = note.content_hash.clone();
+        note.content = "new".to_string();
+        note.update_hash();
+        assert_ne!(note.content_hash, old_hash);
     }
 }

@@ -13,6 +13,7 @@ pub trait NoteStorage {
     fn write_note(&self, note: &Note) -> Result<()>;
     fn delete_note(&self, relative_path: &Path) -> Result<()>;
     fn list_files(&self) -> Result<Vec<PathBuf>>;
+    fn exists(&self, relative_path: &Path) -> bool;
 }
 
 /// Filesystem-backed note storage with path traversal prevention.
@@ -25,6 +26,10 @@ impl FilesystemStorage {
         fs::create_dir_all(&data_dir)?;
         let data_dir = data_dir.canonicalize()?;
         Ok(Self { data_dir })
+    }
+
+    pub fn data_dir(&self) -> &PathBuf {
+        &self.data_dir
     }
 
     /// Resolve a relative path against data_dir, preventing traversal outside it.
@@ -131,11 +136,14 @@ fn parse_note(content: &str, relative_path: &Path) -> Result<Note> {
     }
 
     let now = Utc::now();
+    let body_str = body.to_string();
+    let content_hash = crate::note::compute_hash(&body_str);
     Ok(Note {
         id,
         path: relative_path.to_path_buf(),
         title,
-        content: body.to_string(),
+        content: body_str,
+        content_hash,
         frontmatter,
         created_at: created_at.unwrap_or(now),
         updated_at: updated_at.unwrap_or(now),
@@ -175,6 +183,12 @@ impl NoteStorage for FilesystemStorage {
         let mut files = Vec::new();
         collect_md_files(&self.data_dir, &self.data_dir, &mut files)?;
         Ok(files)
+    }
+
+    fn exists(&self, relative_path: &Path) -> bool {
+        self.safe_resolve(relative_path)
+            .map(|p| p.exists())
+            .unwrap_or(false)
     }
 }
 

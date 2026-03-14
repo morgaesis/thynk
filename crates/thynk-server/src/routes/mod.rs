@@ -1,6 +1,7 @@
 pub mod notes;
 pub mod search;
 pub mod tree;
+pub mod ws;
 
 use axum::routing::get;
 use axum::Router;
@@ -21,4 +22,5 @@ pub fn router() -> Router<AppState> {
         )
         .route("/api/search", get(search::search))
         .route("/api/tree", get(tree::file_tree))
+        .route("/api/ws", get(ws::ws_handler))
 }

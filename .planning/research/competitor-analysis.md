@@ -3,6 +3,7 @@
 ## Obsidian (Primary Target to Beat)
 
 ### Core Value Proposition
+
 - Local-first, privacy-focused note-taking
 - Markdown-based with bidirectional linking
 - Plugin ecosystem (1000+ plugins)
@@ -10,6 +11,7 @@
 - Free for personal use, paid sync/publish
 
 ### Strengths
+
 - Strong privacy stance (local-first)
 - Extensible plugin system
 - Active community
@@ -17,6 +19,7 @@
 - Cross-platform (Desktop + Mobile)
 
 ### Weaknesses
+
 - Steep learning curve
 - Sync requires paid subscription
 - Mobile app can be slow
@@ -24,6 +27,7 @@
 - Plugin compatibility issues between versions
 
 ### Pricing
+
 - Free for personal use
 - Commercial license: $50/year
 - Sync: $4/month ($48/year)
@@ -34,11 +38,13 @@
 ## Notion
 
 ### Core Value Proposition
+
 - All-in-one workspace (notes, docs, databases, project management)
 - AI-powered features
 - Team collaboration native
 
 ### Strengths
+
 - Excellent collaboration
 - Beautiful UI/UX
 - Rich database capabilities
@@ -46,6 +52,7 @@
 - Growing AI features
 
 ### Weaknesses
+
 - Cloud-only (privacy concerns)
 - Subscription-based (free tier limited)
 - Performance issues with large databases
@@ -53,6 +60,7 @@
 - Offline mode is limited
 
 ### Pricing
+
 - Free tier (limited)
 - Plus: $10/month
 - Business: $18/month
@@ -63,12 +71,14 @@
 ## Logseq
 
 ### Core Value Proposition
+
 - Privacy-first, open-source
 - Outliner-first design
 - Local-first
 - Bidirectional linking
 
 ### Strengths
+
 - Open source (free forever)
 - Local-first privacy
 - Strong outliner functionality
@@ -76,6 +86,7 @@
 - Active development
 
 ### Weaknesses
+
 - Smaller ecosystem than Obsidian
 - Learning curve
 - Mobile app less polished
@@ -83,6 +94,7 @@
 - Outliner paradigm not for everyone
 
 ### Pricing
+
 - Free and open source
 
 ---
@@ -90,17 +102,20 @@
 ## Roam Research
 
 ### Core Value Proposition
+
 - "Networked thought" - bi-directional linking pioneer
 - Outliner-based
 - Graph overview
 
 ### Strengths
+
 - Powerful linking system
 - Daily notes workflow
 - Query capabilities
 - Pioneered many features others copied
 
 ### Weaknesses
+
 - Expensive ($15/month or $165/year)
 - Cloud-only
 - Performance issues with large graphs
@@ -108,6 +123,7 @@
 - Controversial pricing history
 
 ### Pricing
+
 - Personal: $15/month ($180/year)
 - Pro: $20/month
 - Believer: $500 lifetime (was $500, now uncertain)
@@ -117,23 +133,27 @@
 ## Reflect
 
 ### Core Value Proposition
+
 - Fast, minimal note-taking
 - AI-native
 - Bi-directional linking
 
 ### Strengths
+
 - Beautiful, minimal design
 - Strong AI integration
 - Fast performance
 - Good mobile app
 
 ### Weaknesses
+
 - Expensive subscription
 - Smaller ecosystem
 - Limited customization
 - Newer, less mature
 
 ### Pricing
+
 - Personal: $10/month ($120/year)
 - Team: $20/month
 
@@ -155,22 +175,27 @@
 ## Tech Stack Options for Cross-Platform
 
 ### Electron (Obsidian's approach)
+
 - Pros: Mature ecosystem, easy plugins, full Node.js access
 - Cons: Heavy, slow startup, large bundle size
 
 ### Tauri (Newer alternative)
+
 - Pros: Lightweight, Rust backend, smaller bundles
 - Cons: Younger ecosystem, fewer plugins, Rust learning curve
 
 ### React Native + Desktop
+
 - Pros: Shared codebase, mobile-first
 - Cons: Desktop feels like mobile port, limited native features
 
 ### Flutter
+
 - Pros: True cross-platform, performance
 - Cons: Dart language, less native feel
 
 ### Web-First + PWA
+
 - Pros: Instant access, no install
 - Cons: Limited offline, no file system access
 
@@ -179,6 +204,7 @@
 ## Recommendations for "Obsidian Killer"
 
 ### Must Match
+
 - Local-first architecture
 - Markdown-based
 - Bi-directional linking
@@ -186,6 +212,7 @@
 - Cross-platform
 
 ### Must Improve
+
 - Onboarding experience
 - Mobile performance
 - Native AI integration
@@ -193,6 +220,7 @@
 - Collaboration options
 
 ### Potential Differentiators
+
 - Local-first AI (on-device models)
 - Hybrid sync (local + selective cloud)
 - Better mobile experience

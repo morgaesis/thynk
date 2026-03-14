@@ -1,21 +1,35 @@
 import { useEffect, useRef, useCallback } from 'react';
-import { useEditor, EditorContent } from '@tiptap/react';
+import {
+  useEditor,
+  EditorContent,
+  type Editor as TipTapEditor,
+} from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import { useNoteStore } from '../stores/noteStore';
 
-export function Editor() {
+interface Props {
+  onRegisterSave?: (saveFn: () => void) => void;
+}
+
+export function Editor({ onRegisterSave }: Props) {
   const activeNote = useNoteStore((s) => s.activeNote);
   const updateNote = useNoteStore((s) => s.updateNote);
   const saving = useNoteStore((s) => s.saving);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const titleRef = useRef<HTMLInputElement>(null);
+  const activeNoteRef = useRef(activeNote);
+  const editorRef = useRef<TipTapEditor | null>(null);
+
+  useEffect(() => {
+    activeNoteRef.current = activeNote;
+  }, [activeNote]);
 
   const editor = useEditor({
     extensions: [
       StarterKit,
       Placeholder.configure({
-        placeholder: 'Start writing...',
+        placeholder: 'Start writing…',
       }),
     ],
     content: '',
@@ -25,19 +39,26 @@ export function Editor() {
           'prose dark:prose-invert max-w-none focus:outline-none min-h-[300px]',
       },
     },
-    onUpdate: ({ editor }) => {
-      if (!activeNote) return;
+    onUpdate: ({ editor: e }) => {
+      const note = activeNoteRef.current;
+      if (!note) return;
       if (debounceRef.current) clearTimeout(debounceRef.current);
       debounceRef.current = setTimeout(() => {
-        updateNote(activeNote.id, { content: editor.getHTML() });
+        updateNote(note.id, { content: e.getHTML() });
       }, 1000);
     },
-    onBlur: ({ editor }) => {
-      if (!activeNote) return;
+    onBlur: ({ editor: e }) => {
+      const note = activeNoteRef.current;
+      if (!note) return;
       if (debounceRef.current) clearTimeout(debounceRef.current);
-      updateNote(activeNote.id, { content: editor.getHTML() });
+      updateNote(note.id, { content: e.getHTML() });
     },
   });
+
+  // Keep editorRef in sync
+  useEffect(() => {
+    editorRef.current = editor ?? null;
+  }, [editor]);
 
   // Sync editor content when active note changes
   useEffect(() => {
@@ -46,13 +67,35 @@ export function Editor() {
     }
   }, [editor, activeNote?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleTitleBlur = useCallback(() => {
-    if (!activeNote || !titleRef.current) return;
-    const newTitle = titleRef.current.value.trim();
-    if (newTitle && newTitle !== activeNote.title) {
-      updateNote(activeNote.id, { title: newTitle });
+  const forceSave = useCallback(() => {
+    const note = activeNoteRef.current;
+    const ed = editorRef.current;
+    if (!note || !ed) return;
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    updateNote(note.id, { content: ed.getHTML() });
+    if (titleRef.current) {
+      const newTitle = titleRef.current.value.trim();
+      if (newTitle && newTitle !== note.title) {
+        updateNote(note.id, { title: newTitle });
+      }
     }
-  }, [activeNote, updateNote]);
+  }, [updateNote]);
+
+  // Register save function with parent so Ctrl+S can trigger it
+  useEffect(() => {
+    if (onRegisterSave) {
+      onRegisterSave(forceSave);
+    }
+  }, [onRegisterSave, forceSave]);
+
+  const handleTitleBlur = useCallback(() => {
+    const note = activeNoteRef.current;
+    if (!note || !titleRef.current) return;
+    const newTitle = titleRef.current.value.trim();
+    if (newTitle && newTitle !== note.title) {
+      updateNote(note.id, { title: newTitle });
+    }
+  }, [updateNote]);
 
   const handleTitleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -81,6 +124,10 @@ export function Editor() {
           <p className="text-sm text-text-muted dark:text-text-muted-dark mt-2">
             Press{' '}
             <kbd className="px-1.5 py-0.5 rounded bg-border dark:bg-border-dark text-xs">
+              Ctrl+N
+            </kbd>{' '}
+            to create a note or{' '}
+            <kbd className="px-1.5 py-0.5 rounded bg-border dark:bg-border-dark text-xs">
               Ctrl+K
             </kbd>{' '}
             to search
@@ -106,12 +153,14 @@ export function Editor() {
           placeholder="Untitled"
         />
 
-        {/* Saving indicator */}
-        {saving && (
-          <p className="text-xs text-text-muted dark:text-text-muted-dark mb-4">
-            Saving...
-          </p>
-        )}
+        {/* Status bar */}
+        <div className="flex items-center gap-3 mb-4 text-xs text-text-muted dark:text-text-muted-dark">
+          {saving ? <span>Saving…</span> : <span>Saved</span>}
+          <span>·</span>
+          <span className="tabular-nums">
+            {new Date(activeNote.updated_at).toLocaleString()}
+          </span>
+        </div>
 
         {/* Editor */}
         <EditorContent

@@ -3,6 +3,7 @@ export interface Note {
   path: string;
   title: string;
   content: string;
+  content_hash: string;
   created_at: string;
   updated_at: string;
 }
@@ -11,6 +12,7 @@ export interface NoteMetadata {
   id: string;
   path: string;
   title: string;
+  content_hash: string;
   created_at: string;
   updated_at: string;
 }
@@ -25,7 +27,5 @@ export interface SearchResult {
 
 export interface TreeNode {
   name: string;
-  path: string;
-  is_dir: boolean;
   children?: TreeNode[];
 }

@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { VscSearch } from 'react-icons/vsc';
-import type { NoteMetadata } from '../types';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { VscSearch, VscLoading } from 'react-icons/vsc';
+import type { NoteMetadata, SearchResult } from '../types';
+import * as api from '../api';
 
 interface Props {
   notes: NoteMetadata[];
@@ -15,23 +16,64 @@ interface Props {
 export function CommandPaletteInner({ notes, onSelect, onClose }: Props) {
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [searching, setSearching] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-
-  const filtered = useMemo(() => {
-    if (!query) return notes;
-    const lower = query.toLowerCase();
-    return notes.filter((n) => n.title.toLowerCase().includes(lower));
-  }, [notes, query]);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Focus input on mount
   useEffect(() => {
     requestAnimationFrame(() => inputRef.current?.focus());
   }, []);
 
+  // Run API search when query changes (debounced)
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+
+    if (!query.trim()) {
+      setSearchResults([]);
+      setSearching(false);
+      return;
+    }
+
+    setSearching(true);
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const results = await api.searchNotes(query.trim());
+        setSearchResults(results);
+      } catch {
+        setSearchResults([]);
+      } finally {
+        setSearching(false);
+      }
+    }, 150);
+
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [query]);
+
+  // Items to display: search results when querying, all notes otherwise
+  const items: Array<{ id: string; title: string; subtitle: string }> =
+    query.trim()
+      ? searchResults.map((r) => ({
+          id: r.note_id,
+          title: r.title,
+          subtitle: r.snippet.replace(/<\/?mark>/g, ''),
+        }))
+      : notes.map((n) => ({
+          id: n.id,
+          title: n.title,
+          subtitle: typeof n.path === 'string' ? n.path : String(n.path),
+        }));
+
+  useEffect(() => {
+    setSelectedIndex(0);
+  }, [query, searchResults.length]);
+
   const handleQueryChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       setQuery(e.target.value);
-      setSelectedIndex(0);
     },
     [],
   );
@@ -41,7 +83,7 @@ export function CommandPaletteInner({ notes, onSelect, onClose }: Props) {
       switch (e.key) {
         case 'ArrowDown':
           e.preventDefault();
-          setSelectedIndex((i) => Math.min(i + 1, filtered.length - 1));
+          setSelectedIndex((i) => Math.min(i + 1, items.length - 1));
           break;
         case 'ArrowUp':
           e.preventDefault();
@@ -49,8 +91,8 @@ export function CommandPaletteInner({ notes, onSelect, onClose }: Props) {
           break;
         case 'Enter':
           e.preventDefault();
-          if (filtered[selectedIndex]) {
-            onSelect(filtered[selectedIndex].id);
+          if (items[selectedIndex]) {
+            onSelect(items[selectedIndex].id);
           }
           break;
         case 'Escape':
@@ -59,7 +101,7 @@ export function CommandPaletteInner({ notes, onSelect, onClose }: Props) {
           break;
       }
     },
-    [filtered, selectedIndex, onSelect, onClose],
+    [items, selectedIndex, onSelect, onClose],
   );
 
   return (
@@ -79,10 +121,17 @@ export function CommandPaletteInner({ notes, onSelect, onClose }: Props) {
       >
         {/* Search input */}
         <div className="flex items-center gap-3 px-4 py-3 border-b border-border dark:border-border-dark">
-          <VscSearch
-            size={18}
-            className="text-text-muted dark:text-text-muted-dark shrink-0"
-          />
+          {searching ? (
+            <VscLoading
+              size={18}
+              className="text-text-muted dark:text-text-muted-dark shrink-0 animate-spin"
+            />
+          ) : (
+            <VscSearch
+              size={18}
+              className="text-text-muted dark:text-text-muted-dark shrink-0"
+            />
+          )}
           <input
             ref={inputRef}
             value={query}
@@ -93,19 +142,27 @@ export function CommandPaletteInner({ notes, onSelect, onClose }: Props) {
                        text-text dark:text-text-dark
                        placeholder:text-text-muted dark:placeholder:text-text-muted-dark"
           />
+          {query && (
+            <button
+              onClick={() => setQuery('')}
+              className="text-xs text-text-muted dark:text-text-muted-dark hover:text-text dark:hover:text-text-dark"
+            >
+              Clear
+            </button>
+          )}
         </div>
 
         {/* Results */}
         <ul className="max-h-64 overflow-y-auto py-2">
-          {filtered.length === 0 && (
+          {items.length === 0 && !searching && (
             <li className="px-4 py-3 text-sm text-text-muted dark:text-text-muted-dark">
               {query ? 'No matching notes found.' : 'No notes available.'}
             </li>
           )}
-          {filtered.map((note, i) => (
-            <li key={note.id}>
+          {items.map((item, i) => (
+            <li key={item.id}>
               <button
-                onClick={() => onSelect(note.id)}
+                onClick={() => onSelect(item.id)}
                 className={`w-full text-left px-4 py-2 text-sm transition-colors
                   ${
                     i === selectedIndex
@@ -113,14 +170,38 @@ export function CommandPaletteInner({ notes, onSelect, onClose }: Props) {
                       : 'text-text dark:text-text-dark hover:bg-border dark:hover:bg-border-dark'
                   }`}
               >
-                <span className="block truncate">{note.title}</span>
-                <span className="block text-xs text-text-muted dark:text-text-muted-dark truncate">
-                  {note.path}
-                </span>
+                <span className="block truncate font-medium">{item.title}</span>
+                {item.subtitle && (
+                  <span className="block text-xs text-text-muted dark:text-text-muted-dark truncate mt-0.5">
+                    {item.subtitle}
+                  </span>
+                )}
               </button>
             </li>
           ))}
         </ul>
+
+        {/* Footer hint */}
+        <div className="px-4 py-2 border-t border-border dark:border-border-dark flex items-center gap-3 text-xs text-text-muted dark:text-text-muted-dark">
+          <span>
+            <kbd className="px-1 py-0.5 rounded bg-border dark:bg-border-dark text-[10px]">
+              ↑↓
+            </kbd>{' '}
+            navigate
+          </span>
+          <span>
+            <kbd className="px-1 py-0.5 rounded bg-border dark:bg-border-dark text-[10px]">
+              ↵
+            </kbd>{' '}
+            open
+          </span>
+          <span>
+            <kbd className="px-1 py-0.5 rounded bg-border dark:bg-border-dark text-[10px]">
+              Esc
+            </kbd>{' '}
+            close
+          </span>
+        </div>
       </div>
     </div>
   );

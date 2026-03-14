@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { Note, NoteMetadata } from '../types';
 import * as api from '../api';
+import { useUIStore } from './uiStore';
 
 interface NoteStore {
   notes: NoteMetadata[];
@@ -33,7 +34,9 @@ export const useNoteStore = create<NoteStore>((set, get) => ({
       const notes = await api.listNotes();
       set({ notes, loading: false });
     } catch (e) {
-      set({ error: (e as Error).message, loading: false });
+      const msg = (e as Error).message;
+      set({ error: msg, loading: false });
+      useUIStore.getState().addToast('error', `Failed to load notes: ${msg}`);
     }
   },
 
@@ -43,7 +46,9 @@ export const useNoteStore = create<NoteStore>((set, get) => ({
       const note = await api.getNote(id);
       set({ activeNote: note, loading: false });
     } catch (e) {
-      set({ error: (e as Error).message, loading: false });
+      const msg = (e as Error).message;
+      set({ error: msg, loading: false });
+      useUIStore.getState().addToast('error', `Failed to open note: ${msg}`);
     }
   },
 
@@ -54,7 +59,9 @@ export const useNoteStore = create<NoteStore>((set, get) => ({
       set({ activeNote: note, loading: false });
       await get().fetchNotes();
     } catch (e) {
-      set({ error: (e as Error).message, loading: false });
+      const msg = (e as Error).message;
+      set({ error: msg, loading: false });
+      useUIStore.getState().addToast('error', `Failed to create note: ${msg}`);
     }
   },
 
@@ -66,12 +73,13 @@ export const useNoteStore = create<NoteStore>((set, get) => ({
     try {
       const note = await api.updateNote(id, data);
       set({ activeNote: note, saving: false });
-      // Refresh the list to reflect title changes
       if (data.title) {
         await get().fetchNotes();
       }
     } catch (e) {
-      set({ error: (e as Error).message, saving: false });
+      const msg = (e as Error).message;
+      set({ error: msg, saving: false });
+      useUIStore.getState().addToast('error', `Failed to save note: ${msg}`);
     }
   },
 
@@ -86,7 +94,9 @@ export const useNoteStore = create<NoteStore>((set, get) => ({
       set({ loading: false });
       await get().fetchNotes();
     } catch (e) {
-      set({ error: (e as Error).message, loading: false });
+      const msg = (e as Error).message;
+      set({ error: msg, loading: false });
+      useUIStore.getState().addToast('error', `Failed to delete note: ${msg}`);
     }
   },
 

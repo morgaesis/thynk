@@ -1,9 +1,10 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useState } from 'react';
 import {
   VscNewFile,
   VscFile,
   VscChevronRight,
-  VscChevronDown,
+  VscChevronLeft,
+  VscTrash,
 } from 'react-icons/vsc';
 import { useNoteStore } from '../stores/noteStore';
 import { useUIStore } from '../stores/uiStore';
@@ -12,11 +13,16 @@ import { ThemeToggle } from './ThemeToggle';
 export function Sidebar() {
   const notes = useNoteStore((s) => s.notes);
   const activeNote = useNoteStore((s) => s.activeNote);
+  const loading = useNoteStore((s) => s.loading);
   const fetchNotes = useNoteStore((s) => s.fetchNotes);
   const openNote = useNoteStore((s) => s.openNote);
   const createNote = useNoteStore((s) => s.createNote);
+  const deleteNote = useNoteStore((s) => s.deleteNote);
   const sidebarOpen = useUIStore((s) => s.sidebarOpen);
   const toggleSidebar = useUIStore((s) => s.toggleSidebar);
+
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchNotes();
@@ -26,6 +32,21 @@ export function Sidebar() {
     const title = `Untitled ${new Date().toISOString().slice(0, 10)}`;
     createNote(title);
   }, [createNote]);
+
+  const handleDeleteClick = useCallback(
+    (e: React.MouseEvent, id: string) => {
+      e.stopPropagation();
+      if (confirmDeleteId === id) {
+        deleteNote(id);
+        setConfirmDeleteId(null);
+      } else {
+        setConfirmDeleteId(id);
+        // Auto-cancel confirm after 3 seconds
+        setTimeout(() => setConfirmDeleteId(null), 3000);
+      }
+    },
+    [confirmDeleteId, deleteNote],
+  );
 
   if (!sidebarOpen) {
     return (
@@ -62,7 +83,7 @@ export function Sidebar() {
                        hover:bg-border dark:hover:bg-border-dark transition-colors"
             title="Collapse sidebar"
           >
-            <VscChevronDown size={16} className="rotate-90" />
+            <VscChevronLeft size={16} />
           </button>
         </div>
       </div>
@@ -71,9 +92,11 @@ export function Sidebar() {
       <div className="px-3 py-2">
         <button
           onClick={handleNewNote}
+          disabled={loading}
           className="flex items-center gap-2 w-full px-3 py-2 text-sm rounded-md
                      text-text-muted dark:text-text-muted-dark
-                     hover:bg-border dark:hover:bg-border-dark transition-colors"
+                     hover:bg-border dark:hover:bg-border-dark transition-colors
+                     disabled:opacity-50"
         >
           <VscNewFile size={16} />
           New Note
@@ -82,13 +105,26 @@ export function Sidebar() {
 
       {/* Note list */}
       <nav className="flex-1 overflow-y-auto px-3 pb-3">
+        {loading && notes.length === 0 && (
+          <p className="text-xs text-text-muted dark:text-text-muted-dark px-3 py-4">
+            Loading…
+          </p>
+        )}
         <ul className="space-y-0.5">
           {notes.map((note) => (
-            <li key={note.id}>
+            <li
+              key={note.id}
+              className="group relative"
+              onMouseEnter={() => setHoveredId(note.id)}
+              onMouseLeave={() => {
+                setHoveredId(null);
+                if (confirmDeleteId === note.id) setConfirmDeleteId(null);
+              }}
+            >
               <button
                 onClick={() => openNote(note.id)}
                 className={`flex items-center gap-2 w-full px-3 py-1.5 text-sm rounded-md
-                  transition-colors text-left truncate
+                  transition-colors text-left
                   ${
                     activeNote?.id === note.id
                       ? 'bg-accent/10 text-accent dark:text-accent'
@@ -96,25 +132,62 @@ export function Sidebar() {
                   }`}
               >
                 <VscFile size={14} className="shrink-0" />
-                <span className="truncate">{note.title}</span>
+                <span className="truncate flex-1 min-w-0">{note.title}</span>
               </button>
+
+              {/* Delete button — shows on hover */}
+              {(hoveredId === note.id || confirmDeleteId === note.id) && (
+                <button
+                  onClick={(e) => handleDeleteClick(e, note.id)}
+                  className={`absolute right-1 top-1/2 -translate-y-1/2 p-1 rounded
+                    transition-colors text-xs
+                    ${
+                      confirmDeleteId === note.id
+                        ? 'bg-red-500/20 text-red-500'
+                        : 'text-text-muted dark:text-text-muted-dark hover:bg-red-500/10 hover:text-red-500'
+                    }`}
+                  title={
+                    confirmDeleteId === note.id
+                      ? 'Click again to confirm delete'
+                      : 'Delete note'
+                  }
+                >
+                  <VscTrash size={13} />
+                </button>
+              )}
             </li>
           ))}
         </ul>
-        {notes.length === 0 && (
+        {notes.length === 0 && !loading && (
           <p className="text-xs text-text-muted dark:text-text-muted-dark px-3 py-4">
-            No notes yet. Create one to get started.
+            No notes yet.{' '}
+            <button
+              onClick={handleNewNote}
+              className="underline hover:text-text dark:hover:text-text-dark"
+            >
+              Create one
+            </button>{' '}
+            to get started.
           </p>
         )}
       </nav>
 
       {/* Footer with keyboard shortcut hint */}
-      <div className="px-4 py-2 border-t border-border dark:border-border-dark">
+      <div className="px-4 py-2 border-t border-border dark:border-border-dark flex items-center gap-2">
         <p className="text-xs text-text-muted dark:text-text-muted-dark">
           <kbd className="px-1 py-0.5 rounded bg-border dark:bg-border-dark text-[10px]">
             Ctrl+K
           </kbd>{' '}
           Search
+        </p>
+        <span className="text-text-muted dark:text-text-muted-dark text-xs">
+          ·
+        </span>
+        <p className="text-xs text-text-muted dark:text-text-muted-dark">
+          <kbd className="px-1 py-0.5 rounded bg-border dark:bg-border-dark text-[10px]">
+            Ctrl+N
+          </kbd>{' '}
+          New
         </p>
       </div>
     </aside>

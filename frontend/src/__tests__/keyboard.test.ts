@@ -231,8 +231,8 @@ describe('noteStore createNote via keyboard integration', () => {
       created_at: '2024-01-01T00:00:00Z',
       updated_at: '2024-01-01T00:00:00Z',
     };
-    vi.mocked(api.createNote).mockResolvedValue(newNote);
-    vi.mocked(api.listNotes).mockResolvedValue([]);
+    (api.createNote as ReturnType<typeof vi.fn>).mockResolvedValue(newNote);
+    (api.listNotes as ReturnType<typeof vi.fn>).mockResolvedValue([]);
 
     await useNoteStore.getState().createNote('Untitled 2024-01-01');
 

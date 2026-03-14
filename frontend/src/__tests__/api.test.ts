@@ -1,8 +1,46 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import * as api from '../api';
 
 const mockFetch = vi.fn();
-vi.stubGlobal('fetch', mockFetch);
+globalThis.fetch = mockFetch as typeof fetch;
+
+// Provide our own implementation that routes through globalThis.fetch.
+// This overrides any mock from other test files and lets us verify fetch calls.
+vi.mock('../api', () => {
+  const API_BASE = '/api';
+
+  async function request<T>(path: string, options?: RequestInit): Promise<T> {
+    const res = await (globalThis.fetch as typeof fetch)(`${API_BASE}${path}`, {
+      headers: { 'Content-Type': 'application/json' },
+      ...options,
+    });
+    if (!res.ok) {
+      const body = await res.text();
+      throw new Error(`API ${res.status}: ${body}`);
+    }
+    return res.json() as Promise<T>;
+  }
+
+  return {
+    listNotes: () => request('/notes'),
+    getNote: (id: string) => request(`/notes/${id}`),
+    createNote: (data: Record<string, unknown>) =>
+      request('/notes', { method: 'POST', body: JSON.stringify(data) }),
+    updateNote: (id: string, data: Record<string, unknown>) =>
+      request(`/notes/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    deleteNote: async (id: string) => {
+      const res = await (globalThis.fetch as typeof fetch)(`${API_BASE}/notes/${id}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) {
+        const body = await res.text();
+        throw new Error(`API ${res.status}: ${body}`);
+      }
+    },
+    searchNotes: (query: string) => request(`/search?q=${encodeURIComponent(query)}`),
+  };
+});
+
+import * as api from '../api';
 
 function makeJsonResponse(body: unknown, status = 200) {
   return {
@@ -23,6 +61,7 @@ function makeErrorResponse(body: string, status: number) {
 }
 
 beforeEach(() => {
+  globalThis.fetch = mockFetch as typeof fetch;
   mockFetch.mockReset();
 });
 

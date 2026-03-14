@@ -57,7 +57,7 @@ beforeEach(() => {
 describe('noteStore.fetchNotes', () => {
   it('populates the notes array on success', async () => {
     const mockNotes = [makeMetadata({ id: 'n1' }), makeMetadata({ id: 'n2', title: 'Another' })];
-    vi.mocked(api.listNotes).mockResolvedValue(mockNotes);
+    (api.listNotes as ReturnType<typeof vi.fn>).mockResolvedValue(mockNotes);
 
     await useNoteStore.getState().fetchNotes();
 
@@ -69,7 +69,7 @@ describe('noteStore.fetchNotes', () => {
   });
 
   it('sets error on failure', async () => {
-    vi.mocked(api.listNotes).mockRejectedValue(new Error('Network failure'));
+    (api.listNotes as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('Network failure'));
 
     await useNoteStore.getState().fetchNotes();
 
@@ -83,8 +83,8 @@ describe('noteStore.fetchNotes', () => {
 describe('noteStore.createNote', () => {
   it('adds a note and sets it as activeNote', async () => {
     const newNote = makeNote({ id: 'new-1', title: 'Brand New Note' });
-    vi.mocked(api.createNote).mockResolvedValue(newNote);
-    vi.mocked(api.listNotes).mockResolvedValue([makeMetadata({ id: 'new-1', title: 'Brand New Note' })]);
+    (api.createNote as ReturnType<typeof vi.fn>).mockResolvedValue(newNote);
+    (api.listNotes as ReturnType<typeof vi.fn>).mockResolvedValue([makeMetadata({ id: 'new-1', title: 'Brand New Note' })]);
 
     await useNoteStore.getState().createNote('Brand New Note');
 
@@ -97,8 +97,8 @@ describe('noteStore.createNote', () => {
   it('refreshes the note list after creation', async () => {
     const newNote = makeNote({ id: 'new-2' });
     const newMeta = makeMetadata({ id: 'new-2' });
-    vi.mocked(api.createNote).mockResolvedValue(newNote);
-    vi.mocked(api.listNotes).mockResolvedValue([newMeta]);
+    (api.createNote as ReturnType<typeof vi.fn>).mockResolvedValue(newNote);
+    (api.listNotes as ReturnType<typeof vi.fn>).mockResolvedValue([newMeta]);
 
     await useNoteStore.getState().createNote('New Note');
 
@@ -107,7 +107,7 @@ describe('noteStore.createNote', () => {
   });
 
   it('sets error on failure', async () => {
-    vi.mocked(api.createNote).mockRejectedValue(new Error('Create failed'));
+    (api.createNote as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('Create failed'));
 
     await useNoteStore.getState().createNote('Fail Note');
 
@@ -124,8 +124,8 @@ describe('noteStore.deleteNote', () => {
       notes: [makeMetadata({ id: 'del-1' }), makeMetadata({ id: 'del-2' })],
       activeNote: note,
     });
-    vi.mocked(api.deleteNote).mockResolvedValue(undefined);
-    vi.mocked(api.listNotes).mockResolvedValue([makeMetadata({ id: 'del-2' })]);
+    (api.deleteNote as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
+    (api.listNotes as ReturnType<typeof vi.fn>).mockResolvedValue([makeMetadata({ id: 'del-2' })]);
 
     await useNoteStore.getState().deleteNote('del-1');
 
@@ -141,8 +141,8 @@ describe('noteStore.deleteNote', () => {
       notes: [makeMetadata({ id: 'del-3' }), makeMetadata({ id: 'other-1' })],
       activeNote: otherNote,
     });
-    vi.mocked(api.deleteNote).mockResolvedValue(undefined);
-    vi.mocked(api.listNotes).mockResolvedValue([makeMetadata({ id: 'other-1' })]);
+    (api.deleteNote as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
+    (api.listNotes as ReturnType<typeof vi.fn>).mockResolvedValue([makeMetadata({ id: 'other-1' })]);
 
     await useNoteStore.getState().deleteNote('del-3');
 
@@ -155,7 +155,7 @@ describe('noteStore.openNote', () => {
   it('sets activeNote and updates the browser URL', async () => {
     const pushStateSpy = vi.spyOn(window.history, 'pushState');
     const note = makeNote({ id: 'open-1', path: 'projects/my note.md' });
-    vi.mocked(api.getNote).mockResolvedValue(note);
+    (api.getNote as ReturnType<typeof vi.fn>).mockResolvedValue(note);
 
     await useNoteStore.getState().openNote('open-1');
 
@@ -171,7 +171,7 @@ describe('noteStore.openNote', () => {
   });
 
   it('sets error on failure', async () => {
-    vi.mocked(api.getNote).mockRejectedValue(new Error('Not found'));
+    (api.getNote as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('Not found'));
 
     await useNoteStore.getState().openNote('bad-id');
 
@@ -186,7 +186,7 @@ describe('noteStore.openNoteByPath', () => {
     const meta = makeMetadata({ id: 'path-1', path: 'docs/readme.md' });
     const note = makeNote({ id: 'path-1', path: 'docs/readme.md' });
     useNoteStore.setState({ notes: [meta] });
-    vi.mocked(api.getNote).mockResolvedValue(note);
+    (api.getNote as ReturnType<typeof vi.fn>).mockResolvedValue(note);
 
     const pushStateSpy = vi.spyOn(window.history, 'pushState');
 

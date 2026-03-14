@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import ReconnectingWebSocket from 'partysocket/ws';
 import { Layout } from './components/Layout';
 import { CommandPalette } from './components/CommandPalette';
@@ -15,6 +15,8 @@ function App() {
   const updateNote = useNoteStore((s) => s.updateNote);
   const fetchNotes = useNoteStore((s) => s.fetchNotes);
   const openNoteByPath = useNoteStore((s) => s.openNoteByPath);
+
+  const [wsConnected, setWsConnected] = useState(true);
 
   // Keep a ref to editor content for Ctrl+S force-save.
   // The Editor component manages its own debounce; we expose a save trigger via store.
@@ -58,6 +60,9 @@ function App() {
     const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const host = window.location.host;
     const ws = new ReconnectingWebSocket(`${proto}//${host}/api/ws`);
+
+    ws.onopen = () => setWsConnected(true);
+    ws.onclose = () => setWsConnected(false);
 
     ws.onmessage = (ev) => {
       try {
@@ -125,6 +130,13 @@ function App() {
       />
       <CommandPalette />
       <ToastContainer />
+      {!wsConnected && (
+        <div className="fixed bottom-4 right-4 z-50 flex items-center gap-2 px-3 py-1.5
+                         rounded-full text-xs bg-yellow-500/90 text-white shadow-lg">
+          <span className="animate-pulse w-1.5 h-1.5 rounded-full bg-white inline-block" />
+          Reconnecting…
+        </div>
+      )}
     </div>
   );
 }

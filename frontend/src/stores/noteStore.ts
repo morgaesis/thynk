@@ -100,6 +100,7 @@ export const useNoteStore = create<NoteStore>((set, get) => ({
       const { activeNote } = get();
       if (activeNote?.id === id) {
         set({ activeNote: null });
+        window.history.pushState({}, '', '/');
       }
       set({ loading: false });
       await get().fetchNotes();

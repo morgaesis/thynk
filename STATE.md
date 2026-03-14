@@ -79,6 +79,14 @@
 - [x] Create and edit markdown notes in the browser, backed by real files on the filesystem
 - [x] Search across all notes with sub-100ms results (SQLite FTS5)
 - [x] Clean, responsive UI with sidebar navigation and command palette
+- [x] Sidebar shows folder tree; creating `foo/bar/baz.md` auto-creates directories
+- [x] New note creation always prompts for filename (default "untitled" if blank)
+- [x] Filesystem changes (external creates/deletes) immediately reflected in nav
+- [x] Delete from sidebar actually deletes the note (stale state fixed)
+- [x] Code blocks: exit on double-Enter at end, show language tag, stable vertical height
+- [x] Offline/disconnected indicator in UI
+- [x] All 44 frontend tests pass with `bun test`
+- [x] All 32 Rust tests pass with `cargo test -- --test-threads=8`
 
 ---
 

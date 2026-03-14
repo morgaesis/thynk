@@ -63,7 +63,7 @@ afterEach(() => {
 describe('URL updates when opening a note', () => {
   it('updates the URL to use the note path (not UUID) when opening a note', async () => {
     const note = makeNote({ id: 'abc-123', path: 'projects/my-project.md' });
-    vi.mocked(api.getNote).mockResolvedValue(note);
+    (api.getNote as ReturnType<typeof vi.fn>).mockResolvedValue(note);
 
     await useNoteStore.getState().openNote('abc-123');
 
@@ -76,7 +76,7 @@ describe('URL updates when opening a note', () => {
 
   it('URL-encodes spaces in the note path', async () => {
     const note = makeNote({ id: 'space-note', path: 'my notes/hello world.md' });
-    vi.mocked(api.getNote).mockResolvedValue(note);
+    (api.getNote as ReturnType<typeof vi.fn>).mockResolvedValue(note);
 
     await useNoteStore.getState().openNote('space-note');
 
@@ -86,7 +86,7 @@ describe('URL updates when opening a note', () => {
 
   it('URL-encodes special characters in the note path', async () => {
     const note = makeNote({ id: 'special-note', path: 'docs/c++ guide.md' });
-    vi.mocked(api.getNote).mockResolvedValue(note);
+    (api.getNote as ReturnType<typeof vi.fn>).mockResolvedValue(note);
 
     await useNoteStore.getState().openNote('special-note');
 
@@ -98,7 +98,7 @@ describe('URL updates when opening a note', () => {
 
   it('sets activeNote after opening', async () => {
     const note = makeNote({ id: 'act-1', path: 'active/note.md' });
-    vi.mocked(api.getNote).mockResolvedValue(note);
+    (api.getNote as ReturnType<typeof vi.fn>).mockResolvedValue(note);
 
     await useNoteStore.getState().openNote('act-1');
 
@@ -111,7 +111,7 @@ describe('URL parse correctly extracts path and calls openNoteByPath', () => {
     const meta = makeMeta({ id: 'path-note-1', path: 'docs/readme.md' });
     const note = makeNote({ id: 'path-note-1', path: 'docs/readme.md' });
     useNoteStore.setState({ notes: [meta] });
-    vi.mocked(api.getNote).mockResolvedValue(note);
+    (api.getNote as ReturnType<typeof vi.fn>).mockResolvedValue(note);
 
     await useNoteStore.getState().openNoteByPath('docs/readme.md');
 
@@ -122,7 +122,7 @@ describe('URL parse correctly extracts path and calls openNoteByPath', () => {
   it('pushState encodes the path segment so it can be decoded back', async () => {
     const originalPath = 'projects/my note with spaces.md';
     const note = makeNote({ id: 'enc-1', path: originalPath });
-    vi.mocked(api.getNote).mockResolvedValue(note);
+    (api.getNote as ReturnType<typeof vi.fn>).mockResolvedValue(note);
 
     await useNoteStore.getState().openNote('enc-1');
 

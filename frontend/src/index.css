@@ -125,29 +125,39 @@ body {
   pointer-events: none;
 }
 
-/* Show triple-backtick fence markers on active code blocks */
-.tiptap pre[data-active='true']::before {
-  content: attr(data-language, '```') '```';
+/* Code block fence markers: always reserve vertical space to prevent layout shift */
+.tiptap pre::before,
+.tiptap pre::after {
   display: block;
-  opacity: 0.5;
   font-size: 0.75rem;
+  line-height: 1.4;
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
-  color: #94a3b8;
-  margin-bottom: 0.25rem;
   user-select: none;
   pointer-events: none;
 }
 
-.tiptap pre[data-active='true']::after {
+.tiptap pre::before {
   content: '```';
-  display: block;
-  opacity: 0.5;
-  font-size: 0.75rem;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
-  color: #94a3b8;
+  color: transparent; /* space reserved but invisible */
+  margin-bottom: 0.25rem;
+}
+
+.tiptap pre::after {
+  content: '```';
+  color: transparent;
   margin-top: 0.25rem;
-  user-select: none;
-  pointer-events: none;
+}
+
+/* When the code block is active (cursor inside), show the markers */
+.tiptap pre[data-active='true']::before {
+  content: attr(data-language, '```');
+  color: #94a3b8;
+  opacity: 0.7;
+}
+
+.tiptap pre[data-active='true']::after {
+  color: #94a3b8;
+  opacity: 0.7;
 }
 
 /* Syntax highlighting token colors (lowlight/highlight.js classes) */

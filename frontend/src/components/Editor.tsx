@@ -75,6 +75,79 @@ const ActiveNodeDecoration = Extension.create({
   },
 });
 
+// Custom extension: pressing Enter twice at the end of a code block exits it
+// (creates a new paragraph below)
+const CodeBlockExitOnDoubleEnter = Extension.create({
+  name: 'codeBlockExitOnDoubleEnter',
+
+  addKeyboardShortcuts() {
+    return {
+      Enter: ({ editor }) => {
+        const { state } = editor;
+        const { selection } = state;
+        const { $from, empty } = selection;
+
+        if (!empty) return false;
+        if ($from.parent.type.name !== 'codeBlock') return false;
+
+        // Get text content of the code block
+        const codeContent = $from.parent.textContent;
+        const cursorOffset = $from.parentOffset;
+
+        // Check if we're at the very end and the last char is already a newline
+        // (meaning user just pressed Enter once at end, leaving an empty last line)
+        if (cursorOffset === codeContent.length && codeContent.endsWith('\n')) {
+          // User pressed Enter on an empty last line — exit the code block
+          // First, delete the trailing newline, then create paragraph after
+          return editor
+            .chain()
+            .deleteRange({ from: $from.pos - 1, to: $from.pos })
+            .insertContentAt($from.after($from.depth - 1), { type: 'paragraph' })
+            .focus($from.after($from.depth - 1) + 1)
+            .run();
+        }
+
+        return false;
+      },
+    };
+  },
+});
+
+// Custom extension: decorates all code blocks with their language as data-language
+// Used by CSS ::before to show the language tag (e.g. ```typescript)
+const CodeBlockLanguageDecoration = Extension.create({
+  name: 'codeBlockLanguageDecoration',
+
+  addProseMirrorPlugins() {
+    return [
+      new Plugin({
+        key: new PluginKey('codeBlockLanguage'),
+        props: {
+          decorations(state) {
+            const { doc } = state;
+            const decorations: Decoration[] = [];
+
+            doc.forEach((node, offset) => {
+              if (node.type.name === 'codeBlock') {
+                const lang = node.attrs.language as string | null;
+                if (lang) {
+                  decorations.push(
+                    Decoration.node(offset, offset + node.nodeSize, {
+                      'data-language': '```' + lang,
+                    }),
+                  );
+                }
+              }
+            });
+
+            return DecorationSet.create(doc, decorations);
+          },
+        },
+      }),
+    ];
+  },
+});
+
 // Custom extension: fix Backspace at the start of a heading
 // When cursor is at position 0 inside a heading, convert it to a paragraph
 // instead of joining with the previous node (which would delete the newline above).
@@ -130,6 +203,8 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
       }),
       ActiveNodeDecoration,
       HeadingBackspaceFix,
+      CodeBlockExitOnDoubleEnter,
+      CodeBlockLanguageDecoration,
     ],
     content: '',
     editorProps: {

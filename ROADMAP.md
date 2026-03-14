@@ -68,8 +68,8 @@ Build the features that make Thynk a knowledge base and project planning tool, n
 | Page Properties        | YAML frontmatter UI for metadata editing                |
 | Page Locking           | Server-enforced locks with lease/heartbeat              |
 | Automations (minimal)  | Status sync: "done" in one view = "done" everywhere     |
-| Vim Mode               | Vim keybindings for the editor (CodeMirror or TipTap)   |
-| Settings               | Settings menu/page: editor prefs, theme, keybindings    |
+| Vim Mode               | Optional vim keybindings for the editor                 |
+| Settings Page          | UI for theme, keybindings, AI keys, sync config         |
 | Import                 | Obsidian vaults, markdown folders                       |
 | Export                 | Full markdown export, portable                          |
 

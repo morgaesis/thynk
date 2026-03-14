@@ -18,16 +18,16 @@
 
 ### vs Competitors
 
-| Aspect              | Obsidian          | Notion              | Confluence           | Thynk                        |
-| ------------------- | ----------------- | ------------------- | -------------------- | ---------------------------- |
-| Privacy             | Local-first       | Cloud-only          | Cloud-only           | Local-first + cloud option   |
-| Speed               | Medium            | Slow (large DBs)    | Slow                 | Blazing fast (Rust backend)  |
-| Collaboration       | None native       | Excellent           | Good                 | P2P real-time (WebRTC/STUN)  |
-| Project Management  | None              | Good                | Limited              | Native (boards, automations) |
-| Compliance/Audit    | None              | Limited             | Good                 | Native (locking, audit trail)|
-| AI                  | Plugin-dependent  | Vendor-locked       | Vendor-locked        | BYOK, no lock-in             |
-| Data Portability    | Excellent (MD)    | Poor (proprietary)  | Poor                 | Excellent (MD + YAML)        |
-| Learning Curve      | Steep             | Moderate            | Steep                | Progressive complexity       |
+| Aspect             | Obsidian         | Notion             | Confluence    | Thynk                         |
+| ------------------ | ---------------- | ------------------ | ------------- | ----------------------------- |
+| Privacy            | Local-first      | Cloud-only         | Cloud-only    | Local-first + cloud option    |
+| Speed              | Medium           | Slow (large DBs)   | Slow          | Blazing fast (Rust backend)   |
+| Collaboration      | None native      | Excellent          | Good          | P2P real-time (WebRTC/STUN)   |
+| Project Management | None             | Good               | Limited       | Native (boards, automations)  |
+| Compliance/Audit   | None             | Limited            | Good          | Native (locking, audit trail) |
+| AI                 | Plugin-dependent | Vendor-locked      | Vendor-locked | BYOK, no lock-in              |
+| Data Portability   | Excellent (MD)   | Poor (proprietary) | Poor          | Excellent (MD + YAML)         |
+| Learning Curve     | Steep            | Moderate           | Steep         | Progressive complexity        |
 
 ### Differentiation Strategy
 
@@ -84,28 +84,28 @@
 
 ### Deployment Modes
 
-| Mode                   | Description                              | Storage                    |
-| ---------------------- | ---------------------------------------- | -------------------------- |
-| **Browser + localhost** | Browser connects to local Rust server   | Files on local filesystem  |
-| **Browser + cloud**     | Browser connects to hosted instance     | Files on cloud (Notion-like) |
-| **Desktop (Tauri)**     | Native app with embedded Rust backend   | Files local + synced to cloud |
-| **Mobile (Tauri)**      | Native app with embedded Rust backend   | Files local + synced to cloud |
+| Mode                    | Description                           | Storage                       |
+| ----------------------- | ------------------------------------- | ----------------------------- |
+| **Browser + localhost** | Browser connects to local Rust server | Files on local filesystem     |
+| **Browser + cloud**     | Browser connects to hosted instance   | Files on cloud (Notion-like)  |
+| **Desktop (Tauri)**     | Native app with embedded Rust backend | Files local + synced to cloud |
+| **Mobile (Tauri)**      | Native app with embedded Rust backend | Files local + synced to cloud |
 
 ### Confirmed Stack
 
-| Component         | Technology                     | Rationale                                                          |
-| ----------------- | ------------------------------ | ------------------------------------------------------------------ |
-| **Backend**       | Rust + Axum                    | High performance, shared crates with Tauri, type safety            |
-| **Frontend**      | React + TypeScript + Vite      | Mature ecosystem, fast dev iteration                               |
-| **Editor**        | TipTap (ProseMirror)           | Extensible, Yjs-compatible for collab, tables/blocks built-in      |
-| **Database**      | SQLite                         | Fast, reliable, metadata + indexes + structured data + audit trail |
-| **File Format**   | Markdown + YAML frontmatter    | Open, portable, git-friendly                                       |
-| **Search**        | SQLite FTS5                    | Full-text search, native in Rust, fast                             |
-| **State Mgmt**    | Zustand                        | Lightweight, no boilerplate                                        |
-| **Styling**       | Tailwind CSS                   | Fast iteration, theming via CSS variables                          |
-| **Desktop**       | Tauri 2.0                      | Wraps frontend, shares Rust backend crates                         |
-| **Sync**          | Custom built-in                | Differential sync, we control the experience                       |
-| **Collaboration** | Yjs + y-webrtc (STUN/P2P)     | CRDT-based, cursor presence, signaling server in Rust              |
+| Component         | Technology                  | Rationale                                                          |
+| ----------------- | --------------------------- | ------------------------------------------------------------------ |
+| **Backend**       | Rust + Axum                 | High performance, shared crates with Tauri, type safety            |
+| **Frontend**      | React + TypeScript + Vite   | Mature ecosystem, fast dev iteration                               |
+| **Editor**        | TipTap (ProseMirror)        | Extensible, Yjs-compatible for collab, tables/blocks built-in      |
+| **Database**      | SQLite                      | Fast, reliable, metadata + indexes + structured data + audit trail |
+| **File Format**   | Markdown + YAML frontmatter | Open, portable, git-friendly                                       |
+| **Search**        | SQLite FTS5                 | Full-text search, native in Rust, fast                             |
+| **State Mgmt**    | Zustand                     | Lightweight, no boilerplate                                        |
+| **Styling**       | Tailwind CSS                | Fast iteration, theming via CSS variables                          |
+| **Desktop**       | Tauri 2.0                   | Wraps frontend, shares Rust backend crates                         |
+| **Sync**          | Custom built-in             | Differential sync, we control the experience                       |
+| **Collaboration** | Yjs + y-webrtc (STUN/P2P)   | CRDT-based, cursor presence, signaling server in Rust              |
 
 ### Cloud Hosting
 
@@ -154,11 +154,11 @@
 
 ### Deferred
 
-| Feature              | Reason                                         |
-| -------------------- | ---------------------------------------------- |
-| **Plugin System**    | Wait until core is stable and feature-complete |
-| **Public API**       | After plugin architecture is defined           |
-| **Publishing/Web**   | Focus on private knowledge management first    |
+| Feature            | Reason                                         |
+| ------------------ | ---------------------------------------------- |
+| **Plugin System**  | Wait until core is stable and feature-complete |
+| **Public API**     | After plugin architecture is defined           |
+| **Publishing/Web** | Focus on private knowledge management first    |
 
 ---
 
@@ -167,18 +167,21 @@
 ### Primary Personas
 
 #### Knowledge Worker
+
 - Role: Consultant, researcher, writer, developer
 - Needs: Capture ideas quickly, connect notes, find later
 - Pain: Obsidian is too complex, Notion is too cloud-dependent
 - Value: Professional organization, meeting notes, project knowledge
 
 #### Technical Lead / Engineering Manager
+
 - Role: Software developer, technical lead, engineering manager
 - Needs: Code snippets, documentation, system design, project tracking
 - Pain: Knowledge spread across Obsidian + Jira + Confluence + Notion
 - Value: One tool for notes, project planning, and documentation
 
 #### Compliance / Operations
+
 - Role: IT manager, compliance officer, operations lead
 - Needs: ITSM docs, ISO documentation, DR plans, audit trails
 - Pain: Confluence is slow and expensive, audit features are clunky
@@ -278,13 +281,13 @@
 
 ## Key Risks
 
-| Risk                               | Likelihood | Impact | Mitigation                           |
-| ---------------------------------- | ---------- | ------ | ------------------------------------ |
-| Tauri mobile not ready             | Medium     | High   | Browser mode covers all platforms    |
-| Competitors release similar features | Medium   | Medium | Focus on UX and speed differentiation |
-| User acquisition slow              | Medium     | High   | Strong onboarding, content marketing |
-| Sync reliability issues            | Low        | High   | Start simple, extensive testing      |
-| WebRTC P2P connectivity issues     | Medium     | Medium | TURN server fallback                 |
+| Risk                                 | Likelihood | Impact | Mitigation                            |
+| ------------------------------------ | ---------- | ------ | ------------------------------------- |
+| Tauri mobile not ready               | Medium     | High   | Browser mode covers all platforms     |
+| Competitors release similar features | Medium     | Medium | Focus on UX and speed differentiation |
+| User acquisition slow                | Medium     | High   | Strong onboarding, content marketing  |
+| Sync reliability issues              | Low        | High   | Start simple, extensive testing       |
+| WebRTC P2P connectivity issues       | Medium     | Medium | TURN server fallback                  |
 
 ---
 

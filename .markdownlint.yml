@@ -1,1 +1,4 @@
 line-length: false
+no-duplicate-heading:
+  siblings_only: true
+table-column-style: false

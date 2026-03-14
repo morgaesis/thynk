@@ -44,6 +44,12 @@ Build the server + editor + file management working end-to-end in browser.
 - Create and edit markdown notes in the browser, backed by real files on the filesystem
 - Search across all notes with sub-100ms results
 - Clean, responsive UI with sidebar navigation and command palette
+- Sidebar shows folder tree; creating `foo/bar/baz.md` auto-creates directories
+- New note creation always prompts for filename (default "untitled" if blank)
+- Filesystem changes (external creates/deletes) immediately reflected in nav
+- Delete from sidebar actually deletes the note (fixes stale state / cache drift)
+- Code blocks: exit on double-Enter at end, show language tag, stable vertical height
+- Offline/disconnected indicator in UI
 
 ---
 

@@ -97,3 +97,7 @@ If any step fails, fix it before reporting completion. Do not leave broken build
 - Keep `STATE.md` updated when making significant progress or decisions
 - Update `ROADMAP.md` when phase scope changes
 - All features ship in a single release (no v1/v2 split)
+
+## Parallel Subagents
+
+When implementing multiple independent features or fixes, use parallel subagents aggressively. Launch separate agents for tasks that don't depend on each other (e.g., backend and frontend fixes, independent bug fixes). This maximizes throughput.

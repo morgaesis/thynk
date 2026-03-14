@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "==> Running infisical scan (pre-commit)"
+infisical scan git-changes --staged --verbose --silent --redact --log-level warn --exit-code 1

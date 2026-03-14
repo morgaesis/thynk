@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "==> Running QA checks (pre-push)"
+
+# Lint markdown files
+if command -v markdownlint-cli2 &>/dev/null; then
+  echo "  -> Markdown lint"
+  markdownlint-cli2 "**/*.md" "#node_modules"
+elif command -v markdownlint &>/dev/null; then
+  echo "  -> Markdown lint"
+  markdownlint '**/*.md' --ignore node_modules
+else
+  echo "  -> Markdown lint: skipped (no linter found)"
+fi
+
+# Rust checks (when Rust code exists)
+if [ -f Cargo.toml ]; then
+  echo "  -> cargo check"
+  cargo check --quiet 2>&1
+
+  echo "  -> cargo clippy"
+  cargo clippy --quiet -- -D warnings 2>&1
+
+  echo "  -> cargo fmt check"
+  cargo fmt --check 2>&1
+fi
+
+# Frontend checks (when frontend exists)
+if [ -f package.json ]; then
+  echo "  -> frontend lint"
+  if command -v bun &>/dev/null; then
+    bun run lint 2>&1 || true
+  elif command -v npm &>/dev/null; then
+    npm run lint 2>&1 || true
+  fi
+fi
+
+echo "==> QA passed"

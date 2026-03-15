@@ -1,4 +1,5 @@
 pub mod auth;
+pub mod export;
 pub mod favorites;
 pub mod links;
 pub mod locks;
@@ -74,6 +75,9 @@ pub fn router(state: AppState) -> Router {
             "/api/notes/from-template",
             post(templates::create_from_template),
         )
+        .route("/api/export", get(export::export_workspace))
+        .route("/api/import/markdown", post(export::import_markdown))
+        .route("/api/import/obsidian", post(export::import_obsidian))
         .route_layer(middleware::from_fn_with_state(
             state.clone(),
             auth::require_auth,

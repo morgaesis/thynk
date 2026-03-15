@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use axum::extract::{Path, State};
+use axum::extract::{Path, Query, State};
 use axum::http::{HeaderMap, StatusCode};
 use axum::response::IntoResponse;
 use axum::{Extension, Json};
@@ -56,10 +56,32 @@ fn err(status: StatusCode, error: &str, message: &str) -> impl IntoResponse {
 
 // ── GET /api/notes ───────────────────────────────────────────────────────────
 
-pub async fn list_notes(State(state): State<AppState>) -> impl IntoResponse {
+#[derive(Deserialize)]
+pub struct ListNotesQuery {
+    pub prefix: Option<String>,
+}
+
+pub async fn list_notes(
+    State(state): State<AppState>,
+    Query(query): Query<ListNotesQuery>,
+) -> impl IntoResponse {
     let db = state.db.lock().await;
     match db.list_notes() {
-        Ok(notes) => (StatusCode::OK, Json(serde_json::to_value(notes).unwrap())).into_response(),
+        Ok(notes) => {
+            let filtered = if let Some(ref prefix) = query.prefix {
+                notes
+                    .into_iter()
+                    .filter(|n| n.path.to_string_lossy().starts_with(prefix.as_str()))
+                    .collect()
+            } else {
+                notes
+            };
+            (
+                StatusCode::OK,
+                Json(serde_json::to_value(filtered).unwrap()),
+            )
+                .into_response()
+        }
         Err(e) => err(
             StatusCode::INTERNAL_SERVER_ERROR,
             "db_error",

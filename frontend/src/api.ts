@@ -235,3 +235,10 @@ export async function importObsidian(file: File): Promise<ImportResult> {
   }
   return res.json();
 }
+
+export async function listNotesByPrefix(
+  prefix: string,
+): Promise<NoteMetadata[]> {
+  const qs = prefix ? `?prefix=${encodeURIComponent(prefix)}` : '';
+  return request(`/notes${qs}`);
+}

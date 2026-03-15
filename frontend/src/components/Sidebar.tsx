@@ -7,9 +7,11 @@ import {
   VscTrash,
   VscFolder,
   VscChevronDown,
+  VscSignOut,
 } from 'react-icons/vsc';
 import { useNoteStore } from '../stores/noteStore';
 import { useUIStore } from '../stores/uiStore';
+import { useAuthStore } from '../stores/authStore';
 import { ThemeToggle } from './ThemeToggle';
 import type { TreeNode } from '../types';
 import { getTree } from '../api';
@@ -113,6 +115,8 @@ export function Sidebar() {
   const createNote = useNoteStore((s) => s.createNote);
   const sidebarOpen = useUIStore((s) => s.sidebarOpen);
   const toggleSidebar = useUIStore((s) => s.toggleSidebar);
+  const authUser = useAuthStore((s) => s.user);
+  const logout = useAuthStore((s) => s.logout);
 
   const [tree, setTree] = useState<TreeNode[]>([]);
   const [showNewNote, setShowNewNote] = useState(false);
@@ -274,21 +278,42 @@ export function Sidebar() {
         )}
       </nav>
 
-      {/* Footer with keyboard shortcut hint */}
-      <div className="px-4 py-2 border-t border-border dark:border-border-dark flex items-center gap-2">
-        <p className="text-xs text-text-muted dark:text-text-muted-dark">
-          <kbd className="px-1 py-0.5 rounded bg-border dark:bg-border-dark text-[10px]">
-            Ctrl+K
-          </kbd>{' '}
-          Search
-        </p>
-        <span className="text-text-muted dark:text-text-muted-dark text-xs">·</span>
-        <p className="text-xs text-text-muted dark:text-text-muted-dark">
-          <kbd className="px-1 py-0.5 rounded bg-border dark:bg-border-dark text-[10px]">
-            Ctrl+Shift+N
-          </kbd>{' '}
-          New
-        </p>
+      {/* Footer */}
+      <div className="px-4 py-2 border-t border-border dark:border-border-dark space-y-1.5">
+        {/* Keyboard shortcuts */}
+        <div className="flex items-center gap-2">
+          <p className="text-xs text-text-muted dark:text-text-muted-dark">
+            <kbd className="px-1 py-0.5 rounded bg-border dark:bg-border-dark text-[10px]">
+              Ctrl+K
+            </kbd>{' '}
+            Search
+          </p>
+          <span className="text-text-muted dark:text-text-muted-dark text-xs">·</span>
+          <p className="text-xs text-text-muted dark:text-text-muted-dark">
+            <kbd className="px-1 py-0.5 rounded bg-border dark:bg-border-dark text-[10px]">
+              Ctrl+Shift+N
+            </kbd>{' '}
+            New
+          </p>
+        </div>
+        {/* User info + logout */}
+        {authUser && (
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-text-muted dark:text-text-muted-dark truncate max-w-[140px]">
+              {authUser.display_name ?? authUser.username}
+            </span>
+            <button
+              onClick={() => logout()}
+              title="Sign out"
+              className="p-1 rounded text-text-muted dark:text-text-muted-dark
+                         hover:bg-border dark:hover:bg-border-dark
+                         hover:text-text dark:hover:text-text-dark
+                         transition-colors"
+            >
+              <VscSignOut size={14} />
+            </button>
+          </div>
+        )}
       </div>
     </aside>
   );

@@ -23,4 +23,6 @@ pub struct AppState {
     pub config: Arc<Config>,
     /// Broadcast channel for pushing file-change events to WebSocket clients.
     pub events: broadcast::Sender<WsEvent>,
+    /// Optional S3 bucket for file uploads. None if S3 env vars are not set.
+    pub s3_bucket: Option<Arc<s3::Bucket>>,
 }

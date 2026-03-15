@@ -5,8 +5,15 @@ const API_BASE = '/api';
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
     ...options,
   });
+  if (res.status === 401) {
+    // Session expired or invalid — clear auth state and reload to show login
+    const { useAuthStore } = await import('./stores/authStore');
+    useAuthStore.setState({ user: null, loading: false });
+    throw new Error('Unauthorized');
+  }
   if (!res.ok) {
     const body = await res.text();
     throw new Error(`API ${res.status}: ${body}`);
@@ -44,7 +51,15 @@ export async function updateNote(
 }
 
 export async function deleteNote(id: string): Promise<void> {
-  const res = await fetch(`${API_BASE}/notes/${id}`, { method: 'DELETE' });
+  const res = await fetch(`${API_BASE}/notes/${id}`, {
+    method: 'DELETE',
+    credentials: 'same-origin',
+  });
+  if (res.status === 401) {
+    const { useAuthStore } = await import('./stores/authStore');
+    useAuthStore.setState({ user: null, loading: false });
+    throw new Error('Unauthorized');
+  }
   if (!res.ok) {
     const body = await res.text();
     throw new Error(`API ${res.status}: ${body}`);

@@ -3,10 +3,15 @@ import ReconnectingWebSocket from 'partysocket/ws';
 import { Layout } from './components/Layout';
 import { CommandPalette } from './components/CommandPalette';
 import { ToastContainer } from './components/Toast';
+import { LoginPage } from './components/LoginPage';
 import { useUIStore } from './stores/uiStore';
 import { useNoteStore } from './stores/noteStore';
+import { useAuthStore } from './stores/authStore';
 
 function App() {
+  const authUser = useAuthStore((s) => s.user);
+  const authLoading = useAuthStore((s) => s.loading);
+  const checkSession = useAuthStore((s) => s.checkSession);
   const theme = useUIStore((s) => s.theme);
   const toggleCommandPalette = useUIStore((s) => s.toggleCommandPalette);
   const addToast = useUIStore((s) => s.addToast);
@@ -26,6 +31,11 @@ function App() {
   // The Editor component manages its own debounce; we expose a save trigger via store.
   const activeSaveRef = useRef<(() => void) | null>(null);
   const focusTitleRef = useRef<(() => void) | null>(null);
+
+  // Check for existing session on mount.
+  useEffect(() => {
+    checkSession();
+  }, [checkSession]);
 
   // Apply theme class to document root
   useEffect(() => {
@@ -161,6 +171,20 @@ function App() {
       openNoteByPath(path);
     }
   }, [openNoteByPath]);
+
+  // Show nothing while checking session to avoid flash.
+  if (authLoading) {
+    return (
+      <div className="h-full bg-surface dark:bg-surface-dark flex items-center justify-center">
+        <span className="text-sm text-text-muted dark:text-text-muted-dark">Loading…</span>
+      </div>
+    );
+  }
+
+  // Show login if not authenticated.
+  if (!authUser) {
+    return <LoginPage />;
+  }
 
   return (
     <div className="h-full bg-surface dark:bg-surface-dark">

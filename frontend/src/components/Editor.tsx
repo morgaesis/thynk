@@ -16,7 +16,10 @@ import {
   defaultMarkdownParser,
 } from '@tiptap/pm/markdown';
 import { useNoteStore } from '../stores/noteStore';
+import { useUIStore } from '../stores/uiStore';
 import { DictationButton } from './DictationButton';
+import { FileUploadExtension } from '../extensions/FileUploadExtension';
+import { useFileUpload } from '../hooks/useFileUpload';
 
 // Create lowlight instance with common languages
 const lowlight = createLowlight(common);
@@ -180,10 +183,12 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
   const activeNote = useNoteStore((s) => s.activeNote);
   const updateNote = useNoteStore((s) => s.updateNote);
   const saving = useNoteStore((s) => s.saving);
+  const addToast = useUIStore((s) => s.addToast);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const titleRef = useRef<HTMLInputElement>(null);
   const activeNoteRef = useRef(activeNote);
   const editorRef = useRef<TipTapEditor | null>(null);
+  const { upload } = useFileUpload();
 
   useEffect(() => {
     activeNoteRef.current = activeNote;
@@ -205,6 +210,18 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
       HeadingBackspaceFix,
       CodeBlockExitOnDoubleEnter,
       CodeBlockLanguageDecoration,
+      FileUploadExtension.configure({
+        onUpload: async (file: File) => {
+          try {
+            const result = await upload(file);
+            return { url: result.url, filename: result.filename };
+          } catch (e) {
+            const msg = (e as Error).message;
+            addToast('error', `Upload failed: ${msg}`);
+            return null;
+          }
+        },
+      }),
     ],
     content: '',
     editorProps: {

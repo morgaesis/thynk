@@ -15,6 +15,40 @@ use thynk_core::{Config, Database, FilesystemStorage, NoteStorage};
 
 use crate::state::{AppState, WsEvent};
 
+/// Attempt to create an S3 Bucket from environment variables.
+/// Returns None (with a log) if any required env var is missing or creation fails.
+fn build_s3_bucket() -> Option<Arc<s3::Bucket>> {
+    let endpoint = std::env::var("S3_ENDPOINT").ok()?;
+    let bucket_name = std::env::var("S3_BUCKET").ok()?;
+    let access_key = std::env::var("S3_ACCESS_KEY").ok()?;
+    let secret_key = std::env::var("S3_SECRET_KEY").ok()?;
+    let region_name = std::env::var("S3_REGION").unwrap_or_else(|_| "us-east-1".to_string());
+
+    let credentials =
+        match s3::creds::Credentials::new(Some(&access_key), Some(&secret_key), None, None, None) {
+            Ok(c) => c,
+            Err(e) => {
+                warn!("S3 credentials error: {e}");
+                return None;
+            }
+        };
+    let region = s3::Region::Custom {
+        region: region_name,
+        endpoint,
+    };
+    match s3::Bucket::new(&bucket_name, region, credentials) {
+        Ok(bucket) => {
+            let bucket = *bucket.with_path_style();
+            info!("S3 bucket configured: {bucket_name}");
+            Some(Arc::new(bucket))
+        }
+        Err(e) => {
+            warn!("Failed to configure S3 bucket: {e}");
+            None
+        }
+    }
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt()
@@ -28,6 +62,12 @@ async fn main() -> anyhow::Result<()> {
     let db = Database::open(&config.db_path)?;
     let storage = FilesystemStorage::new(config.data_dir.clone())?;
 
+    // Clean up any expired sessions from previous runs.
+    let now = chrono::Utc::now().to_rfc3339();
+    if let Err(e) = db.cleanup_expired_sessions(&now) {
+        warn!("Failed to clean up expired sessions: {e}");
+    }
+
     // Index all existing markdown files on startup.
     index_all_files(&db, &storage);
 
@@ -35,11 +75,17 @@ async fn main() -> anyhow::Result<()> {
 
     let (events_tx, _) = broadcast::channel::<WsEvent>(256);
 
+    let s3_bucket = build_s3_bucket();
+    if s3_bucket.is_none() {
+        info!("S3 not configured — file uploads will return 503");
+    }
+
     let state = AppState {
         db: Arc::new(Mutex::new(db)),
         storage: Arc::new(Mutex::new(storage)),
         config: Arc::new(config.clone()),
         events: events_tx.clone(),
+        s3_bucket,
     };
 
     // Start file watcher in background.
@@ -266,6 +312,7 @@ mod tests {
             storage: Arc::new(Mutex::new(storage)),
             config: Arc::new(Config::default()),
             events,
+            s3_bucket: None,
         }
     }
 

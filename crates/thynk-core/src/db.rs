@@ -6,6 +6,37 @@ use tracing::info;
 use crate::error::{Result, ThynkError};
 use crate::note::{Note, NoteMetadata};
 
+/// A user account record.
+pub struct UserRecord {
+    pub id: String,
+    pub username: String,
+    pub password_hash: String,
+    pub display_name: Option<String>,
+    pub storage_used: i64,
+    pub storage_limit: i64,
+    pub created_at: String,
+    pub last_login: Option<String>,
+}
+
+/// A file upload record.
+pub struct UploadRecord {
+    pub id: String,
+    pub user_id: String,
+    pub s3_key: String,
+    pub filename: String,
+    pub content_type: String,
+    pub size: i64,
+    pub created_at: String,
+}
+
+/// An active session record.
+pub struct SessionRecord {
+    pub token: String,
+    pub user_id: String,
+    pub created_at: String,
+    pub expires_at: String,
+}
+
 pub struct Database {
     conn: Connection,
 }
@@ -85,6 +116,38 @@ impl Database {
             "ALTER TABLE notes ADD COLUMN content_hash TEXT NOT NULL DEFAULT ''",
             [],
         );
+
+        // Users and sessions tables for multi-user auth.
+        self.conn.execute_batch(
+            "
+            CREATE TABLE IF NOT EXISTS users (
+                id TEXT PRIMARY KEY,
+                username TEXT NOT NULL UNIQUE,
+                password_hash TEXT NOT NULL,
+                display_name TEXT,
+                storage_used INTEGER NOT NULL DEFAULT 0,
+                storage_limit INTEGER NOT NULL DEFAULT 104857600,
+                created_at TEXT NOT NULL,
+                last_login TEXT
+            );
+            CREATE TABLE IF NOT EXISTS sessions (
+                token TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                created_at TEXT NOT NULL,
+                expires_at TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS uploads (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL DEFAULT 'anonymous',
+                s3_key TEXT NOT NULL,
+                filename TEXT NOT NULL,
+                content_type TEXT NOT NULL,
+                size INTEGER NOT NULL,
+                created_at TEXT NOT NULL
+            );
+            ",
+        )?;
+
         info!("database schema initialized");
         Ok(())
     }
@@ -223,6 +286,221 @@ impl Database {
             return Err(ThynkError::NotFound(path.display().to_string()));
         }
         Ok(())
+    }
+
+    // ── Auth: Users ──────────────────────────────────────────────────────────
+
+    /// Count the total number of registered users.
+    pub fn count_users(&self) -> anyhow::Result<i64> {
+        let count: i64 = self
+            .conn
+            .query_row("SELECT COUNT(*) FROM users", [], |row| row.get(0))?;
+        Ok(count)
+    }
+
+    /// Insert a new user record.
+    pub fn create_user(
+        &self,
+        id: &str,
+        username: &str,
+        password_hash: &str,
+        display_name: Option<&str>,
+        created_at: &str,
+    ) -> anyhow::Result<()> {
+        self.conn.execute(
+            "INSERT INTO users (id, username, password_hash, display_name, created_at)
+             VALUES (?1, ?2, ?3, ?4, ?5)",
+            params![id, username, password_hash, display_name, created_at],
+        )?;
+        Ok(())
+    }
+
+    /// Look up a user by username.
+    pub fn get_user_by_username(&self, username: &str) -> anyhow::Result<Option<UserRecord>> {
+        let result = self.conn.query_row(
+            "SELECT id, username, password_hash, display_name, storage_used, storage_limit,
+                    created_at, last_login
+             FROM users WHERE username = ?1",
+            params![username],
+            |row| {
+                Ok(UserRecord {
+                    id: row.get(0)?,
+                    username: row.get(1)?,
+                    password_hash: row.get(2)?,
+                    display_name: row.get(3)?,
+                    storage_used: row.get(4)?,
+                    storage_limit: row.get(5)?,
+                    created_at: row.get(6)?,
+                    last_login: row.get(7)?,
+                })
+            },
+        );
+        match result {
+            Ok(u) => Ok(Some(u)),
+            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+            Err(e) => Err(e.into()),
+        }
+    }
+
+    /// Look up a user by ID.
+    pub fn get_user_by_id(&self, id: &str) -> anyhow::Result<Option<UserRecord>> {
+        let result = self.conn.query_row(
+            "SELECT id, username, password_hash, display_name, storage_used, storage_limit,
+                    created_at, last_login
+             FROM users WHERE id = ?1",
+            params![id],
+            |row| {
+                Ok(UserRecord {
+                    id: row.get(0)?,
+                    username: row.get(1)?,
+                    password_hash: row.get(2)?,
+                    display_name: row.get(3)?,
+                    storage_used: row.get(4)?,
+                    storage_limit: row.get(5)?,
+                    created_at: row.get(6)?,
+                    last_login: row.get(7)?,
+                })
+            },
+        );
+        match result {
+            Ok(u) => Ok(Some(u)),
+            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+            Err(e) => Err(e.into()),
+        }
+    }
+
+    /// Update the last_login timestamp for a user.
+    pub fn update_last_login(&self, user_id: &str, last_login: &str) -> anyhow::Result<()> {
+        self.conn.execute(
+            "UPDATE users SET last_login = ?1 WHERE id = ?2",
+            params![last_login, user_id],
+        )?;
+        Ok(())
+    }
+
+    // ── Auth: Sessions ────────────────────────────────────────────────────────
+
+    /// Insert a new session.
+    pub fn create_session(
+        &self,
+        token: &str,
+        user_id: &str,
+        created_at: &str,
+        expires_at: &str,
+    ) -> anyhow::Result<()> {
+        self.conn.execute(
+            "INSERT INTO sessions (token, user_id, created_at, expires_at)
+             VALUES (?1, ?2, ?3, ?4)",
+            params![token, user_id, created_at, expires_at],
+        )?;
+        Ok(())
+    }
+
+    /// Look up a session by token.
+    pub fn get_session(&self, token: &str) -> anyhow::Result<Option<SessionRecord>> {
+        let result = self.conn.query_row(
+            "SELECT token, user_id, created_at, expires_at FROM sessions WHERE token = ?1",
+            params![token],
+            |row| {
+                Ok(SessionRecord {
+                    token: row.get(0)?,
+                    user_id: row.get(1)?,
+                    created_at: row.get(2)?,
+                    expires_at: row.get(3)?,
+                })
+            },
+        );
+        match result {
+            Ok(s) => Ok(Some(s)),
+            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+            Err(e) => Err(e.into()),
+        }
+    }
+
+    /// Delete a session by token (logout).
+    pub fn delete_session(&self, token: &str) -> anyhow::Result<()> {
+        self.conn
+            .execute("DELETE FROM sessions WHERE token = ?1", params![token])?;
+        Ok(())
+    }
+
+    /// Remove all sessions whose `expires_at` is before `now`.
+    pub fn cleanup_expired_sessions(&self, now: &str) -> anyhow::Result<()> {
+        self.conn
+            .execute("DELETE FROM sessions WHERE expires_at < ?1", params![now])?;
+        Ok(())
+    }
+
+    // ── Uploads ───────────────────────────────────────────────────────────────
+
+    /// Insert a new upload record.
+    #[allow(clippy::too_many_arguments)]
+    pub fn create_upload(
+        &self,
+        id: &str,
+        user_id: &str,
+        s3_key: &str,
+        filename: &str,
+        content_type: &str,
+        size: i64,
+        created_at: &str,
+    ) -> anyhow::Result<()> {
+        self.conn.execute(
+            "INSERT INTO uploads (id, user_id, s3_key, filename, content_type, size, created_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            params![
+                id,
+                user_id,
+                s3_key,
+                filename,
+                content_type,
+                size,
+                created_at
+            ],
+        )?;
+        Ok(())
+    }
+
+    /// Retrieve a single upload record by ID.
+    pub fn get_upload(&self, id: &str) -> anyhow::Result<Option<UploadRecord>> {
+        let result = self.conn.query_row(
+            "SELECT id, user_id, s3_key, filename, content_type, size, created_at
+             FROM uploads WHERE id = ?1",
+            params![id],
+            |row| {
+                Ok(UploadRecord {
+                    id: row.get(0)?,
+                    user_id: row.get(1)?,
+                    s3_key: row.get(2)?,
+                    filename: row.get(3)?,
+                    content_type: row.get(4)?,
+                    size: row.get(5)?,
+                    created_at: row.get(6)?,
+                })
+            },
+        );
+        match result {
+            Ok(u) => Ok(Some(u)),
+            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+            Err(e) => Err(e.into()),
+        }
+    }
+
+    /// Delete an upload record by ID.
+    pub fn delete_upload(&self, id: &str) -> anyhow::Result<()> {
+        self.conn
+            .execute("DELETE FROM uploads WHERE id = ?1", params![id])?;
+        Ok(())
+    }
+
+    /// Sum all upload sizes for a given user (storage used in bytes).
+    pub fn get_user_storage_used(&self, user_id: &str) -> anyhow::Result<i64> {
+        let total: i64 = self.conn.query_row(
+            "SELECT COALESCE(SUM(size), 0) FROM uploads WHERE user_id = ?1",
+            params![user_id],
+            |row| row.get(0),
+        )?;
+        Ok(total)
     }
 }
 

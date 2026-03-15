@@ -1,9 +1,9 @@
 # STATE.md - Thynk Current Status
 
-## Project Status: PHASE 2 COMPLETE
+## Project Status: PHASE 2 COMPLETE (with known issues fixed)
 
 **Current Phase:** Phase 3 -- AI & Sync (starting next)
-**Overall Progress:** Phases 1 and 2 complete and production-quality
+**Overall Progress:** Phases 1 and 2 complete; several Phase 2 bugs fixed 2026-03-15
 
 ---
 
@@ -101,7 +101,7 @@
 - [x] `[[wiki-link]]` syntax with click navigation, backlinks panel, and graph view
 - [x] D3.js force-directed graph view at `/graph`
 - [x] Tags extracted from frontmatter, tag browser in sidebar, filter by tag
-- [x] Templates: list, create from template; daily note button with calendar
+- [x] Templates: list, create from template; daily note calendar in sidebar
 - [x] TipTap table extension with TableControls toolbar
 - [x] Page properties: frontmatter key-value editor above the editor
 - [x] Database views: list / kanban / timeline for structured notes
@@ -112,7 +112,17 @@
 - [x] Automation log: WebSocket `status_changed` events shown in sidebar
 - [x] Export workspace as `.zip`; import markdown files and Obsidian vaults
 - [x] Settings page: vim toggle, font size, line height
-- [x] All 57 Rust tests pass; frontend builds clean; ESLint/clippy/fmt pass
+- [x] 56 Rust tests pass; 48 frontend tests pass; ESLint/clippy/fmt pass
+
+### Phase 2 Bug Fixes (2026-03-15)
+
+| Bug | Root Cause | Fix |
+| --- | --- | --- |
+| Page locking race condition | `setTimeout(reset, 0)` in `useLock` could fire after `getLock` microtask, overriding correct lock state | Replaced with `Promise.resolve().then(reset)` so ordering is deterministic |
+| Lock not enforced server-side | Was enforced but had no HTTP-level integration test | Added tests: 423 on locked-note update, GET returns locker info |
+| "Today" button still in sidebar | `DailyNoteButton` was never removed from Sidebar | Removed component and import from Sidebar.tsx |
+| Vim block cursor not shown | CSS targeted `.ProseMirror-cursor` (gap cursor, never present for text) | Hide native caret with `caret-color: transparent`; add `Decoration.inline`/`widget` for character highlight |
+| Startup log format wrong | Two separate `println!` lines | Combined to single `"Data directory: <path> (<N> files)"` |
 
 ---
 
@@ -138,4 +148,4 @@
 
 ---
 
-Last Updated: 2026-03-15
+Last Updated: 2026-03-15 (bug fixes)

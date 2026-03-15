@@ -32,7 +32,6 @@ import { useLock } from '../hooks/useLock';
 import { LockIndicator } from './LockIndicator';
 import { WikiLinkExtension } from '../extensions/WikiLinkExtension';
 import { WikiLinkSuggestions } from './WikiLinkSuggestions';
-import { BacklinksPanel } from './BacklinksPanel';
 import {
   VimModeExtension,
   getVimMode,
@@ -559,11 +558,6 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
               className="text-text dark:text-text-dark"
             />
           </div>
-        </div>
-
-        {/* Backlinks panel – rendered below the writing area */}
-        <div className="max-w-3xl mx-auto w-full">
-          <BacklinksPanel noteId={activeNote.id} noteTitle={activeNote.title} />
         </div>
       </div>
       {/* end scrollable area */}

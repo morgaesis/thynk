@@ -29,6 +29,7 @@ import { AutomationLog } from './AutomationLog';
 import { useAutomationEvents } from '../hooks/useAutomationEvents';
 import { ImportModal } from './ImportModal';
 import { CalendarView } from './CalendarView';
+import { BacklinksPanel } from './BacklinksPanel';
 import type { TreeNode, NoteMetadata } from '../types';
 import { getTree, toggleFavorite, getFavorites, exportWorkspace } from '../api';
 
@@ -297,6 +298,7 @@ export function Sidebar() {
   const fetchNotes = useNoteStore((s) => s.fetchNotes);
   const openNoteByPath = useNoteStore((s) => s.openNoteByPath);
   const createNote = useNoteStore((s) => s.createNote);
+  const activeNote = useNoteStore((s) => s.activeNote);
   const sidebarOpen = useUIStore((s) => s.sidebarOpen);
   const toggleSidebar = useUIStore((s) => s.toggleSidebar);
   const authUser = useAuthStore((s) => s.user);
@@ -571,6 +573,14 @@ export function Sidebar() {
                 )
               )}
             </div>
+          )}
+
+          {/* Backlinks - shown when a note is active */}
+          {activeNote && (
+            <BacklinksPanel
+              noteId={activeNote.id}
+              noteTitle={activeNote.title}
+            />
           )}
         </nav>
 

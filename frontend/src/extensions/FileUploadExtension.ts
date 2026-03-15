@@ -11,18 +11,6 @@ export interface FileUploadOptions {
   onUpload: (file: File) => Promise<{ url: string; filename: string } | null>;
 }
 
-/** Build markdown for a pasted/dropped file. */
-function buildMarkdown(
-  filename: string,
-  url: string,
-  contentType: string,
-): string {
-  if (contentType.startsWith('image/')) {
-    return `![${filename}](${url})`;
-  }
-  return `[${filename}](${url})`;
-}
-
 export const FileUploadExtension = Extension.create<FileUploadOptions>({
   name: 'fileUpload',
 
@@ -36,43 +24,100 @@ export const FileUploadExtension = Extension.create<FileUploadOptions>({
     const { onUpload } = this.options;
     const editor = this.editor;
 
-    /** Replace the first occurrence of placeholder text in the document. */
-    function replacePlaceholder(placeholder: string, replacement: string) {
+    /** Find and remove a placeholder text span from the document. */
+    function removePlaceholder(placeholder: string) {
       editor
         .chain()
         .command(({ tr, state }) => {
-          let pmStart = -1;
-          let pmEnd = -1;
-          state.doc.descendants((node, nodePos) => {
-            if (node.isText && node.text) {
+          let found = false;
+          state.doc.descendants((node, pos) => {
+            if (found) return false;
+            if (node.isText && node.text?.includes(placeholder)) {
               const offset = node.text.indexOf(placeholder);
-              if (offset !== -1 && pmStart === -1) {
-                pmStart = nodePos + offset;
-                pmEnd = pmStart + placeholder.length;
-              }
+              const from = pos + offset;
+              const to = from + placeholder.length;
+              tr.delete(from, to);
+              found = true;
+              return false;
             }
-            return pmStart === -1; // stop traversal once found
+            return true;
           });
-          if (pmStart === -1) return false;
-          tr.replaceWith(pmStart, pmEnd, state.schema.text(replacement));
-          return true;
+          return found;
+        })
+        .run();
+    }
+
+    /** Replace a placeholder text span with an image node. */
+    function replaceWithImage(placeholder: string, src: string, alt: string) {
+      editor
+        .chain()
+        .command(({ tr, state }) => {
+          let found = false;
+          state.doc.descendants((node, pos) => {
+            if (found) return false;
+            if (node.isText && node.text?.includes(placeholder)) {
+              const offset = node.text.indexOf(placeholder);
+              const from = pos + offset;
+              const to = from + placeholder.length;
+              const imageNode = state.schema.nodes.image?.create({
+                src,
+                alt,
+                title: null,
+              });
+              if (imageNode) {
+                tr.replaceWith(from, to, imageNode);
+                found = true;
+              }
+              return false;
+            }
+            return true;
+          });
+          return found;
+        })
+        .run();
+    }
+
+    /** Replace a placeholder text span with a link markdown string. */
+    function replaceWithText(placeholder: string, replacement: string) {
+      editor
+        .chain()
+        .command(({ tr, state }) => {
+          let found = false;
+          state.doc.descendants((node, pos) => {
+            if (found) return false;
+            if (node.isText && node.text?.includes(placeholder)) {
+              const offset = node.text.indexOf(placeholder);
+              const from = pos + offset;
+              const to = from + placeholder.length;
+              tr.replaceWith(from, to, state.schema.text(replacement));
+              found = true;
+              return false;
+            }
+            return true;
+          });
+          return found;
         })
         .run();
     }
 
     function handleFile(file: File) {
       const contentType = file.type || 'application/octet-stream';
+      const isImage = contentType.startsWith('image/');
       const placeholder = `⏳ Uploading ${file.name}…`;
 
-      editor.chain().insertContent(`\n${placeholder}\n`).run();
+      editor.chain().insertContent(placeholder).run();
 
       void onUpload(file).then((result) => {
         if (!result) {
-          replacePlaceholder(placeholder, `❌ Upload failed: ${file.name}`);
+          // Remove placeholder — error toast is shown by the onUpload caller
+          removePlaceholder(placeholder);
           return;
         }
-        const markdown = buildMarkdown(result.filename, result.url, contentType);
-        replacePlaceholder(placeholder, markdown);
+        if (isImage) {
+          replaceWithImage(placeholder, result.url, result.filename);
+        } else {
+          replaceWithText(placeholder, `[${result.filename}](${result.url})`);
+        }
       });
     }
 

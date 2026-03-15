@@ -224,6 +224,63 @@ body {
   font-weight: bold;
 }
 
+/* TipTap table styles */
+.tiptap table {
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: 100%;
+  overflow: hidden;
+}
+.tiptap td,
+.tiptap th {
+  border: 1px solid var(--color-border);
+  padding: 8px;
+  vertical-align: top;
+  min-width: 1em;
+  position: relative;
+  box-sizing: border-box;
+}
+.dark .tiptap td,
+.dark .tiptap th {
+  border-color: var(--color-border-dark);
+}
+.tiptap th {
+  background: rgba(0, 0, 0, 0.05);
+  font-weight: bold;
+}
+.dark .tiptap th {
+  background: rgba(255, 255, 255, 0.05);
+}
+.tiptap .selectedCell:after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(99, 102, 241, 0.25);
+  pointer-events: none;
+  z-index: 1;
+}
+.tiptap .column-resize-handle {
+  position: absolute;
+  right: -2px;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--color-accent);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.tiptap:hover .column-resize-handle {
+  opacity: 0.4;
+}
+.tiptap .tableWrapper {
+  overflow-x: auto;
+  margin: 1rem 0;
+}
+.resize-cursor {
+  cursor: col-resize;
+}
+
 /* Dictation / voice input recording pulse animation */
 @keyframes pulse-recording {
   0%,

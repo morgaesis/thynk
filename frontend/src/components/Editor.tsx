@@ -9,6 +9,10 @@ import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
 import Placeholder from '@tiptap/extension-placeholder';
 import { CodeBlockLowlight } from '@tiptap/extension-code-block-lowlight';
+import { Table } from '@tiptap/extension-table';
+import { TableRow } from '@tiptap/extension-table-row';
+import { TableHeader } from '@tiptap/extension-table-header';
+import { TableCell } from '@tiptap/extension-table-cell';
 import { Extension } from '@tiptap/core';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
@@ -35,6 +39,7 @@ import {
   type VimMode,
 } from '../extensions/VimModeExtension';
 import { VimStatusBar } from './VimStatusBar';
+import { TableControls } from './TableControls';
 
 // Create lowlight instance with common languages
 const lowlight = createLowlight(common);
@@ -209,6 +214,8 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
   const activeNoteRef = useRef(activeNote);
   const editorRef = useRef<TipTapEditor | null>(null);
   const { upload } = useFileUpload();
+  // Track editor state changes to re-render toolbar
+  const [editorVersion, setEditorVersion] = useState(0);
 
   // Wiki-link autocomplete state
   const [wikiSuggest, setWikiSuggest] = useState<{
@@ -246,6 +253,10 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
       Placeholder.configure({
         placeholder: 'Start writing…',
       }),
+      Table.configure({ resizable: true }),
+      TableRow,
+      TableHeader,
+      TableCell,
       ActiveNodeDecoration,
       HeadingBackspaceFix,
       CodeBlockExitOnDoubleEnter,
@@ -297,6 +308,7 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
       const { $from } = selection;
       if (!selection.empty) {
         setWikiSuggest(null);
+        setEditorVersion((v) => v + 1);
         return;
       }
       const textBefore = $from.parent.textContent.slice(0, $from.parentOffset);
@@ -315,6 +327,10 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
       } else {
         setWikiSuggest(null);
       }
+      setEditorVersion((v) => v + 1);
+    },
+    onSelectionUpdate: () => {
+      setEditorVersion((v) => v + 1);
     },
     onBlur: ({ editor: e }) => {
       const note = activeNoteRef.current;
@@ -459,6 +475,9 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
 
   return (
     <div className="flex-1 flex flex-col overflow-y-auto bg-surface dark:bg-surface-dark">
+      {/* Table controls toolbar — shown when cursor is inside a table */}
+      {editor && <TableControls editor={editor} key={editorVersion} />}
+
       <div className="max-w-3xl mx-auto w-full px-8 py-10 flex-1">
         {/* Title */}
         <input
@@ -486,7 +505,21 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
               <span>Last edited by {activeNote.last_updated_by}</span>
             </>
           )}
-          <span className="ml-auto flex items-center gap-2">
+          <button
+            onClick={() =>
+              editor
+                ?.chain()
+                .focus()
+                .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
+                .run()
+            }
+            className="ml-auto px-2 py-0.5 rounded text-xs border border-border dark:border-border-dark
+                       hover:bg-border dark:hover:bg-border-dark transition-colors"
+            title="Insert table"
+          >
+            Insert Table
+          </button>
+          <span className="flex items-center gap-2">
             <LockIndicator
               locked={locked}
               lockedByMe={lockedByMe}

@@ -1,4 +1,5 @@
-import { useEffect, useRef, useCallback, useState, createPortal } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   useEditor,
   EditorContent,
@@ -190,8 +191,6 @@ const HeadingBackspaceFix = Extension.create({
 export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
   const activeNote = useNoteStore((s) => s.activeNote);
   const updateNote = useNoteStore((s) => s.updateNote);
-  const openNoteByPath = useNoteStore((s) => s.openNoteByPath);
-  const notes = useNoteStore((s) => s.notes);
   const saving = useNoteStore((s) => s.saving);
   const addToast = useUIStore((s) => s.addToast);
   const authUser = useAuthStore((s) => s.user);
@@ -253,6 +252,16 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
           }
         },
       }),
+      WikiLinkExtension.configure({
+        onNavigate: (title: string) => {
+          // notes ref needed – use closure over the store at call time
+          const currentNotes = useNoteStore.getState().notes;
+          const n = currentNotes.find((x) => x.title === title);
+          if (n) {
+            void useNoteStore.getState().openNoteByPath(n.path);
+          }
+        },
+      }),
     ],
     content: '',
     editorProps: {
@@ -268,6 +277,31 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
       debounceRef.current = setTimeout(() => {
         updateNote(note.id, { content: getMarkdown(e) });
       }, 1000);
+
+      // Wiki-link autocomplete: detect [[  trigger
+      const { state } = e;
+      const { selection } = state;
+      const { $from } = selection;
+      if (!selection.empty) {
+        setWikiSuggest(null);
+        return;
+      }
+      const textBefore = $from.parent.textContent.slice(0, $from.parentOffset);
+      const triggerMatch = /\[\[([^\][\n]*)$/.exec(textBefore);
+      if (triggerMatch) {
+        // Get cursor coordinates for positioning the dropdown
+        const view = e.view;
+        const cursorPos = view.coordsAtPos($from.pos);
+        const anchorRect = new DOMRect(
+          cursorPos.left,
+          cursorPos.top,
+          0,
+          cursorPos.bottom - cursorPos.top,
+        );
+        setWikiSuggest({ query: triggerMatch[1], anchorRect });
+      } else {
+        setWikiSuggest(null);
+      }
     },
     onBlur: ({ editor: e }) => {
       const note = activeNoteRef.current;
@@ -351,6 +385,28 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
     };
   }, []);
 
+  // Wiki-link suggestion select: replace [[<query> with [[<title>]]
+  const handleWikiSelect = useCallback(
+    (title: string) => {
+      if (!editor || !wikiSuggest) return;
+      const { state } = editor;
+      const { $from } = state.selection;
+      const textBefore = $from.parent.textContent.slice(0, $from.parentOffset);
+      const triggerMatch = /\[\[([^\][\n]*)$/.exec(textBefore);
+      if (!triggerMatch) return;
+      const from = $from.pos - triggerMatch[0].length;
+      const to = $from.pos;
+      editor
+        .chain()
+        .focus()
+        .deleteRange({ from, to })
+        .insertContent(`[[${title}]]`)
+        .run();
+      setWikiSuggest(null);
+    },
+    [editor, wikiSuggest],
+  );
+
   if (!activeNote) {
     return (
       <div className="flex-1 flex items-center justify-center bg-surface dark:bg-surface-dark">
@@ -426,6 +482,18 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
           className="text-text dark:text-text-dark"
         />
       </div>
+
+      {/* Wiki-link autocomplete dropdown */}
+      {wikiSuggest &&
+        createPortal(
+          <WikiLinkSuggestions
+            query={wikiSuggest.query}
+            onSelect={handleWikiSelect}
+            onClose={() => setWikiSuggest(null)}
+            anchorRect={wikiSuggest.anchorRect}
+          />,
+          document.body,
+        )}
     </div>
   );
 }

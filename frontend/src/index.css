@@ -237,3 +237,18 @@ body {
 .recording-pulse {
   animation: pulse-recording 1s ease-in-out infinite;
 }
+
+/* Wiki-link decorations rendered by WikiLinkExtension */
+.wiki-link {
+  color: var(--color-accent);
+  background-color: color-mix(in srgb, var(--color-accent) 10%, transparent);
+  border-radius: 3px;
+  padding: 0 2px;
+  cursor: pointer;
+  text-decoration: none;
+  font-weight: 500;
+  transition: background-color 0.15s;
+}
+.wiki-link:hover {
+  background-color: color-mix(in srgb, var(--color-accent) 20%, transparent);
+}

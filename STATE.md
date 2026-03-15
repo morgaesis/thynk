@@ -1,9 +1,9 @@
 # STATE.md - Thynk Current Status
 
-## Project Status: PHASE 1 COMPLETE
+## Project Status: PHASE 2 COMPLETE
 
-**Current Phase:** Phase 2 -- Knowledge & Data (starting next)
-**Overall Progress:** Phase 1 complete and production-quality
+**Current Phase:** Phase 3 -- AI & Sync (starting next)
+**Overall Progress:** Phases 1 and 2 complete and production-quality
 
 ---
 
@@ -65,13 +65,17 @@
 | Local file uploads      | Done        | Phase 1 |
 | WS heartbeat            | Done        | Phase 1 |
 | last_updated_by         | Done        | Phase 1 |
-| Linking System          | Not Started | Phase 2 |
-| Graph View              | Not Started | Phase 2 |
-| Tags                    | Not Started | Phase 2 |
-| Templates / Daily Notes | Not Started | Phase 2 |
-| Database Views          | Not Started | Phase 2 |
-| Page Locking            | Not Started | Phase 2 |
-| Automations             | Not Started | Phase 2 |
+| Linking System          | Done        | Phase 2 |
+| Graph View              | Done        | Phase 2 |
+| Tags                    | Done        | Phase 2 |
+| Templates / Daily Notes | Done        | Phase 2 |
+| Database Views          | Done        | Phase 2 |
+| Page Locking            | Done        | Phase 2 |
+| Automations             | Done        | Phase 2 |
+| Vim Mode                | Done        | Phase 2 |
+| Import/Export           | Done        | Phase 2 |
+| Favorites               | Done        | Phase 2 |
+| Page Properties         | Done        | Phase 2 |
 | AI Integration          | Not Started | Phase 3 |
 | Sync Engine             | Not Started | Phase 3 |
 | Cloud Deployment        | Not Started | Phase 3 |
@@ -92,6 +96,24 @@
 - [x] All 44 frontend tests pass with `bun test`
 - [x] All 32 Rust tests pass with `cargo test -- --test-threads=8`
 
+### Phase 2 Exit Criteria (all met)
+
+- [x] `[[wiki-link]]` syntax with click navigation, backlinks panel, and graph view
+- [x] D3.js force-directed graph view at `/graph`
+- [x] Tags extracted from frontmatter, tag browser in sidebar, filter by tag
+- [x] Templates: list, create from template; daily note button with calendar
+- [x] TipTap table extension with TableControls toolbar
+- [x] Page properties: frontmatter key-value editor above the editor
+- [x] Database views: list / kanban / timeline for structured notes
+- [x] Calendar view for date-based note navigation
+- [x] Page locking: 30-second leases, 15-second heartbeat, `423 Locked` on conflict
+- [x] Favorites: toggle star, favorites section in sidebar
+- [x] Vim mode: normal / insert / visual with standard keybindings
+- [x] Automation log: WebSocket `status_changed` events shown in sidebar
+- [x] Export workspace as `.zip`; import markdown files and Obsidian vaults
+- [x] Settings page: vim toggle, font size, line height
+- [x] All 57 Rust tests pass; frontend builds clean; ESLint/clippy/fmt pass
+
 ---
 
 ## Documentation Status
@@ -107,14 +129,12 @@
 
 ---
 
-## Phase 2 Next Steps
+## Phase 3 Next Steps
 
-1. **Wiki-links** -- `[[note title]]` syntax with backlinks and hover previews
-2. **Graph view** -- D3.js or similar, visualize note connections
-3. **Tags** -- frontmatter tags, tag browser, filter by tag
-4. **Templates** -- note templates, daily note shortcut
-5. **Tables / database views** -- structured data in notes
-6. **Import/export** -- Obsidian vault import, markdown export zip
+1. **AI Integration** -- BYOK (Bring Your Own Key), inline completions, smart search
+2. **Sync Engine** -- differential sync between devices and cloud
+3. **Cloud Deployment** -- scale-to-zero instances, wake on first request
+4. **Unlinked mentions** -- find notes referenced by title without a wiki-link
 
 ---
 

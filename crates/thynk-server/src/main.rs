@@ -72,8 +72,11 @@ async fn main() -> anyhow::Result<()> {
     index_all_files(&db, &storage);
 
     let doc_count = db.list_notes().map(|n| n.len()).unwrap_or(0);
-    println!("Data directory: {}", config.data_dir.display());
-    println!("Documents indexed: {}", doc_count);
+    println!(
+        "Data directory: {} ({} files)",
+        config.data_dir.display(),
+        doc_count
+    );
 
     let data_dir = storage.data_dir().clone();
 
@@ -695,6 +698,248 @@ mod tests {
         assert!(
             results.as_array().unwrap().len() >= 1,
             "should find the note"
+        );
+    }
+
+    /// Register a second user using an existing user's session cookie.
+    async fn setup_second_user(state: &AppState, admin_cookie: &str, username: &str) -> String {
+        // Register second user (requires existing auth).
+        let app = routes::router(state.clone());
+        app.oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/auth/register")
+                .header("content-type", "application/json")
+                .header("cookie", admin_cookie)
+                .body(Body::from(
+                    serde_json::json!({"username": username, "password": "pass2"}).to_string(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+        // Login as second user.
+        let app = routes::router(state.clone());
+        let res = app
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/auth/login")
+                    .header("content-type", "application/json")
+                    .body(Body::from(
+                        serde_json::json!({"username": username, "password": "pass2"}).to_string(),
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        let cookie_header = res
+            .headers()
+            .get("set-cookie")
+            .expect("login should set cookie")
+            .to_str()
+            .unwrap()
+            .to_string();
+        cookie_header.split(';').next().unwrap().to_string()
+    }
+
+    #[tokio::test]
+    async fn test_lock_prevents_second_user_from_updating() {
+        let state = test_state();
+        let admin_cookie = setup_auth(&state).await;
+        let bob_cookie = setup_second_user(&state, &admin_cookie, "bob").await;
+
+        // Create a note as admin.
+        let app = routes::router(state.clone());
+        let res = app
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/notes")
+                    .header("content-type", "application/json")
+                    .header("cookie", &admin_cookie)
+                    .body(Body::from(
+                        serde_json::json!({ "title": "Lockable Note", "content": "v1" })
+                            .to_string(),
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(res.status(), StatusCode::CREATED);
+        let body = axum::body::to_bytes(res.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let note: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        let id = note["id"].as_str().unwrap();
+
+        // Admin acquires lock.
+        let app = routes::router(state.clone());
+        let res = app
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri(&format!("/api/notes/{id}/lock"))
+                    .header("cookie", &admin_cookie)
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(res.status(), StatusCode::OK);
+
+        // Bob tries to update the locked note — must get 423.
+        let app = routes::router(state.clone());
+        let res = app
+            .oneshot(
+                Request::builder()
+                    .method("PUT")
+                    .uri(&format!("/api/notes/{id}"))
+                    .header("content-type", "application/json")
+                    .header("cookie", &bob_cookie)
+                    .body(Body::from(
+                        serde_json::json!({ "content": "bob's edit" }).to_string(),
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(res.status(), StatusCode::from_u16(423).unwrap());
+
+        // Admin (lock owner) can still update.
+        let app = routes::router(state.clone());
+        let res = app
+            .oneshot(
+                Request::builder()
+                    .method("PUT")
+                    .uri(&format!("/api/notes/{id}"))
+                    .header("content-type", "application/json")
+                    .header("cookie", &admin_cookie)
+                    .body(Body::from(
+                        serde_json::json!({ "content": "admin's edit" }).to_string(),
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(res.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn test_lock_get_returns_locker_info() {
+        let state = test_state();
+        let admin_cookie = setup_auth(&state).await;
+
+        // Create a note.
+        let app = routes::router(state.clone());
+        let res = app
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/notes")
+                    .header("content-type", "application/json")
+                    .header("cookie", &admin_cookie)
+                    .body(Body::from(
+                        serde_json::json!({ "title": "Lock Test" }).to_string(),
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let body = axum::body::to_bytes(res.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let note: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        let id = note["id"].as_str().unwrap();
+
+        // GET lock before acquiring — should be unlocked.
+        let app = routes::router(state.clone());
+        let res = app
+            .oneshot(
+                Request::builder()
+                    .uri(&format!("/api/notes/{id}/lock"))
+                    .header("cookie", &admin_cookie)
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(res.status(), StatusCode::OK);
+        let body = axum::body::to_bytes(res.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let lock: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(lock["locked"], false);
+
+        // Acquire lock.
+        let app = routes::router(state.clone());
+        app.oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/notes/{id}/lock"))
+                .header("cookie", &admin_cookie)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+        // GET lock after acquiring — should be locked by admin.
+        let app = routes::router(state.clone());
+        let res = app
+            .oneshot(
+                Request::builder()
+                    .uri(&format!("/api/notes/{id}/lock"))
+                    .header("cookie", &admin_cookie)
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let body = axum::body::to_bytes(res.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let lock: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(lock["locked"], true);
+        assert_eq!(lock["user"], "admin");
+    }
+
+    /// Verify that `index_all_files` does not modify files that already exist in the data dir.
+    #[test]
+    fn test_startup_does_not_modify_existing_files() {
+        use std::fs;
+        use std::time::SystemTime;
+
+        let dir = tempfile::tempdir().unwrap();
+        let file_path = dir.path().join("existing.md");
+
+        // Write a pre-existing file.
+        fs::write(&file_path, "# Existing note\n\nContent").unwrap();
+
+        // Record mtime and content before indexing.
+        let meta_before = fs::metadata(&file_path).unwrap();
+        let mtime_before = meta_before.modified().unwrap_or(SystemTime::UNIX_EPOCH);
+        let content_before = fs::read_to_string(&file_path).unwrap();
+
+        // Run the indexing routine (this is what happens on server startup).
+        let db = Database::open_in_memory().unwrap();
+        let storage = FilesystemStorage::new(dir.keep()).unwrap();
+        index_all_files(&db, &storage);
+
+        // Verify file was NOT modified.
+        let meta_after = fs::metadata(&file_path).unwrap();
+        let mtime_after = meta_after.modified().unwrap_or(SystemTime::UNIX_EPOCH);
+        let content_after = fs::read_to_string(&file_path).unwrap();
+
+        assert_eq!(
+            content_before, content_after,
+            "startup indexing must not change file contents"
+        );
+        assert_eq!(
+            mtime_before, mtime_after,
+            "startup indexing must not touch file modification time"
         );
     }
 

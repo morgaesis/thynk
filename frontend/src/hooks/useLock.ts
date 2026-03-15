@@ -81,18 +81,19 @@ export function useLock(
     [stopHeartbeat],
   );
 
-  // Reset lock state when note changes (deferred to avoid cascading renders)
+  // Reset lock state when note changes.
+  // Deferred via microtask so the reset is queued before any async checkLock
+  // continuation, preserving the invariant: reset → then server state.
   useEffect(() => {
     stopHeartbeat();
-    const id = setTimeout(() => {
+    void Promise.resolve().then(() =>
       setLockState({
         locked: false,
         lockedByMe: false,
         lockedBy: null,
         expiresAt: null,
-      });
-    }, 0);
-    return () => clearTimeout(id);
+      }),
+    );
   }, [noteId, stopHeartbeat]);
 
   // On note change, check current lock status

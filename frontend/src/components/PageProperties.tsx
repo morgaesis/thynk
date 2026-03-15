@@ -99,6 +99,14 @@ export function PageProperties({ content, onChange }: Props) {
                 >
                   {key}
                 </span>
+                <span
+                  className={`text-[10px] px-1 rounded shrink-0 font-medium
+                    ${type === 'boolean' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400' :
+                      type === 'date' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' :
+                      'bg-border dark:bg-border-dark text-text-muted dark:text-text-muted-dark'}`}
+                >
+                  {type}
+                </span>
                 {type === 'boolean' ? (
                   <input
                     type="checkbox"

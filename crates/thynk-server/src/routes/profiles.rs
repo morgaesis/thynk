@@ -20,10 +20,7 @@ pub struct NoteActivity {
     pub updated_at: String,
 }
 
-fn build_recent_notes(
-    db: &thynk_core::Database,
-    username: &str,
-) -> Vec<NoteActivity> {
+fn build_recent_notes(db: &thynk_core::Database, username: &str) -> Vec<NoteActivity> {
     let all_notes = db.list_notes().unwrap_or_default();
     let mut recent_notes: Vec<NoteActivity> = all_notes
         .into_iter()

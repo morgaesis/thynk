@@ -341,11 +341,13 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
     }
   }, [editor, isReadOnly]);
 
-  // Reset vim mode to normal when switching notes
+  // Reset vim mode to normal when switching notes (deferred to avoid cascading renders)
   useEffect(() => {
-    if (vimModeEnabled) {
+    if (!vimModeEnabled) return;
+    const id = setTimeout(() => {
       setVimMode('normal');
-    }
+    }, 0);
+    return () => clearTimeout(id);
   }, [activeNote?.id, vimModeEnabled]);
 
   // Sync editor content when active note changes

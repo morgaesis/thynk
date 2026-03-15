@@ -28,9 +28,13 @@ export function useLock(
 
   const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const noteIdRef = useRef(noteId);
-  noteIdRef.current = noteId;
   const currentUserRef = useRef(currentUser);
-  currentUserRef.current = currentUser;
+
+  // Keep refs current without triggering re-renders.
+  useEffect(() => {
+    noteIdRef.current = noteId;
+    currentUserRef.current = currentUser;
+  });
 
   const stopHeartbeat = useCallback(() => {
     if (heartbeatRef.current !== null) {
@@ -77,15 +81,18 @@ export function useLock(
     [stopHeartbeat],
   );
 
-  // Reset lock state when note changes
+  // Reset lock state when note changes (deferred to avoid cascading renders)
   useEffect(() => {
     stopHeartbeat();
-    setLockState({
-      locked: false,
-      lockedByMe: false,
-      lockedBy: null,
-      expiresAt: null,
-    });
+    const id = setTimeout(() => {
+      setLockState({
+        locked: false,
+        lockedByMe: false,
+        lockedBy: null,
+        expiresAt: null,
+      });
+    }, 0);
+    return () => clearTimeout(id);
   }, [noteId, stopHeartbeat]);
 
   // Release lock on unmount if we hold it

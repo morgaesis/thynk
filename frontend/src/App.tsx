@@ -4,6 +4,7 @@ import { Layout } from './components/Layout';
 import { CommandPalette } from './components/CommandPalette';
 import { ToastContainer } from './components/Toast';
 import { LoginPage } from './components/LoginPage';
+import { SettingsPage } from './components/SettingsPage';
 import { useUIStore } from './stores/uiStore';
 import { useNoteStore } from './stores/noteStore';
 import { useAuthStore } from './stores/authStore';
@@ -20,6 +21,9 @@ function App() {
   const updateNote = useNoteStore((s) => s.updateNote);
   const fetchNotes = useNoteStore((s) => s.fetchNotes);
   const openNoteByPath = useNoteStore((s) => s.openNoteByPath);
+
+  const [currentPath, setCurrentPath] = useState(window.location.pathname);
+  const isSettingsPage = currentPath === '/settings';
 
   // Start as connected (no indicator shown). Only show indicator after an
   // unexpected disconnect — not on initial connection or clean closes.
@@ -106,7 +110,12 @@ function App() {
     ws.onclose = (ev) => {
       // Only show indicator after first connect and only on unexpected closes.
       // Codes 1000 (Normal Closure) and 1001 (Going Away) are expected.
-      if (hasConnectedRef.current && !ev.wasClean && ev.code !== 1000 && ev.code !== 1001) {
+      if (
+        hasConnectedRef.current &&
+        !ev.wasClean &&
+        ev.code !== 1000 &&
+        ev.code !== 1001
+      ) {
         scheduleReconnecting();
       }
     };
@@ -115,7 +124,10 @@ function App() {
       try {
         const event = JSON.parse(ev.data as string) as {
           type: string;
-          path: string;
+          path?: string;
+          note_id?: string;
+          title?: string;
+          status?: string;
         };
         if (
           event.type === 'file_created' ||
@@ -126,6 +138,12 @@ function App() {
           if (event.type === 'file_created') {
             addToast('info', `New file detected: ${event.path}`);
           }
+        } else if (
+          event.type === 'status_changed' &&
+          event.title &&
+          event.status
+        ) {
+          addToast('info', `Note '${event.title}' marked as ${event.status}`);
         }
       } catch {
         // ignore malformed messages
@@ -154,7 +172,9 @@ function App() {
   // Handle browser back/forward navigation
   useEffect(() => {
     const handlePopState = () => {
-      const match = window.location.pathname.match(/^\/notes\/(.+)$/);
+      const pathname = window.location.pathname;
+      setCurrentPath(pathname);
+      const match = pathname.match(/^\/notes\/(.+)$/);
       if (match) {
         const path = decodeURIComponent(match[1]);
         openNoteByPath(path);
@@ -177,7 +197,9 @@ function App() {
   if (authLoading) {
     return (
       <div className="h-full bg-surface dark:bg-surface-dark flex items-center justify-center">
-        <span className="text-sm text-text-muted dark:text-text-muted-dark">Loading…</span>
+        <span className="text-sm text-text-muted dark:text-text-muted-dark">
+          Loading…
+        </span>
       </div>
     );
   }
@@ -185,6 +207,15 @@ function App() {
   // Show login if not authenticated.
   if (!authUser) {
     return <LoginPage />;
+  }
+
+  if (isSettingsPage) {
+    return (
+      <div className="h-full bg-surface dark:bg-surface-dark">
+        <SettingsPage />
+        <ToastContainer />
+      </div>
+    );
   }
 
   return (
@@ -196,8 +227,10 @@ function App() {
       <CommandPalette />
       <ToastContainer />
       {!wsConnected && (
-        <div className="fixed bottom-4 right-4 z-50 flex items-center gap-2 px-3 py-1.5
-                         rounded-full text-xs bg-yellow-500/90 text-white shadow-lg">
+        <div
+          className="fixed bottom-4 right-4 z-50 flex items-center gap-2 px-3 py-1.5
+                         rounded-full text-xs bg-yellow-500/90 text-white shadow-lg"
+        >
           <span className="animate-pulse w-1.5 h-1.5 rounded-full bg-white inline-block" />
           Reconnecting…
         </div>

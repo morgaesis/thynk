@@ -45,8 +45,13 @@ export const useNoteStore = create<NoteStore>((set, get) => ({
     set({ loading: true, error: null });
     try {
       const note = await api.getNote(id);
-      window.history.pushState({}, '', `/notes/${encodeURIComponent(note.path)}`);
+      window.history.pushState(
+        {},
+        '',
+        `/notes/${encodeURIComponent(note.path)}`,
+      );
       set({ activeNote: note, loading: false });
+      useUIStore.getState().addRecentNote(id);
     } catch (e) {
       const msg = (e as Error).message;
       set({ error: msg, loading: false });

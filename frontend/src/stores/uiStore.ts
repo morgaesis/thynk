@@ -13,6 +13,7 @@ interface UIStore {
   commandPaletteOpen: boolean;
   theme: Theme;
   toasts: Toast[];
+  recentNoteIds: string[];
 
   toggleSidebar: () => void;
   setSidebarOpen: (open: boolean) => void;
@@ -22,6 +23,7 @@ interface UIStore {
   toggleTheme: () => void;
   addToast: (type: Toast['type'], message: string) => void;
   removeToast: (id: string) => void;
+  addRecentNote: (id: string) => void;
 }
 
 function getInitialTheme(): Theme {
@@ -38,6 +40,7 @@ export const useUIStore = create<UIStore>((set) => ({
   commandPaletteOpen: false,
   theme: getInitialTheme(),
   toasts: [],
+  recentNoteIds: [],
 
   toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
   setSidebarOpen: (open) => set({ sidebarOpen: open }),
@@ -63,4 +66,9 @@ export const useUIStore = create<UIStore>((set) => ({
     })),
   removeToast: (id) =>
     set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
+  addRecentNote: (id) =>
+    set((s) => {
+      const filtered = s.recentNoteIds.filter((r) => r !== id);
+      return { recentNoteIds: [id, ...filtered].slice(0, 10) };
+    }),
 }));

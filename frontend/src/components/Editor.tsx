@@ -27,6 +27,7 @@ import { useLock } from '../hooks/useLock';
 import { LockIndicator } from './LockIndicator';
 import { WikiLinkExtension } from '../extensions/WikiLinkExtension';
 import { WikiLinkSuggestions } from './WikiLinkSuggestions';
+import { BacklinksPanel } from './BacklinksPanel';
 
 // Create lowlight instance with common languages
 const lowlight = createLowlight(common);
@@ -431,8 +432,8 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto bg-surface dark:bg-surface-dark">
-      <div className="max-w-3xl mx-auto px-8 py-10">
+    <div className="flex-1 flex flex-col overflow-y-auto bg-surface dark:bg-surface-dark">
+      <div className="max-w-3xl mx-auto w-full px-8 py-10 flex-1">
         {/* Title */}
         <input
           ref={titleRef}
@@ -481,6 +482,11 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
           editor={editor}
           className="text-text dark:text-text-dark"
         />
+      </div>
+
+      {/* Backlinks panel – rendered below the writing area */}
+      <div className="max-w-3xl mx-auto w-full">
+        <BacklinksPanel noteId={activeNote.id} noteTitle={activeNote.title} />
       </div>
 
       {/* Wiki-link autocomplete dropdown */}

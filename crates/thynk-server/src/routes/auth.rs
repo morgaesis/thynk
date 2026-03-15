@@ -308,11 +308,7 @@ pub async fn update_me(
     let user = match db.get_user_by_username(&auth_user.username) {
         Ok(Some(u)) => u,
         Ok(None) => {
-            return err_json(
-                StatusCode::NOT_FOUND,
-                "not_found",
-                "User not found",
-            );
+            return err_json(StatusCode::NOT_FOUND, "not_found", "User not found");
         }
         Err(e) => {
             return err_json(

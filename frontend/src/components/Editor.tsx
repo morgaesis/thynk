@@ -26,6 +26,7 @@ import { useUIStore } from '../stores/uiStore';
 import { useAuthStore } from '../stores/authStore';
 import { useSettingsStore } from '../stores/settingsStore';
 import { DictationButton } from './DictationButton';
+import { UserProfile } from './UserProfile';
 import { FileUploadExtension } from '../extensions/FileUploadExtension';
 import { useFileUpload } from '../hooks/useFileUpload';
 import { useLock } from '../hooks/useLock';
@@ -217,6 +218,9 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
   const { upload } = useFileUpload();
   // Track editor state changes to re-render toolbar
   const [editorVersion, setEditorVersion] = useState(0);
+
+  // User profile panel state
+  const [profileUsername, setProfileUsername] = useState<string | null>(null);
 
   // Wiki-link autocomplete state
   const [wikiSuggest, setWikiSuggest] = useState<{
@@ -512,24 +516,18 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
             {activeNote.last_updated_by && (
               <>
                 <span>·</span>
-                <span>Last edited by {activeNote.last_updated_by}</span>
+                <span>
+                  Last edited by{' '}
+                  <button
+                    onClick={() => setProfileUsername(activeNote.last_updated_by!)}
+                    className="underline hover:text-text dark:hover:text-text-dark transition-colors"
+                  >
+                    {activeNote.last_updated_by}
+                  </button>
+                </span>
               </>
             )}
-            <button
-              onClick={() =>
-                editor
-                  ?.chain()
-                  .focus()
-                  .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
-                  .run()
-              }
-              className="ml-auto px-2 py-0.5 rounded text-xs border border-border dark:border-border-dark
-                       hover:bg-border dark:hover:bg-border-dark transition-colors"
-              title="Insert table"
-            >
-              Insert Table
-            </button>
-            <span className="flex items-center gap-2">
+            <span className="ml-auto flex items-center gap-2">
               <LockIndicator
                 locked={locked}
                 lockedByMe={lockedByMe}

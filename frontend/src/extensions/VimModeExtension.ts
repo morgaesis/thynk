@@ -1,6 +1,7 @@
 import { Extension } from '@tiptap/core';
 import { Plugin, PluginKey, Selection, TextSelection } from '@tiptap/pm/state';
 import type { EditorState, Transaction } from '@tiptap/pm/state';
+import { Decoration, DecorationSet } from '@tiptap/pm/view';
 import type { EditorView } from '@tiptap/pm/view';
 import {
   deleteSelection,
@@ -61,6 +62,36 @@ export const VimModeExtension = Extension.create<VimModeOptions>({
         },
 
         props: {
+          decorations(state: EditorState): DecorationSet {
+            const pluginState = vimPluginKey.getState(state);
+            if (!pluginState || pluginState.mode !== 'normal') {
+              return DecorationSet.empty;
+            }
+            const { selection } = state;
+            if (!selection.empty) return DecorationSet.empty;
+
+            const { from } = selection;
+            const $from = state.doc.resolve(from);
+            const atBlockEnd = $from.parentOffset >= $from.parent.content.size;
+
+            if (atBlockEnd) {
+              // No character under cursor – show a block widget at line end
+              const dom = document.createElement('span');
+              dom.className = 'vim-cursor-eol';
+              return DecorationSet.create(state.doc, [
+                Decoration.widget(from, dom, { key: 'vim-cursor', side: 1 }),
+              ]);
+            }
+
+            // Highlight the character under the cursor
+            return DecorationSet.create(state.doc, [
+              Decoration.inline(from, from + 1, {
+                class: 'vim-cursor-char',
+                key: 'vim-cursor',
+              }),
+            ]);
+          },
+
           handleKeyDown(view: EditorView, event: KeyboardEvent): boolean {
             const pluginState = vimPluginKey.getState(view.state);
             if (!pluginState) return false;

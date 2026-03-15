@@ -298,15 +298,25 @@ body {
   animation: pulse-recording 1s ease-in-out infinite;
 }
 
-/* Block cursor in vim normal mode */
-.vim-normal-mode .ProseMirror .ProseMirror-cursor {
+/* Block cursor in vim normal mode: hide the native caret */
+.vim-normal-mode .ProseMirror {
+  caret-color: transparent;
+}
+
+/* Highlight the character under the vim cursor (inline decoration) */
+.vim-normal-mode .vim-cursor-char {
+  background: rgba(128, 128, 128, 0.5);
+  border-radius: 1px;
+}
+
+/* Block shown at end-of-line when there is no character under the cursor */
+.vim-normal-mode .vim-cursor-eol {
   display: inline-block;
-  border-left: none;
   width: 0.6em;
   height: 1.2em;
-  background-color: currentColor;
-  opacity: 0.5;
+  background: rgba(128, 128, 128, 0.5);
   vertical-align: text-bottom;
+  border-radius: 1px;
 }
 
 /* Wiki-link decorations rendered by WikiLinkExtension */

@@ -148,6 +148,11 @@ impl Database {
             ",
         )?;
 
+        // Add last_updated_by column to existing DBs that predate this schema version.
+        let _ = self
+            .conn
+            .execute("ALTER TABLE notes ADD COLUMN last_updated_by TEXT", []);
+
         info!("database schema initialized");
         Ok(())
     }
@@ -160,14 +165,15 @@ impl Database {
     /// Index (upsert) a note into the database.
     pub fn index_note(&self, note: &Note) -> Result<()> {
         self.conn.execute(
-            "INSERT INTO notes (id, path, title, content, content_hash, created_at, updated_at)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
+            "INSERT INTO notes (id, path, title, content, content_hash, created_at, updated_at, last_updated_by)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
              ON CONFLICT(id) DO UPDATE SET
-                path         = excluded.path,
-                title        = excluded.title,
-                content      = excluded.content,
-                content_hash = excluded.content_hash,
-                updated_at   = excluded.updated_at",
+                path             = excluded.path,
+                title            = excluded.title,
+                content          = excluded.content,
+                content_hash     = excluded.content_hash,
+                updated_at       = excluded.updated_at,
+                last_updated_by  = excluded.last_updated_by",
             params![
                 note.id,
                 note.path.to_string_lossy().to_string(),
@@ -176,6 +182,7 @@ impl Database {
                 note.content_hash,
                 note.created_at.to_rfc3339(),
                 note.updated_at.to_rfc3339(),
+                note.last_updated_by,
             ],
         )?;
         Ok(())
@@ -185,7 +192,7 @@ impl Database {
     pub fn get_note_metadata(&self, id: &str) -> Result<NoteMetadata> {
         self.conn
             .query_row(
-                "SELECT id, path, title, content_hash, created_at, updated_at FROM notes WHERE id = ?1",
+                "SELECT id, path, title, content_hash, created_at, updated_at, last_updated_by FROM notes WHERE id = ?1",
                 params![id],
                 |row| {
                     Ok(NoteMetadata {
@@ -199,6 +206,7 @@ impl Database {
                         updated_at: chrono::DateTime::parse_from_rfc3339(&row.get::<_, String>(5)?)
                             .unwrap_or_default()
                             .with_timezone(&chrono::Utc),
+                        last_updated_by: row.get(6)?,
                     })
                 },
             )
@@ -213,7 +221,7 @@ impl Database {
         let path_str = path.to_string_lossy().to_string();
         self.conn
             .query_row(
-                "SELECT id, path, title, content_hash, created_at, updated_at FROM notes WHERE path = ?1",
+                "SELECT id, path, title, content_hash, created_at, updated_at, last_updated_by FROM notes WHERE path = ?1",
                 params![path_str],
                 |row| {
                     Ok(NoteMetadata {
@@ -227,6 +235,7 @@ impl Database {
                         updated_at: chrono::DateTime::parse_from_rfc3339(&row.get::<_, String>(5)?)
                             .unwrap_or_default()
                             .with_timezone(&chrono::Utc),
+                        last_updated_by: row.get(6)?,
                     })
                 },
             )
@@ -241,7 +250,7 @@ impl Database {
     /// List metadata for all notes.
     pub fn list_notes(&self) -> Result<Vec<NoteMetadata>> {
         let mut stmt = self.conn.prepare(
-            "SELECT id, path, title, content_hash, created_at, updated_at FROM notes ORDER BY updated_at DESC",
+            "SELECT id, path, title, content_hash, created_at, updated_at, last_updated_by FROM notes ORDER BY updated_at DESC",
         )?;
         let rows = stmt.query_map([], |row| {
             Ok(NoteMetadata {
@@ -255,6 +264,7 @@ impl Database {
                 updated_at: chrono::DateTime::parse_from_rfc3339(&row.get::<_, String>(5)?)
                     .unwrap_or_default()
                     .with_timezone(&chrono::Utc),
+                last_updated_by: row.get(6)?,
             })
         })?;
 

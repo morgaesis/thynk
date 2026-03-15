@@ -3,11 +3,12 @@ use std::path::PathBuf;
 use axum::extract::{Path, State};
 use axum::http::{HeaderMap, StatusCode};
 use axum::response::IntoResponse;
-use axum::Json;
+use axum::{Extension, Json};
 use serde::{Deserialize, Serialize};
 
 use thynk_core::{Note, NoteStorage};
 
+use crate::routes::auth::AuthUser;
 use crate::state::AppState;
 
 /// Convert a title to a filesystem path, preserving `/` as directory separators.
@@ -181,6 +182,7 @@ pub async fn update_note(
     State(state): State<AppState>,
     Path(id): Path<String>,
     headers: HeaderMap,
+    Extension(auth_user): Extension<AuthUser>,
     Json(body): Json<UpdateNoteRequest>,
 ) -> impl IntoResponse {
     let db = state.db.lock().await;
@@ -245,6 +247,9 @@ pub async fn update_note(
         note.path = PathBuf::from(path);
     }
     note.updated_at = chrono::Utc::now();
+
+    let editor_name = auth_user.display_name.unwrap_or(auth_user.username);
+    note.last_updated_by = Some(editor_name);
 
     if let Err(e) = storage.write_note(&note) {
         return err(

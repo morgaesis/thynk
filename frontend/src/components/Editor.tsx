@@ -5,6 +5,7 @@ import {
   type Editor as TipTapEditor,
 } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
+import Image from '@tiptap/extension-image';
 import Placeholder from '@tiptap/extension-placeholder';
 import { CodeBlockLowlight } from '@tiptap/extension-code-block-lowlight';
 import { Extension } from '@tiptap/core';
@@ -200,6 +201,7 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
         // Disable built-in CodeBlock since we use CodeBlockLowlight
         codeBlock: false,
       }),
+      Image,
       CodeBlockLowlight.configure({
         lowlight,
       }),
@@ -359,6 +361,12 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
           <span className="tabular-nums">
             {new Date(activeNote.updated_at).toLocaleString()}
           </span>
+          {activeNote.last_updated_by && (
+            <>
+              <span>·</span>
+              <span>Last edited by {activeNote.last_updated_by}</span>
+            </>
+          )}
           <span className="ml-auto">
             <DictationButton editor={editor} />
           </span>

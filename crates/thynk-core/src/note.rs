@@ -16,6 +16,7 @@ pub struct Note {
     pub frontmatter: HashMap<String, String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub last_updated_by: Option<String>,
 }
 
 /// Lightweight note metadata for listing endpoints.
@@ -27,6 +28,7 @@ pub struct NoteMetadata {
     pub content_hash: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub last_updated_by: Option<String>,
 }
 
 pub fn compute_hash(content: &str) -> String {
@@ -48,6 +50,7 @@ impl Note {
             frontmatter: HashMap::new(),
             created_at: now,
             updated_at: now,
+            last_updated_by: None,
         }
     }
 
@@ -63,6 +66,7 @@ impl Note {
             content_hash: self.content_hash.clone(),
             created_at: self.created_at,
             updated_at: self.updated_at,
+            last_updated_by: self.last_updated_by.clone(),
         }
     }
 }

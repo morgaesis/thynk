@@ -6,6 +6,7 @@ export interface Note {
   content_hash: string;
   created_at: string;
   updated_at: string;
+  last_updated_by?: string;
 }
 
 export interface NoteMetadata {
@@ -15,6 +16,7 @@ export interface NoteMetadata {
   content_hash: string;
   created_at: string;
   updated_at: string;
+  last_updated_by?: string;
 }
 
 export interface SearchResult {

@@ -14,6 +14,13 @@ use uuid::Uuid;
 use crate::state::AppState;
 
 const SESSION_COOKIE: &str = "thynk_session";
+
+/// Authenticated user info, injected by the require_auth middleware as a request extension.
+#[derive(Clone)]
+pub struct AuthUser {
+    pub username: String,
+    pub display_name: Option<String>,
+}
 /// 30 days in seconds.
 const SESSION_MAX_AGE_SECS: i64 = 2_592_000;
 
@@ -291,14 +298,18 @@ pub async fn me(jar: CookieJar, State(state): State<AppState>) -> Response {
 pub async fn require_auth(
     State(state): State<crate::state::AppState>,
     jar: CookieJar,
-    request: Request,
+    mut request: Request,
     next: Next,
 ) -> Response {
     let token = jar.get(SESSION_COOKIE).map(|c| c.value().to_string());
     let db = state.db.lock().await;
     match validate_token(token.as_deref(), &db) {
-        Ok(_) => {
+        Ok(user) => {
             drop(db);
+            request.extensions_mut().insert(AuthUser {
+                username: user.username,
+                display_name: user.display_name,
+            });
             next.run(request).await
         }
         Err(response) => response,

@@ -81,6 +81,7 @@ impl NoteStorage for FilesystemStorage {
             frontmatter: std::collections::HashMap::new(),
             created_at: now,
             updated_at: now,
+            last_updated_by: None,
         })
     }
 

@@ -1,6 +1,11 @@
 pub mod auth;
+pub mod favorites;
+pub mod links;
+pub mod locks;
 pub mod notes;
 pub mod search;
+pub mod tags;
+pub mod templates;
 pub mod tree;
 pub mod uploads;
 pub mod ws;
@@ -41,9 +46,34 @@ pub fn router(state: AppState) -> Router {
         )
         .route("/api/search", get(search::search))
         .route("/api/tree", get(tree::file_tree))
+        .route("/api/notes/{id}/backlinks", get(links::get_backlinks))
+        .route(
+            "/api/notes/{id}/links",
+            get(links::get_outgoing_links).put(links::update_links),
+        )
+        .route("/api/graph", get(links::get_graph))
         .route("/api/ws", get(ws::ws_handler))
         .route("/api/uploads", post(uploads::upload_file))
         .route("/api/uploads/{id}", get(uploads::get_upload))
+        .route(
+            "/api/notes/{id}/lock",
+            get(locks::get_lock)
+                .post(locks::acquire_lock)
+                .delete(locks::release_lock),
+        )
+        .route(
+            "/api/notes/{id}/lock/heartbeat",
+            post(locks::heartbeat_lock),
+        )
+        .route("/api/tags", get(tags::list_tags))
+        .route("/api/tags/{name}/notes", get(tags::get_notes_by_tag))
+        .route("/api/notes/{id}/favorite", post(favorites::toggle_favorite))
+        .route("/api/favorites", get(favorites::list_favorites))
+        .route("/api/templates", get(templates::list_templates))
+        .route(
+            "/api/notes/from-template",
+            post(templates::create_from_template),
+        )
         .route_layer(middleware::from_fn_with_state(
             state.clone(),
             auth::require_auth,

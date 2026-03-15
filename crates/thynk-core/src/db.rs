@@ -6,6 +6,56 @@ use tracing::info;
 use crate::error::{Result, ThynkError};
 use crate::note::{Note, NoteMetadata};
 
+/// Extract tags from note content (frontmatter + inline #tags).
+fn extract_tags(note: &Note) -> Vec<String> {
+    let mut tags: Vec<String> = Vec::new();
+
+    // Extract from frontmatter `tags` key.
+    if let Some(fm_tags) = note.frontmatter.get("tags") {
+        // Support both "tag1, tag2" and JSON-ish "["tag1", "tag2"]" or "tag1 tag2"
+        let stripped = fm_tags.trim().trim_start_matches('[').trim_end_matches(']');
+        for part in stripped.split([',', ' ']) {
+            let t = part.trim().trim_matches('"').trim_matches('\'').to_string();
+            if !t.is_empty() {
+                tags.push(t.to_lowercase());
+            }
+        }
+    }
+
+    // Extract inline #tags from content (word chars only, no numbers-only).
+    let re_pattern = r"(?:^|\s)#([a-zA-Z][a-zA-Z0-9_-]*)";
+    // Simple manual scan without regex dependency.
+    let content = &note.content;
+    let chars: Vec<char> = content.chars().collect();
+    let mut i = 0;
+    while i < chars.len() {
+        if chars[i] == '#' {
+            // Must be at start or preceded by whitespace.
+            let preceded_by_space = i == 0 || chars[i - 1].is_whitespace();
+            if preceded_by_space && i + 1 < chars.len() && chars[i + 1].is_alphabetic() {
+                let start = i + 1;
+                let mut end = start;
+                while end < chars.len()
+                    && (chars[end].is_alphanumeric() || chars[end] == '_' || chars[end] == '-')
+                {
+                    end += 1;
+                }
+                let tag: String = chars[start..end].iter().collect();
+                tags.push(tag.to_lowercase());
+                i = end;
+                continue;
+            }
+        }
+        i += 1;
+    }
+    let _ = re_pattern; // suppress unused warning
+
+    // Deduplicate while preserving order.
+    let mut seen = std::collections::HashSet::new();
+    tags.retain(|t| seen.insert(t.clone()));
+    tags
+}
+
 /// A user account record.
 pub struct UserRecord {
     pub id: String,
@@ -229,6 +279,9 @@ impl Database {
                 note.last_updated_by,
             ],
         )?;
+        // Sync tags extracted from frontmatter and inline #tags.
+        let tags = extract_tags(note);
+        self.sync_note_tags(&note.id, &tags)?;
         Ok(())
     }
 
@@ -236,7 +289,7 @@ impl Database {
     pub fn get_note_metadata(&self, id: &str) -> Result<NoteMetadata> {
         self.conn
             .query_row(
-                "SELECT id, path, title, content_hash, created_at, updated_at, last_updated_by FROM notes WHERE id = ?1",
+                "SELECT id, path, title, content_hash, favorited, created_at, updated_at, last_updated_by FROM notes WHERE id = ?1",
                 params![id],
                 |row| {
                     Ok(NoteMetadata {
@@ -244,13 +297,14 @@ impl Database {
                         path: std::path::PathBuf::from(row.get::<_, String>(1)?),
                         title: row.get(2)?,
                         content_hash: row.get(3)?,
-                        created_at: chrono::DateTime::parse_from_rfc3339(&row.get::<_, String>(4)?)
+                        favorited: row.get::<_, i64>(4)? != 0,
+                        created_at: chrono::DateTime::parse_from_rfc3339(&row.get::<_, String>(5)?)
                             .unwrap_or_default()
                             .with_timezone(&chrono::Utc),
-                        updated_at: chrono::DateTime::parse_from_rfc3339(&row.get::<_, String>(5)?)
+                        updated_at: chrono::DateTime::parse_from_rfc3339(&row.get::<_, String>(6)?)
                             .unwrap_or_default()
                             .with_timezone(&chrono::Utc),
-                        last_updated_by: row.get(6)?,
+                        last_updated_by: row.get(7)?,
                     })
                 },
             )
@@ -265,7 +319,7 @@ impl Database {
         let path_str = path.to_string_lossy().to_string();
         self.conn
             .query_row(
-                "SELECT id, path, title, content_hash, created_at, updated_at, last_updated_by FROM notes WHERE path = ?1",
+                "SELECT id, path, title, content_hash, favorited, created_at, updated_at, last_updated_by FROM notes WHERE path = ?1",
                 params![path_str],
                 |row| {
                     Ok(NoteMetadata {
@@ -273,13 +327,14 @@ impl Database {
                         path: std::path::PathBuf::from(row.get::<_, String>(1)?),
                         title: row.get(2)?,
                         content_hash: row.get(3)?,
-                        created_at: chrono::DateTime::parse_from_rfc3339(&row.get::<_, String>(4)?)
+                        favorited: row.get::<_, i64>(4)? != 0,
+                        created_at: chrono::DateTime::parse_from_rfc3339(&row.get::<_, String>(5)?)
                             .unwrap_or_default()
                             .with_timezone(&chrono::Utc),
-                        updated_at: chrono::DateTime::parse_from_rfc3339(&row.get::<_, String>(5)?)
+                        updated_at: chrono::DateTime::parse_from_rfc3339(&row.get::<_, String>(6)?)
                             .unwrap_or_default()
                             .with_timezone(&chrono::Utc),
-                        last_updated_by: row.get(6)?,
+                        last_updated_by: row.get(7)?,
                     })
                 },
             )
@@ -294,7 +349,7 @@ impl Database {
     /// List metadata for all notes.
     pub fn list_notes(&self) -> Result<Vec<NoteMetadata>> {
         let mut stmt = self.conn.prepare(
-            "SELECT id, path, title, content_hash, created_at, updated_at, last_updated_by FROM notes ORDER BY updated_at DESC",
+            "SELECT id, path, title, content_hash, favorited, created_at, updated_at, last_updated_by FROM notes ORDER BY updated_at DESC",
         )?;
         let rows = stmt.query_map([], |row| {
             Ok(NoteMetadata {
@@ -302,13 +357,14 @@ impl Database {
                 path: std::path::PathBuf::from(row.get::<_, String>(1)?),
                 title: row.get(2)?,
                 content_hash: row.get(3)?,
-                created_at: chrono::DateTime::parse_from_rfc3339(&row.get::<_, String>(4)?)
+                favorited: row.get::<_, i64>(4)? != 0,
+                created_at: chrono::DateTime::parse_from_rfc3339(&row.get::<_, String>(5)?)
                     .unwrap_or_default()
                     .with_timezone(&chrono::Utc),
-                updated_at: chrono::DateTime::parse_from_rfc3339(&row.get::<_, String>(5)?)
+                updated_at: chrono::DateTime::parse_from_rfc3339(&row.get::<_, String>(6)?)
                     .unwrap_or_default()
                     .with_timezone(&chrono::Utc),
-                last_updated_by: row.get(6)?,
+                last_updated_by: row.get(7)?,
             })
         })?;
 
@@ -557,12 +613,95 @@ impl Database {
         Ok(total)
     }
 
+    // ── Phase 2: Tags ─────────────────────────────────────────────────────────
+
+    /// List all tags with note counts.
+    pub fn list_tags(&self) -> Result<Vec<(String, i64)>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT t.name, COUNT(nt.note_id) as cnt
+             FROM tags t JOIN note_tags nt ON t.id = nt.tag_id
+             GROUP BY t.id
+             ORDER BY cnt DESC, t.name ASC",
+        )?;
+        let rows = stmt.query_map([], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?))
+        })?;
+        let mut result = Vec::new();
+        for row in rows {
+            result.push(row?);
+        }
+        Ok(result)
+    }
+
+    /// Get notes with a given tag.
+    pub fn get_notes_by_tag(&self, tag: &str) -> Result<Vec<NoteMetadata>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT n.id, n.path, n.title, n.content_hash, n.favorited, n.created_at, n.updated_at, n.last_updated_by
+             FROM notes n
+             JOIN note_tags nt ON n.id = nt.note_id
+             JOIN tags t ON t.id = nt.tag_id
+             WHERE t.name = ?1
+             ORDER BY n.updated_at DESC",
+        )?;
+        let rows = stmt.query_map(params![tag], |row| {
+            Ok(NoteMetadata {
+                id: row.get(0)?,
+                path: std::path::PathBuf::from(row.get::<_, String>(1)?),
+                title: row.get(2)?,
+                content_hash: row.get(3)?,
+                favorited: row.get::<_, i64>(4)? != 0,
+                created_at: chrono::DateTime::parse_from_rfc3339(&row.get::<_, String>(5)?)
+                    .unwrap_or_default()
+                    .with_timezone(&chrono::Utc),
+                updated_at: chrono::DateTime::parse_from_rfc3339(&row.get::<_, String>(6)?)
+                    .unwrap_or_default()
+                    .with_timezone(&chrono::Utc),
+                last_updated_by: row.get(7)?,
+            })
+        })?;
+        let mut result = Vec::new();
+        for row in rows {
+            result.push(row?);
+        }
+        Ok(result)
+    }
+
+    /// Sync the tags for a note (replace all existing tags).
+    pub fn sync_note_tags(&self, note_id: &str, tags: &[String]) -> Result<()> {
+        // Remove all existing tags for this note.
+        self.conn
+            .execute("DELETE FROM note_tags WHERE note_id = ?1", params![note_id])?;
+        for tag in tags {
+            let tag = tag.trim().to_lowercase();
+            if tag.is_empty() {
+                continue;
+            }
+            // Upsert the tag.
+            self.conn.execute(
+                "INSERT OR IGNORE INTO tags (name) VALUES (?1)",
+                params![tag],
+            )?;
+            let tag_id: i64 = self.conn.query_row(
+                "SELECT id FROM tags WHERE name = ?1",
+                params![tag],
+                |row| row.get(0),
+            )?;
+            self.conn.execute(
+                "INSERT OR IGNORE INTO note_tags (note_id, tag_id) VALUES (?1, ?2)",
+                params![note_id, tag_id],
+            )?;
+        }
+        Ok(())
+    }
+
     // ── Phase 2: Wiki-links ───────────────────────────────────────────────────
 
     /// Replace all outgoing links from a note (called on every save).
     pub fn set_note_links(&self, from_id: &str, to_ids: &[String]) -> Result<()> {
-        self.conn
-            .execute("DELETE FROM note_links WHERE from_id = ?1", params![from_id])?;
+        self.conn.execute(
+            "DELETE FROM note_links WHERE from_id = ?1",
+            params![from_id],
+        )?;
         for to_id in to_ids {
             // Skip self-links.
             if to_id == from_id {
@@ -579,7 +718,7 @@ impl Database {
     /// Get all note IDs that link TO the given note (backlinks).
     pub fn get_backlinks(&self, note_id: &str) -> Result<Vec<NoteMetadata>> {
         let mut stmt = self.conn.prepare(
-            "SELECT n.id, n.path, n.title, n.content_hash, n.created_at, n.updated_at, n.last_updated_by
+            "SELECT n.id, n.path, n.title, n.content_hash, n.favorited, n.created_at, n.updated_at, n.last_updated_by
              FROM note_links nl JOIN notes n ON n.id = nl.from_id
              WHERE nl.to_id = ?1",
         )?;
@@ -589,13 +728,14 @@ impl Database {
                 path: std::path::PathBuf::from(row.get::<_, String>(1)?),
                 title: row.get(2)?,
                 content_hash: row.get(3)?,
-                created_at: chrono::DateTime::parse_from_rfc3339(&row.get::<_, String>(4)?)
+                favorited: row.get::<_, i64>(4)? != 0,
+                created_at: chrono::DateTime::parse_from_rfc3339(&row.get::<_, String>(5)?)
                     .unwrap_or_default()
                     .with_timezone(&chrono::Utc),
-                updated_at: chrono::DateTime::parse_from_rfc3339(&row.get::<_, String>(5)?)
+                updated_at: chrono::DateTime::parse_from_rfc3339(&row.get::<_, String>(6)?)
                     .unwrap_or_default()
                     .with_timezone(&chrono::Utc),
-                last_updated_by: row.get(6)?,
+                last_updated_by: row.get(7)?,
             })
         })?;
         let mut result = Vec::new();
@@ -608,7 +748,7 @@ impl Database {
     /// Get all note IDs that this note links TO (outgoing links).
     pub fn get_outgoing_links(&self, note_id: &str) -> Result<Vec<NoteMetadata>> {
         let mut stmt = self.conn.prepare(
-            "SELECT n.id, n.path, n.title, n.content_hash, n.created_at, n.updated_at, n.last_updated_by
+            "SELECT n.id, n.path, n.title, n.content_hash, n.favorited, n.created_at, n.updated_at, n.last_updated_by
              FROM note_links nl JOIN notes n ON n.id = nl.to_id
              WHERE nl.from_id = ?1",
         )?;
@@ -618,13 +758,14 @@ impl Database {
                 path: std::path::PathBuf::from(row.get::<_, String>(1)?),
                 title: row.get(2)?,
                 content_hash: row.get(3)?,
-                created_at: chrono::DateTime::parse_from_rfc3339(&row.get::<_, String>(4)?)
+                favorited: row.get::<_, i64>(4)? != 0,
+                created_at: chrono::DateTime::parse_from_rfc3339(&row.get::<_, String>(5)?)
                     .unwrap_or_default()
                     .with_timezone(&chrono::Utc),
-                updated_at: chrono::DateTime::parse_from_rfc3339(&row.get::<_, String>(5)?)
+                updated_at: chrono::DateTime::parse_from_rfc3339(&row.get::<_, String>(6)?)
                     .unwrap_or_default()
                     .with_timezone(&chrono::Utc),
-                last_updated_by: row.get(6)?,
+                last_updated_by: row.get(7)?,
             })
         })?;
         let mut result = Vec::new();
@@ -636,9 +777,7 @@ impl Database {
 
     /// Get all note links for the graph view (all edges).
     pub fn get_all_links(&self) -> Result<Vec<(String, String)>> {
-        let mut stmt = self
-            .conn
-            .prepare("SELECT from_id, to_id FROM note_links")?;
+        let mut stmt = self.conn.prepare("SELECT from_id, to_id FROM note_links")?;
         let rows = stmt.query_map([], |row| Ok((row.get(0)?, row.get(1)?)))?;
         let mut result = Vec::new();
         for row in rows {
@@ -665,7 +804,7 @@ impl Database {
     /// List only favorited notes.
     pub fn list_favorited_notes(&self) -> Result<Vec<NoteMetadata>> {
         let mut stmt = self.conn.prepare(
-            "SELECT id, path, title, content_hash, created_at, updated_at, last_updated_by
+            "SELECT id, path, title, content_hash, favorited, created_at, updated_at, last_updated_by
              FROM notes WHERE favorited = 1 ORDER BY updated_at DESC",
         )?;
         let rows = stmt.query_map([], |row| {
@@ -674,13 +813,14 @@ impl Database {
                 path: std::path::PathBuf::from(row.get::<_, String>(1)?),
                 title: row.get(2)?,
                 content_hash: row.get(3)?,
-                created_at: chrono::DateTime::parse_from_rfc3339(&row.get::<_, String>(4)?)
+                favorited: row.get::<_, i64>(4)? != 0,
+                created_at: chrono::DateTime::parse_from_rfc3339(&row.get::<_, String>(5)?)
                     .unwrap_or_default()
                     .with_timezone(&chrono::Utc),
-                updated_at: chrono::DateTime::parse_from_rfc3339(&row.get::<_, String>(5)?)
+                updated_at: chrono::DateTime::parse_from_rfc3339(&row.get::<_, String>(6)?)
                     .unwrap_or_default()
                     .with_timezone(&chrono::Utc),
-                last_updated_by: row.get(6)?,
+                last_updated_by: row.get(7)?,
             })
         })?;
         let mut result = Vec::new();

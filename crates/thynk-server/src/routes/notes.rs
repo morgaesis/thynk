@@ -9,7 +9,8 @@ use serde::{Deserialize, Serialize};
 use thynk_core::{Note, NoteStorage};
 
 use crate::routes::auth::AuthUser;
-use crate::state::AppState;
+use crate::routes::links::extract_wiki_link_titles;
+use crate::state::{AppState, WsEvent};
 
 /// Convert a title to a filesystem path, preserving `/` as directory separators.
 /// Each path component is sanitized by stripping only characters that are invalid
@@ -193,6 +194,23 @@ pub async fn update_note(
         }
     };
 
+    // Check if the note is locked by a different user.
+    {
+        let now = chrono::Utc::now().to_rfc3339();
+        if let Ok(Some(lock)) = db.get_lock(&id) {
+            if lock.expires_at > now && lock.user_id != auth_user.username {
+                return (
+                    StatusCode::from_u16(423).unwrap(),
+                    Json(serde_json::json!({
+                        "error": "locked",
+                        "message": format!("note is locked by {}", lock.user_id)
+                    })),
+                )
+                    .into_response();
+            }
+        }
+    }
+
     // Optimistic concurrency: check If-Match header against current content_hash.
     if let Some(if_match) = headers.get("if-match") {
         let expected = if_match.to_str().unwrap_or("").trim_matches('"');
@@ -270,7 +288,54 @@ pub async fn update_note(
         .into_response();
     }
 
+    // Extract wiki-links from content and update the link graph.
+    let link_titles = extract_wiki_link_titles(&note.content);
+    let all_notes = db.list_notes().unwrap_or_default();
+    let to_ids: Vec<String> = link_titles
+        .iter()
+        .filter_map(|title| {
+            all_notes
+                .iter()
+                .find(|n| n.title.eq_ignore_ascii_case(title))
+                .map(|n| n.id.clone())
+        })
+        .collect();
+    // Ignore errors from link extraction — it's non-critical.
+    let _ = db.set_note_links(&note.id, &to_ids);
+
+    // Automation: broadcast StatusChanged when note status becomes "done".
+    if let Some(status) = extract_frontmatter_status(&note.content) {
+        if status.eq_ignore_ascii_case("done") {
+            let _ = state.events.send(WsEvent::StatusChanged {
+                note_id: note.id.clone(),
+                title: note.title.clone(),
+                status,
+            });
+        }
+    }
+
     (StatusCode::OK, Json(serde_json::to_value(&note).unwrap())).into_response()
+}
+
+/// Extract the `status` field from YAML frontmatter (--- ... ---) if present.
+fn extract_frontmatter_status(content: &str) -> Option<String> {
+    let content = content.trim_start();
+    if !content.starts_with("---") {
+        return None;
+    }
+    let rest = &content[3..];
+    let end = rest.find("---")?;
+    let frontmatter = &rest[..end];
+    for line in frontmatter.lines() {
+        let line = line.trim();
+        if let Some(val) = line.strip_prefix("status:") {
+            let status = val.trim().trim_matches('"').trim_matches('\'').to_string();
+            if !status.is_empty() {
+                return Some(status);
+            }
+        }
+    }
+    None
 }
 
 // ── DELETE /api/notes/:id ────────────────────────────────────────────────────

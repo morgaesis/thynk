@@ -242,3 +242,50 @@ export async function listNotesByPrefix(
   const qs = prefix ? `?prefix=${encodeURIComponent(prefix)}` : '';
   return request(`/notes${qs}`);
 }
+
+// ── AI ────────────────────────────────────────────────────────────────────────
+
+export interface AiCompleteRequest {
+  provider: string;
+  api_key: string;
+  model: string;
+  prompt: string;
+  max_tokens?: number;
+  temperature?: number;
+}
+
+export interface AiCompleteResponse {
+  text: string;
+}
+
+export interface AiChatMessage {
+  role: string;
+  content: string;
+}
+
+export interface AiChatRequest {
+  provider: string;
+  api_key: string;
+  model: string;
+  messages: AiChatMessage[];
+  max_tokens?: number;
+  temperature?: number;
+}
+
+export interface AiChatResponse {
+  message: AiChatMessage;
+}
+
+export async function aiComplete(req: AiCompleteRequest): Promise<AiCompleteResponse> {
+  return request('/ai/complete', {
+    method: 'POST',
+    body: JSON.stringify(req),
+  });
+}
+
+export async function aiChat(req: AiChatRequest): Promise<AiChatResponse> {
+  return request('/ai/chat', {
+    method: 'POST',
+    body: JSON.stringify(req),
+  });
+}

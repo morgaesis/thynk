@@ -1,3 +1,4 @@
+pub mod ai;
 pub mod auth;
 pub mod export;
 pub mod favorites;
@@ -38,6 +39,8 @@ pub fn router(state: AppState) -> Router {
 
     let protected_routes = Router::new()
         .route("/api/auth/me", patch(auth::update_me))
+        .route("/api/ai/complete", post(ai::complete))
+        .route("/api/ai/chat", post(ai::chat))
         .route(
             "/api/notes",
             get(notes::list_notes).post(notes::create_note),

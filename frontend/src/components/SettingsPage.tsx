@@ -1,7 +1,7 @@
 import { useCallback, useState, useEffect, useRef } from 'react';
 import { VscArrowLeft } from 'react-icons/vsc';
 import { useUIStore } from '../stores/uiStore';
-import { useSettingsStore, DEFAULT_SHORTCUTS } from '../stores/settingsStore';
+import { useSettingsStore, DEFAULT_SHORTCUTS, type AIProvider } from '../stores/settingsStore';
 import { useAuthStore } from '../stores/authStore';
 import { exportWorkspace } from '../api';
 import { ImportModal } from './ImportModal';
@@ -82,6 +82,30 @@ function Toggle({
     </button>
   );
 }
+
+const AI_PROVIDERS: { value: AIProvider; label: string }[] = [
+  { value: 'openai', label: 'OpenAI' },
+  { value: 'anthropic', label: 'Anthropic' },
+  { value: 'ollama', label: 'Ollama (local)' },
+];
+
+const AI_MODELS: Record<AIProvider, { value: string; label: string }[]> = {
+  openai: [
+    { value: 'gpt-4o', label: 'GPT-4o' },
+    { value: 'gpt-4o-mini', label: 'GPT-4o Mini' },
+    { value: 'gpt-4-turbo', label: 'GPT-4 Turbo' },
+  ],
+  anthropic: [
+    { value: 'claude-3-5-sonnet-20241022', label: 'Claude 3.5 Sonnet' },
+    { value: 'claude-3-opus-20240229', label: 'Claude 3 Opus' },
+    { value: 'claude-3-haiku-20240307', label: 'Claude 3 Haiku' },
+  ],
+  ollama: [
+    { value: 'llama3.2', label: 'Llama 3.2' },
+    { value: 'mistral', label: 'Mistral' },
+    { value: 'codellama', label: 'CodeLlama' },
+  ],
+};
 
 // ── Keyboard Shortcuts rebinding ─────────────────────────────────────────────
 
@@ -181,12 +205,18 @@ export function SettingsPage({ onClose }: SettingsPageProps) {
     lineHeight,
     spellCheck,
     shortcuts,
+    aiProvider,
+    aiApiKey,
+    aiModel,
     setFontSize,
     setVimMode,
     setLineHeight,
     setSpellCheck,
     setShortcut,
     resetShortcut,
+    setAiProvider,
+    setAiApiKey,
+    setAiModel,
   } = useSettingsStore();
   const authUser = useAuthStore((s) => s.user);
   const checkSession = useAuthStore((s) => s.checkSession);
@@ -317,6 +347,48 @@ export function SettingsPage({ onClose }: SettingsPageProps) {
                 />
               </Row>
             </div>
+          </section>
+
+          {/* AI Section */}
+          <section className="mb-8">
+            <SectionTitle>AI Assistant</SectionTitle>
+            <div className="bg-sidebar dark:bg-sidebar-dark rounded-lg border border-border dark:border-border-dark px-4">
+              <Row label="Provider">
+                <RadioGroup
+                  options={AI_PROVIDERS}
+                  value={aiProvider}
+                  onChange={setAiProvider}
+                />
+              </Row>
+              <Row label="API Key">
+                <input
+                  type="password"
+                  value={aiApiKey}
+                  onChange={(e) => setAiApiKey(e.target.value)}
+                  placeholder={aiProvider === 'ollama' ? 'Leave empty for local' : 'sk-...'}
+                  className="w-48 px-2 py-1 text-sm rounded border border-border dark:border-border-dark
+                           bg-surface dark:bg-surface-dark text-text dark:text-text-dark"
+                />
+              </Row>
+              <Row label="Model">
+                <select
+                  value={aiModel}
+                  onChange={(e) => setAiModel(e.target.value)}
+                  className="px-2 py-1 text-sm rounded border border-border dark:border-border-dark
+                           bg-surface dark:bg-surface-dark text-text dark:text-text-dark"
+                >
+                  {AI_MODELS[aiProvider].map((m) => (
+                    <option key={m.value} value={m.value}>
+                      {m.label}
+                    </option>
+                  ))}
+                </select>
+              </Row>
+            </div>
+            <p className="mt-1 text-xs text-text-muted dark:text-text-muted-dark px-1">
+              Your API key is stored locally and never sent to our servers.
+              {aiProvider === 'ollama' && ' Ensure Ollama is running locally on port 11434.'}
+            </p>
           </section>
 
           {/* Account Section */}

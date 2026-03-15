@@ -3,6 +3,8 @@ import { create } from 'zustand';
 export type FontSize = number; // pixels, e.g. 14, 16, 18
 export type LineHeight = number; // e.g. 1.4, 1.6, 1.8
 
+export type AIProvider = 'openai' | 'anthropic' | 'ollama';
+
 export interface ShortcutAction {
   label: string;
   defaultKey: string;
@@ -20,13 +22,19 @@ export interface SettingsStore {
   vimMode: boolean;
   lineHeight: LineHeight;
   spellCheck: boolean;
-  shortcuts: Record<string, string>; // action -> key binding
+  shortcuts: Record<string, string>;
+  aiProvider: AIProvider;
+  aiApiKey: string;
+  aiModel: string;
   setFontSize: (size: FontSize) => void;
   setVimMode: (enabled: boolean) => void;
   setLineHeight: (lh: LineHeight) => void;
   setSpellCheck: (enabled: boolean) => void;
   setShortcut: (action: string, key: string) => void;
   resetShortcut: (action: string) => void;
+  setAiProvider: (provider: AIProvider) => void;
+  setAiApiKey: (key: string) => void;
+  setAiModel: (model: string) => void;
 }
 
 function migrateSize(v: unknown): number {
@@ -67,6 +75,9 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
   lineHeight: migrateLineHeight(getStored<unknown>('thynk-line-height', 1.6)),
   spellCheck: getStored<boolean>('thynk-spell-check', true),
   shortcuts: getStored<Record<string, string>>('thynk-shortcuts', {}),
+  aiProvider: getStored<AIProvider>('thynk-ai-provider', 'openai'),
+  aiApiKey: getStored<string>('thynk-ai-api-key', ''),
+  aiModel: getStored<string>('thynk-ai-model', 'gpt-4o-mini'),
 
   setFontSize: (size) => {
     persist('thynk-font-size', size);
@@ -98,5 +109,17 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
       persist('thynk-shortcuts', next);
       return { shortcuts: next };
     });
+  },
+  setAiProvider: (provider) => {
+    persist('thynk-ai-provider', provider);
+    set({ aiProvider: provider });
+  },
+  setAiApiKey: (key) => {
+    persist('thynk-ai-api-key', key);
+    set({ aiApiKey: key });
+  },
+  setAiModel: (model) => {
+    persist('thynk-ai-model', model);
+    set({ aiModel: model });
   },
 }));

@@ -5,19 +5,30 @@ pub mod tree;
 pub mod uploads;
 pub mod ws;
 
+use axum::middleware;
 use axum::routing::{get, post};
 use axum::Router;
 
 use crate::state::AppState;
 
-pub fn router() -> Router<AppState> {
-    Router::new()
-        // Auth routes (no auth middleware — handled inside handlers as needed).
-        .route("/api/auth/register", post(auth::register))
+/// Build the application router.
+///
+/// Public routes (no auth required):
+///   POST /api/auth/login
+///   POST /api/auth/register  (unauthenticated only if no users exist; see handler)
+///   POST /api/auth/logout
+///   GET  /api/auth/me        (returns 401 if not logged in — used by the frontend)
+///
+/// All other /api/* routes require a valid session cookie.
+pub fn router(state: AppState) -> Router {
+    let public_routes = Router::new()
         .route("/api/auth/login", post(auth::login))
+        .route("/api/auth/register", post(auth::register))
         .route("/api/auth/logout", post(auth::logout))
         .route("/api/auth/me", get(auth::me))
-        // Note and search routes.
+        .with_state(state.clone());
+
+    let protected_routes = Router::new()
         .route(
             "/api/notes",
             get(notes::list_notes).post(notes::create_note),
@@ -33,4 +44,11 @@ pub fn router() -> Router<AppState> {
         .route("/api/ws", get(ws::ws_handler))
         .route("/api/uploads", post(uploads::upload_file))
         .route("/api/uploads/{id}", get(uploads::get_upload))
+        .route_layer(middleware::from_fn_with_state(
+            state.clone(),
+            auth::require_auth,
+        ))
+        .with_state(state);
+
+    Router::new().merge(public_routes).merge(protected_routes)
 }

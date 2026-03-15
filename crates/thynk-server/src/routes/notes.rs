@@ -114,6 +114,12 @@ pub async fn create_note(
     Json(body): Json<CreateNoteRequest>,
 ) -> impl IntoResponse {
     let path = body.path.unwrap_or_else(|| title_to_path(&body.title));
+    // If path ends with '/', it's a directory — append "untitled.md".
+    let path = if path.ends_with('/') {
+        format!("{path}untitled.md")
+    } else {
+        path
+    };
 
     // Ensure unique path by appending timestamp suffix if needed.
     let storage = state.storage.lock().await;
@@ -325,5 +331,11 @@ mod tests {
     fn test_title_to_path_strips_control_chars() {
         // null byte and control chars should be stripped
         assert_eq!(title_to_path("note\0name"), "notename.md");
+    }
+
+    #[test]
+    fn test_title_to_path_trailing_slash_creates_untitled() {
+        // trailing slash = directory, append untitled
+        assert_eq!(title_to_path("folder/"), "folder/untitled.md");
     }
 }

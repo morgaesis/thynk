@@ -101,7 +101,7 @@ async fn main() -> anyhow::Result<()> {
         .allow_headers(Any);
 
     // Build router: API routes + optional static file serving.
-    let api_router = routes::router().with_state(state).layer(cors);
+    let api_router = routes::router(state).layer(cors);
 
     // Serve built frontend from frontend/dist if it exists.
     let dist_path = PathBuf::from("frontend/dist");
@@ -316,9 +316,73 @@ mod tests {
         }
     }
 
+    /// Register a user and return the session cookie string ("thynk_session=<token>").
+    async fn setup_auth(state: &AppState) -> String {
+        // Register first user.
+        let app = routes::router(state.clone());
+        app.oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/auth/register")
+                .header("content-type", "application/json")
+                .body(Body::from(
+                    serde_json::json!({"username": "admin", "password": "password"}).to_string(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+        // Login and extract session cookie.
+        let app = routes::router(state.clone());
+        let res = app
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/auth/login")
+                    .header("content-type", "application/json")
+                    .body(Body::from(
+                        serde_json::json!({"username": "admin", "password": "password"})
+                            .to_string(),
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        let cookie_header = res
+            .headers()
+            .get("set-cookie")
+            .expect("login should set cookie")
+            .to_str()
+            .unwrap()
+            .to_string();
+        cookie_header.split(';').next().unwrap().to_string()
+    }
+
     #[tokio::test]
     async fn test_list_notes_empty() {
-        let app = routes::router().with_state(test_state());
+        let state = test_state();
+        let cookie = setup_auth(&state).await;
+
+        let app = routes::router(state);
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/api/notes")
+                    .header("cookie", &cookie)
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn test_list_notes_requires_auth() {
+        let app = routes::router(test_state());
 
         let response = app
             .oneshot(
@@ -330,20 +394,22 @@ mod tests {
             .await
             .unwrap();
 
-        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
     }
 
     #[tokio::test]
     async fn test_create_and_get_note() {
         let state = test_state();
+        let cookie = setup_auth(&state).await;
 
-        let app = routes::router().with_state(state.clone());
+        let app = routes::router(state.clone());
         let response = app
             .oneshot(
                 Request::builder()
                     .method("POST")
                     .uri("/api/notes")
                     .header("content-type", "application/json")
+                    .header("cookie", &cookie)
                     .body(Body::from(
                         serde_json::json!({
                             "title": "Test Note",
@@ -365,11 +431,12 @@ mod tests {
         let id = note["id"].as_str().unwrap();
         assert!(note["content_hash"].as_str().is_some_and(|h| !h.is_empty()));
 
-        let app = routes::router().with_state(state);
+        let app = routes::router(state);
         let response = app
             .oneshot(
                 Request::builder()
                     .uri(&format!("/api/notes/{id}"))
+                    .header("cookie", &cookie)
                     .body(Body::empty())
                     .unwrap(),
             )
@@ -381,14 +448,17 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_note_no_content() {
-        // content is now optional — omitting it should succeed.
-        let app = routes::router().with_state(test_state());
+        let state = test_state();
+        let cookie = setup_auth(&state).await;
+
+        let app = routes::router(state);
         let response = app
             .oneshot(
                 Request::builder()
                     .method("POST")
                     .uri("/api/notes")
                     .header("content-type", "application/json")
+                    .header("cookie", &cookie)
                     .body(Body::from(
                         serde_json::json!({ "title": "No Content" }).to_string(),
                     ))
@@ -403,15 +473,17 @@ mod tests {
     #[tokio::test]
     async fn test_update_note_if_match() {
         let state = test_state();
+        let cookie = setup_auth(&state).await;
 
         // Create a note.
-        let app = routes::router().with_state(state.clone());
+        let app = routes::router(state.clone());
         let res = app
             .oneshot(
                 Request::builder()
                     .method("POST")
                     .uri("/api/notes")
                     .header("content-type", "application/json")
+                    .header("cookie", &cookie)
                     .body(Body::from(
                         serde_json::json!({ "title": "Hash Test", "content": "v1" }).to_string(),
                     ))
@@ -427,13 +499,14 @@ mod tests {
         let hash = note["content_hash"].as_str().unwrap();
 
         // Update with correct If-Match — should succeed.
-        let app = routes::router().with_state(state.clone());
+        let app = routes::router(state.clone());
         let res = app
             .oneshot(
                 Request::builder()
                     .method("PUT")
                     .uri(&format!("/api/notes/{id}"))
                     .header("content-type", "application/json")
+                    .header("cookie", &cookie)
                     .header("if-match", hash)
                     .body(Body::from(
                         serde_json::json!({ "content": "v2" }).to_string(),
@@ -445,13 +518,14 @@ mod tests {
         assert_eq!(res.status(), StatusCode::OK);
 
         // Update with wrong If-Match — should fail with 412.
-        let app = routes::router().with_state(state);
+        let app = routes::router(state);
         let res = app
             .oneshot(
                 Request::builder()
                     .method("PUT")
                     .uri(&format!("/api/notes/{id}"))
                     .header("content-type", "application/json")
+                    .header("cookie", &cookie)
                     .header("if-match", "wrong-hash")
                     .body(Body::from(
                         serde_json::json!({ "content": "v3" }).to_string(),
@@ -465,12 +539,15 @@ mod tests {
 
     #[tokio::test]
     async fn test_search_empty() {
-        let app = routes::router().with_state(test_state());
+        let state = test_state();
+        let cookie = setup_auth(&state).await;
 
+        let app = routes::router(state);
         let response = app
             .oneshot(
                 Request::builder()
                     .uri("/api/search?q=test")
+                    .header("cookie", &cookie)
                     .body(Body::empty())
                     .unwrap(),
             )
@@ -482,12 +559,15 @@ mod tests {
 
     #[tokio::test]
     async fn test_tree_empty() {
-        let app = routes::router().with_state(test_state());
+        let state = test_state();
+        let cookie = setup_auth(&state).await;
 
+        let app = routes::router(state);
         let response = app
             .oneshot(
                 Request::builder()
                     .uri("/api/tree")
+                    .header("cookie", &cookie)
                     .body(Body::empty())
                     .unwrap(),
             )
@@ -499,12 +579,15 @@ mod tests {
 
     #[tokio::test]
     async fn test_not_found() {
-        let app = routes::router().with_state(test_state());
+        let state = test_state();
+        let cookie = setup_auth(&state).await;
 
+        let app = routes::router(state);
         let response = app
             .oneshot(
                 Request::builder()
                     .uri("/api/notes/nonexistent-id")
+                    .header("cookie", &cookie)
                     .body(Body::empty())
                     .unwrap(),
             )
@@ -517,14 +600,16 @@ mod tests {
     #[tokio::test]
     async fn test_delete_note() {
         let state = test_state();
+        let cookie = setup_auth(&state).await;
 
-        let app = routes::router().with_state(state.clone());
+        let app = routes::router(state.clone());
         let res = app
             .oneshot(
                 Request::builder()
                     .method("POST")
                     .uri("/api/notes")
                     .header("content-type", "application/json")
+                    .header("cookie", &cookie)
                     .body(Body::from(
                         serde_json::json!({ "title": "Delete Me", "content": "bye" }).to_string(),
                     ))
@@ -538,12 +623,13 @@ mod tests {
         let note: serde_json::Value = serde_json::from_slice(&body).unwrap();
         let id = note["id"].as_str().unwrap();
 
-        let app = routes::router().with_state(state);
+        let app = routes::router(state);
         let res = app
             .oneshot(
                 Request::builder()
                     .method("DELETE")
                     .uri(&format!("/api/notes/{id}"))
+                    .header("cookie", &cookie)
                     .body(Body::empty())
                     .unwrap(),
             )
@@ -555,15 +641,17 @@ mod tests {
     #[tokio::test]
     async fn test_search_finds_note_after_update() {
         let state = test_state();
+        let cookie = setup_auth(&state).await;
 
         // Create a note.
-        let app = routes::router().with_state(state.clone());
+        let app = routes::router(state.clone());
         let res = app
             .oneshot(
                 Request::builder()
                     .method("POST")
                     .uri("/api/notes")
                     .header("content-type", "application/json")
+                    .header("cookie", &cookie)
                     .body(Body::from(
                         serde_json::json!({ "title": "Search Test", "content": "findme keyword" })
                             .to_string(),
@@ -575,11 +663,12 @@ mod tests {
         assert_eq!(res.status(), StatusCode::CREATED);
 
         // Search for it.
-        let app = routes::router().with_state(state);
+        let app = routes::router(state);
         let res = app
             .oneshot(
                 Request::builder()
                     .uri("/api/search?q=findme")
+                    .header("cookie", &cookie)
                     .body(Body::empty())
                     .unwrap(),
             )
@@ -599,14 +688,16 @@ mod tests {
     #[tokio::test]
     async fn test_search_finds_indexed_note() {
         let state = test_state();
+        let cookie = setup_auth(&state).await;
 
         // Create a note.
-        let app = routes::router().with_state(state.clone());
+        let app = routes::router(state.clone());
         app.oneshot(
             Request::builder()
                 .method("POST")
                 .uri("/api/notes")
                 .header("content-type", "application/json")
+                .header("cookie", &cookie)
                 .body(Body::from(
                     serde_json::json!({
                         "title": "Searchable Note",
@@ -620,11 +711,12 @@ mod tests {
         .unwrap();
 
         // Search for it.
-        let app = routes::router().with_state(state);
+        let app = routes::router(state);
         let res = app
             .oneshot(
                 Request::builder()
                     .uri("/api/search?q=unique_keyword_xyz")
+                    .header("cookie", &cookie)
                     .body(Body::empty())
                     .unwrap(),
             )

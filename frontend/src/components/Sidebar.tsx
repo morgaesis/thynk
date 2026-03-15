@@ -145,15 +145,15 @@ export function Sidebar() {
     (e: React.KeyboardEvent<HTMLInputElement>) => {
       if (e.key === 'Enter') {
         e.preventDefault();
-        const path = newNotePath.trim() || 'untitled';
-        if (path.includes('/')) {
-          createNote(
-            path.split('/').pop()?.replace(/\.md$/, '') || 'Untitled',
-            path.endsWith('.md') ? path : `${path}.md`,
-          );
-        } else {
-          createNote(path.replace(/\.md$/, ''), `${path.replace(/\.md$/, '')}.md`);
+        let path = newNotePath.trim() || 'untitled';
+        // Trailing slash means "create inside this directory".
+        if (path.endsWith('/')) {
+          path = `${path}untitled.md`;
+        } else if (!path.endsWith('.md')) {
+          path = `${path}.md`;
         }
+        const title = path.split('/').pop()?.replace(/\.md$/, '') || 'untitled';
+        createNote(title, path);
         setShowNewNote(false);
         setNewNotePath('');
       } else if (e.key === 'Escape') {

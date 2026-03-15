@@ -1,7 +1,8 @@
 use argon2::password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString};
 use argon2::Argon2;
-use axum::extract::State;
+use axum::extract::{Request, State};
 use axum::http::StatusCode;
+use axum::middleware::Next;
 use axum::response::{IntoResponse, Response};
 use axum::Json;
 use axum_extra::extract::cookie::Cookie;
@@ -65,8 +66,12 @@ pub async fn register(
 
     if user_count > 0 {
         // Require authentication to create additional users.
-        if let Err(response) = validate_token(token.as_deref(), &db) {
-            return response;
+        if validate_token(token.as_deref(), &db).is_err() {
+            return err_json(
+                StatusCode::FORBIDDEN,
+                "registration_closed",
+                "Registration requires an invitation from an existing user",
+            );
         }
     }
 
@@ -279,6 +284,27 @@ pub async fn me(jar: CookieJar, State(state): State<AppState>) -> Response {
     }
 }
 
+// ── Auth middleware ────────────────────────────────────────────────────────────
+
+/// Tower middleware that rejects unauthenticated requests with 401.
+/// Apply this to all protected API routes.
+pub async fn require_auth(
+    State(state): State<crate::state::AppState>,
+    jar: CookieJar,
+    request: Request,
+    next: Next,
+) -> Response {
+    let token = jar.get(SESSION_COOKIE).map(|c| c.value().to_string());
+    let db = state.db.lock().await;
+    match validate_token(token.as_deref(), &db) {
+        Ok(_) => {
+            drop(db);
+            next.run(request).await
+        }
+        Err(response) => response,
+    }
+}
+
 // ── Auth helper ───────────────────────────────────────────────────────────────
 
 /// Validate a session token string and return the `UserRecord`, or a 401 Response.
@@ -345,7 +371,6 @@ fn validate_token(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use axum::body::Body;
     use axum::http::{Request, StatusCode};
     use std::sync::Arc;
@@ -373,7 +398,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_register_first_user() {
-        let app = routes::router().with_state(test_state());
+        let app = routes::router(test_state());
 
         let response = app
             .oneshot(
@@ -404,7 +429,7 @@ mod tests {
     #[tokio::test]
     async fn test_login_and_me() {
         let state = test_state();
-        let app = routes::router().with_state(state.clone());
+        let app = routes::router(state.clone());
 
         // Register first.
         app.oneshot(
@@ -421,7 +446,7 @@ mod tests {
         .unwrap();
 
         // Login.
-        let app = routes::router().with_state(state.clone());
+        let app = routes::router(state.clone());
         let res = app
             .oneshot(
                 Request::builder()
@@ -451,7 +476,7 @@ mod tests {
         let cookie_value = cookie_header.split(';').next().unwrap().to_string();
 
         // Call /api/auth/me with the session cookie.
-        let app = routes::router().with_state(state);
+        let app = routes::router(state);
         let res = app
             .oneshot(
                 Request::builder()
@@ -473,7 +498,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_me_unauthenticated() {
-        let app = routes::router().with_state(test_state());
+        let app = routes::router(test_state());
 
         let res = app
             .oneshot(
@@ -493,7 +518,7 @@ mod tests {
         let state = test_state();
 
         // Register.
-        let app = routes::router().with_state(state.clone());
+        let app = routes::router(state.clone());
         app.oneshot(
             Request::builder()
                 .method("POST")
@@ -508,7 +533,7 @@ mod tests {
         .unwrap();
 
         // Login with wrong password.
-        let app = routes::router().with_state(state);
+        let app = routes::router(state);
         let res = app
             .oneshot(
                 Request::builder()
@@ -531,7 +556,7 @@ mod tests {
         let state = test_state();
 
         // Register + login.
-        let app = routes::router().with_state(state.clone());
+        let app = routes::router(state.clone());
         app.oneshot(
             Request::builder()
                 .method("POST")
@@ -545,7 +570,7 @@ mod tests {
         .await
         .unwrap();
 
-        let app = routes::router().with_state(state.clone());
+        let app = routes::router(state.clone());
         let res = app
             .oneshot(
                 Request::builder()
@@ -569,7 +594,7 @@ mod tests {
         let cookie_value = cookie_header.split(';').next().unwrap().to_string();
 
         // Logout.
-        let app = routes::router().with_state(state.clone());
+        let app = routes::router(state.clone());
         let res = app
             .oneshot(
                 Request::builder()
@@ -584,7 +609,7 @@ mod tests {
         assert_eq!(res.status(), StatusCode::NO_CONTENT);
 
         // After logout, /me should be 401.
-        let app = routes::router().with_state(state);
+        let app = routes::router(state);
         let res = app
             .oneshot(
                 Request::builder()

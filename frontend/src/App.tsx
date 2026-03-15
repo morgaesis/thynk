@@ -5,6 +5,7 @@ import { CommandPalette } from './components/CommandPalette';
 import { ToastContainer } from './components/Toast';
 import { LoginPage } from './components/LoginPage';
 import { SettingsPage } from './components/SettingsPage';
+import { CalendarView } from './components/CalendarView';
 import { useUIStore } from './stores/uiStore';
 import { useNoteStore } from './stores/noteStore';
 import { useAuthStore } from './stores/authStore';
@@ -25,6 +26,7 @@ function App() {
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
   const isSettingsPage = currentPath === '/settings';
   const isGraphPage = currentPath === '/graph';
+  const isCalendarPage = currentPath === '/calendar';
 
   // Start as connected (no indicator shown). Only show indicator after an
   // unexpected disconnect — not on initial connection or clean closes.
@@ -181,7 +183,7 @@ function App() {
     const handlePopState = () => {
       const pathname = window.location.pathname;
       setCurrentPath(pathname);
-      if (pathname === '/graph' || pathname === '/settings') return;
+      if (pathname === '/graph' || pathname === '/settings' || pathname === '/calendar') return;
       const match = pathname.match(/^\/notes\/(.+)$/);
       if (match) {
         const path = decodeURIComponent(match[1]);
@@ -217,15 +219,6 @@ function App() {
     return <LoginPage />;
   }
 
-  if (isSettingsPage) {
-    return (
-      <div className="h-full bg-surface dark:bg-surface-dark">
-        <SettingsPage />
-        <ToastContainer />
-      </div>
-    );
-  }
-
   return (
     <div className="h-full bg-surface dark:bg-surface-dark">
       <Layout
@@ -235,6 +228,21 @@ function App() {
       />
       <CommandPalette />
       <ToastContainer />
+      {isSettingsPage && (
+        <div className="fixed inset-0 z-50 bg-surface dark:bg-surface-dark overflow-y-auto">
+          <SettingsPage onClose={() => window.history.back()} />
+        </div>
+      )}
+      {isCalendarPage && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div
+            className="w-[900px] max-w-[95vw] h-[600px] max-h-[90vh] rounded-xl shadow-xl
+                        overflow-hidden border border-border dark:border-border-dark"
+          >
+            <CalendarView onClose={() => window.history.back()} />
+          </div>
+        </div>
+      )}
       {!wsConnected && (
         <div
           className="fixed bottom-4 right-4 z-50 flex items-center gap-2 px-3 py-1.5

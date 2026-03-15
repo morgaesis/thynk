@@ -25,7 +25,6 @@ import { DailyNoteCalendar } from './DailyNoteCalendar';
 import { TemplateSelector } from './TemplateSelector';
 import { AutomationLog } from './AutomationLog';
 import { useAutomationEvents } from '../hooks/useAutomationEvents';
-import { CalendarView } from './CalendarView';
 import { BacklinksPanel } from './BacklinksPanel';
 import type { TreeNode, NoteMetadata } from '../types';
 import { getTree, toggleFavorite, getFavorites } from '../api';
@@ -331,7 +330,6 @@ export function Sidebar() {
   const [newNotePath, setNewNotePath] = useState('');
   const [showTemplateSelector, setShowTemplateSelector] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
-  const [showFullCalendar, setShowFullCalendar] = useState(false);
   // Tag filter state: when a tag is selected, replace the file tree with filtered notes.
   const [tagFilterNotes, setTagFilterNotes] = useState<NoteMetadata[] | null>(
     null,
@@ -476,7 +474,10 @@ export function Sidebar() {
           </button>
           <DailyNoteButton />
           <button
-            onClick={() => setShowFullCalendar(true)}
+            onClick={() => {
+              window.history.pushState({}, '', '/calendar');
+              window.dispatchEvent(new PopStateEvent('popstate'));
+            }}
             className="flex items-center gap-2 w-full px-3 py-2 text-sm rounded-md
                        text-text-muted dark:text-text-muted-dark
                        hover:bg-border dark:hover:bg-border-dark transition-colors"
@@ -636,17 +637,6 @@ export function Sidebar() {
         <TemplateSelector onClose={() => setShowTemplateSelector(false)} />
       )}
 
-      {/* Full CalendarView modal */}
-      {showFullCalendar && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div
-            className="w-[900px] max-w-[95vw] h-[600px] max-h-[90vh] rounded-xl shadow-xl
-                        overflow-hidden border border-border dark:border-border-dark"
-          >
-            <CalendarView onClose={() => setShowFullCalendar(false)} />
-          </div>
-        </div>
-      )}
     </>
   );
 }

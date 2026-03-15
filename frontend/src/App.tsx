@@ -5,7 +5,6 @@ import { CommandPalette } from './components/CommandPalette';
 import { ToastContainer } from './components/Toast';
 import { LoginPage } from './components/LoginPage';
 import { SettingsPage } from './components/SettingsPage';
-import { GraphView } from './components/GraphView';
 import { useUIStore } from './stores/uiStore';
 import { useNoteStore } from './stores/noteStore';
 import { useAuthStore } from './stores/authStore';
@@ -182,10 +181,11 @@ function App() {
     const handlePopState = () => {
       const pathname = window.location.pathname;
       setCurrentPath(pathname);
+      if (pathname === '/graph' || pathname === '/settings') return;
       const match = pathname.match(/^\/notes\/(.+)$/);
       if (match) {
         const path = decodeURIComponent(match[1]);
-        openNoteByPath(path);
+        void openNoteByPath(path);
       }
     };
     window.addEventListener('popstate', handlePopState);
@@ -226,20 +226,12 @@ function App() {
     );
   }
 
-  if (isGraphPage) {
-    return (
-      <div className="h-full bg-surface dark:bg-surface-dark">
-        <GraphView />
-        <ToastContainer />
-      </div>
-    );
-  }
-
   return (
     <div className="h-full bg-surface dark:bg-surface-dark">
       <Layout
         onEditorSave={handleEditorSave}
         onRegisterFocusTitle={handleRegisterFocusTitle}
+        showGraph={isGraphPage}
       />
       <CommandPalette />
       <ToastContainer />

@@ -80,7 +80,8 @@
 | AI API Routes           | Done        | Phase 3 |
 | AI Completion API       | Done        | Phase 3 |
 | AI Chat API             | Done        | Phase 3 |
-| AI Integration          | In Progress | Phase 3 |
+| AI Inline Completions    | Done        | Phase 3 |
+| AI Integration          | Done        | Phase 3 |
 | Sync Engine             | Not Started | Phase 3 |
 | Cloud Deployment        | Not Started | Phase 3 |
 | P2P Collaboration       | Not Started | Phase 4 |
@@ -145,12 +146,11 @@
 
 ## Phase 3 Next Steps
 
-1. ~~AI Integration -- BYOK, inline completions, smart search~~ (in progress: settings UI and API done)
-2. **AI Features** -- inline completions in editor, smart search integration
-3. **Sync Engine** -- differential sync between devices and cloud
-4. **Cloud Deployment** -- scale-to-zero instances, wake on first request
-5. **Unlinked mentions** -- find notes referenced by title without a wiki-link
+1. ~~AI Integration -- BYOK, inline completions, smart search~~ (done: settings UI, API routes, inline completions)
+2. **Sync Engine** -- differential sync between devices and cloud
+3. **Cloud Deployment** -- scale-to-zero instances, wake on first request
+4. **Unlinked mentions** -- find notes referenced by title without a wiki-link
 
 ---
 
-Last Updated: 2026-03-15 (Phase 3 AI integration: settings + API routes)
+Last Updated: 2026-03-15 (Phase 3 AI integration complete)

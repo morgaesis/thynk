@@ -42,7 +42,9 @@ import {
 import { VimStatusBar } from './VimStatusBar';
 import { TableControls } from './TableControls';
 import { SlashCommandExtension, type SlashCommandState } from '../extensions/SlashCommandExtension';
+import { AiCompletionExtension, type AiCompletionState } from '../extensions/AiCompletionExtension';
 import { SlashCommandMenu } from './SlashCommandMenu';
+import { AiCompletionMenu } from './AiCompletionMenu';
 
 // Create lowlight instance with common languages
 const lowlight = createLowlight(common);
@@ -239,6 +241,16 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
     to: 0,
     anchorRect: null,
   });
+  const [aiState, setAiState] = useState<AiCompletionState>({
+    active: false,
+    prompt: '',
+    from: 0,
+    to: 0,
+    anchorRect: null,
+    loading: false,
+    suggestions: [],
+    selectedIndex: 0,
+  });
 
   const currentUsername = authUser?.username ?? '';
   const {
@@ -301,6 +313,7 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
         },
       }),
       SlashCommandExtension.configure({ onStateChange: setSlashState }),
+      AiCompletionExtension.configure({ onStateChange: setAiState }),
       ...(vimModeEnabled
         ? [VimModeExtension.configure({ onModeChange: setVimMode })]
         : []),
@@ -596,6 +609,25 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
             slashState={slashState}
             editor={editor}
             onClose={() => setSlashState((s) => ({ ...s, active: false }))}
+          />,
+          document.body,
+        )}
+
+      {/* AI completion menu */}
+      {editor && aiState.active && aiState.anchorRect &&
+        createPortal(
+          <AiCompletionMenu
+            anchorRect={aiState.anchorRect}
+            onSelect={(completion) => {
+              // Insert the completion after the ::ai trigger
+              editor.chain()
+                .deleteRange({ from: aiState.from, to: aiState.to })
+                .insertContent(completion + ' ')
+                .focus()
+                .run();
+              setAiState((s) => ({ ...s, active: false, suggestions: [] }));
+            }}
+            onClose={() => setAiState((s) => ({ ...s, active: false, suggestions: [] }))}
           />,
           document.body,
         )}

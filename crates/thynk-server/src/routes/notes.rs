@@ -185,6 +185,20 @@ pub async fn create_note(
         .into_response();
     }
 
+    // Extract wiki-links from content and populate the link graph on creation.
+    let link_titles = extract_wiki_link_titles(&note.content);
+    let all_notes = db.list_notes().unwrap_or_default();
+    let to_ids: Vec<String> = link_titles
+        .iter()
+        .filter_map(|title| {
+            all_notes
+                .iter()
+                .find(|n| n.title.eq_ignore_ascii_case(title))
+                .map(|n| n.id.clone())
+        })
+        .collect();
+    let _ = db.set_note_links(&note.id, &to_ids);
+
     (
         StatusCode::CREATED,
         Json(serde_json::to_value(&note).unwrap()),

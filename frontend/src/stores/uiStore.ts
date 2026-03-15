@@ -11,6 +11,7 @@ export interface Toast {
 interface UIStore {
   sidebarOpen: boolean;
   commandPaletteOpen: boolean;
+  showGraph: boolean;
   theme: Theme;
   toasts: Toast[];
   recentNoteIds: string[];
@@ -19,6 +20,7 @@ interface UIStore {
   setSidebarOpen: (open: boolean) => void;
   toggleCommandPalette: () => void;
   setCommandPaletteOpen: (open: boolean) => void;
+  setShowGraph: (show: boolean) => void;
   setTheme: (theme: Theme) => void;
   toggleTheme: () => void;
   addToast: (type: Toast['type'], message: string) => void;
@@ -38,12 +40,14 @@ function getInitialTheme(): Theme {
 export const useUIStore = create<UIStore>((set) => ({
   sidebarOpen: true,
   commandPaletteOpen: false,
+  showGraph: false,
   theme: getInitialTheme(),
   toasts: [],
   recentNoteIds: [],
 
   toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
   setSidebarOpen: (open) => set({ sidebarOpen: open }),
+  setShowGraph: (show) => set({ showGraph: show }),
   toggleCommandPalette: () =>
     set((s) => ({ commandPaletteOpen: !s.commandPaletteOpen })),
   setCommandPaletteOpen: (open) => set({ commandPaletteOpen: open }),

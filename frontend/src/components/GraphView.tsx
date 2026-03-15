@@ -4,6 +4,7 @@ import { VscArrowLeft } from 'react-icons/vsc';
 import { getGraph } from '../api';
 import type { GraphData, GraphEdge } from '../api';
 import { useNoteStore } from '../stores/noteStore';
+import { useUIStore } from '../stores/uiStore';
 
 interface SimNode extends d3.SimulationNodeDatum {
   id: string;
@@ -23,6 +24,7 @@ export function GraphView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const openNoteByPath = useNoteStore((s) => s.openNoteByPath);
+  const setShowGraph = useUIStore((s) => s.setShowGraph);
 
   // Load graph data
   useEffect(() => {
@@ -48,8 +50,8 @@ export function GraphView() {
   }, []);
 
   const handleBack = useCallback(() => {
-    window.history.back();
-  }, []);
+    setShowGraph(false);
+  }, [setShowGraph]);
 
   // Build and render D3 force-directed graph
   useEffect(() => {
@@ -148,14 +150,8 @@ export function GraphView() {
       .attr('stroke-width', 1.5)
       .attr('cursor', 'pointer')
       .on('click', (_event, d) => {
+        setShowGraph(false);
         void openNoteByPath(d.path);
-        // Navigate back to the normal view
-        window.history.pushState(
-          {},
-          '',
-          `/notes/${encodeURIComponent(d.path)}`,
-        );
-        window.dispatchEvent(new PopStateEvent('popstate'));
       });
 
     // Labels
@@ -227,7 +223,7 @@ export function GraphView() {
     return () => {
       simulation.stop();
     };
-  }, [graphData, openNoteByPath]);
+  }, [graphData, openNoteByPath, setShowGraph]);
 
   return (
     <div className="flex flex-col h-full bg-surface dark:bg-surface-dark">

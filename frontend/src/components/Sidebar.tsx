@@ -46,6 +46,7 @@ function TreeItem({
   const deleteNote = useNoteStore((s) => s.deleteNote);
   const fetchNotes = useNoteStore((s) => s.fetchNotes);
   const addToast = useUIStore((s) => s.addToast);
+  const setShowGraph = useUIStore((s) => s.setShowGraph);
   const [hoveredPath, setHoveredPath] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [favoriting, setFavoriting] = useState(false);
@@ -142,7 +143,7 @@ function TreeItem({
       }}
     >
       <button
-        onClick={() => noteMeta && openNoteByPath(path)}
+        onClick={() => { if (noteMeta) { setShowGraph(false); void openNoteByPath(path); } }}
         className={`flex items-center gap-2 w-full py-1.5 text-sm rounded-md
           transition-colors text-left
           ${
@@ -208,6 +209,7 @@ function FavoritesSection() {
   const notes = useNoteStore((s) => s.notes);
   const openNote = useNoteStore((s) => s.openNote);
   const activeNote = useNoteStore((s) => s.activeNote);
+  const setShowGraph = useUIStore((s) => s.setShowGraph);
 
   useEffect(() => {
     getFavorites()
@@ -236,7 +238,7 @@ function FavoritesSection() {
           {favorites.map((n) => (
             <li key={n.id}>
               <button
-                onClick={() => openNote(n.id)}
+                onClick={() => { setShowGraph(false); void openNote(n.id); }}
                 className={`flex items-center gap-2 w-full px-2 py-1.5 text-sm rounded-md
                   transition-colors text-left
                   ${
@@ -263,6 +265,7 @@ function RecentNotesSection() {
   const notes = useNoteStore((s) => s.notes);
   const openNote = useNoteStore((s) => s.openNote);
   const activeNote = useNoteStore((s) => s.activeNote);
+  const setShowGraph = useUIStore((s) => s.setShowGraph);
   const [expanded, setExpanded] = useState(true);
 
   const recentNotes = recentNoteIds
@@ -291,7 +294,7 @@ function RecentNotesSection() {
           {recentNotes.map((n) => (
             <li key={n.id}>
               <button
-                onClick={() => openNote(n.id)}
+                onClick={() => { setShowGraph(false); void openNote(n.id); }}
                 className={`flex items-center gap-2 w-full px-2 py-1.5 text-sm rounded-md
                   transition-colors text-left
                   ${
@@ -322,6 +325,7 @@ export function Sidebar() {
   const activeNote = useNoteStore((s) => s.activeNote);
   const sidebarOpen = useUIStore((s) => s.sidebarOpen);
   const toggleSidebar = useUIStore((s) => s.toggleSidebar);
+  const setShowGraph = useUIStore((s) => s.setShowGraph);
   const authUser = useAuthStore((s) => s.user);
   const automationEvents = useAutomationEvents();
 
@@ -452,10 +456,7 @@ export function Sidebar() {
             New Note
           </button>
           <button
-            onClick={() => {
-              window.history.pushState({}, '', '/graph');
-              window.dispatchEvent(new PopStateEvent('popstate'));
-            }}
+            onClick={() => setShowGraph(true)}
             className="flex items-center gap-2 w-full px-3 py-2 text-sm rounded-md
                        text-text-muted dark:text-text-muted-dark
                        hover:bg-border dark:hover:bg-border-dark transition-colors"

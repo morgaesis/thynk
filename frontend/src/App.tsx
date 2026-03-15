@@ -9,6 +9,7 @@ import { CalendarView } from './components/CalendarView';
 import { useUIStore } from './stores/uiStore';
 import { useNoteStore } from './stores/noteStore';
 import { useAuthStore } from './stores/authStore';
+import { useSettingsStore, DEFAULT_SHORTCUTS } from './stores/settingsStore';
 
 function App() {
   const authUser = useAuthStore((s) => s.user);
@@ -17,6 +18,7 @@ function App() {
   const theme = useUIStore((s) => s.theme);
   const toggleCommandPalette = useUIStore((s) => s.toggleCommandPalette);
   const addToast = useUIStore((s) => s.addToast);
+  const shortcuts = useSettingsStore((s) => s.shortcuts);
   const createNote = useNoteStore((s) => s.createNote);
   const activeNote = useNoteStore((s) => s.activeNote);
   const updateNote = useNoteStore((s) => s.updateNote);
@@ -25,7 +27,6 @@ function App() {
 
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
   const isSettingsPage = currentPath === '/settings';
-  const isGraphPage = currentPath === '/graph';
   const isCalendarPage = currentPath === '/calendar';
 
   // Start as connected (no indicator shown). Only show indicator after an
@@ -51,30 +52,46 @@ function App() {
 
   // Global keyboard shortcuts
   useEffect(() => {
-    function handleKeyDown(e: KeyboardEvent) {
-      const ctrl = e.metaKey || e.ctrlKey;
+    function keyToString(e: KeyboardEvent): string {
+      const parts: string[] = [];
+      if (e.ctrlKey || e.metaKey) parts.push('Ctrl');
+      if (e.shiftKey) parts.push('Shift');
+      if (e.altKey) parts.push('Alt');
+      parts.push(e.key.length === 1 ? e.key.toUpperCase() : e.key);
+      return parts.join('+');
+    }
 
-      if ((ctrl && e.key === 'p') || (ctrl && e.key === 'k')) {
+    function boundKey(action: string): string {
+      return shortcuts[action] ?? DEFAULT_SHORTCUTS[action]?.defaultKey ?? '';
+    }
+
+    function handleKeyDown(e: KeyboardEvent) {
+      const pressed = keyToString(e);
+      const paletteKey = boundKey('command-palette');
+      // Command palette supports two default bindings
+      if (
+        pressed === paletteKey ||
+        (!(shortcuts['command-palette']) && (pressed === 'Ctrl+K' || pressed === 'Ctrl+P'))
+      ) {
         e.preventDefault();
         toggleCommandPalette();
-      } else if (ctrl && e.shiftKey && e.key === 'N') {
+      } else if (pressed === boundKey('new-note')) {
         e.preventDefault();
         const title = `Untitled ${new Date().toISOString().slice(0, 10)}`;
         createNote(title);
-      } else if (ctrl && e.key === 's') {
+      } else if (pressed === boundKey('save')) {
         e.preventDefault();
-        // Trigger force-save if a note is open
         if (activeSaveRef.current) {
           activeSaveRef.current();
         }
-      } else if (e.key === 'F2') {
+      } else if (pressed === boundKey('focus-title')) {
         e.preventDefault();
         focusTitleRef.current?.();
       }
     }
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [toggleCommandPalette, createNote, activeNote, updateNote]);
+  }, [toggleCommandPalette, createNote, activeNote, updateNote, shortcuts]);
 
   // WebSocket connection — auto-reconnects via ReconnectingWebSocket.
   // The reconnecting indicator is only shown after an unexpected disconnect
@@ -183,7 +200,7 @@ function App() {
     const handlePopState = () => {
       const pathname = window.location.pathname;
       setCurrentPath(pathname);
-      if (pathname === '/graph' || pathname === '/settings' || pathname === '/calendar') return;
+      if (pathname === '/settings' || pathname === '/calendar') return;
       const match = pathname.match(/^\/notes\/(.+)$/);
       if (match) {
         const path = decodeURIComponent(match[1]);
@@ -224,7 +241,6 @@ function App() {
       <Layout
         onEditorSave={handleEditorSave}
         onRegisterFocusTitle={handleRegisterFocusTitle}
-        showGraph={isGraphPage}
       />
       <CommandPalette />
       <ToastContainer />

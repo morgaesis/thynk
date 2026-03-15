@@ -1,6 +1,7 @@
 import { Sidebar } from './Sidebar';
 import { Editor } from './Editor';
 import { GraphView } from './GraphView';
+import { useUIStore } from '../stores/uiStore';
 
 interface Props {
   onEditorSave: (saveFn: () => void) => void;
@@ -8,7 +9,8 @@ interface Props {
   showGraph?: boolean;
 }
 
-export function Layout({ onEditorSave, onRegisterFocusTitle, showGraph }: Props) {
+export function Layout({ onEditorSave, onRegisterFocusTitle }: Props) {
+  const showGraph = useUIStore((s) => s.showGraph);
   return (
     <div className="flex h-full">
       <Sidebar />

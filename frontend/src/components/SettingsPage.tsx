@@ -1,7 +1,7 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useEffect, useRef } from 'react';
 import { VscArrowLeft } from 'react-icons/vsc';
 import { useUIStore } from '../stores/uiStore';
-import { useSettingsStore } from '../stores/settingsStore';
+import { useSettingsStore, DEFAULT_SHORTCUTS } from '../stores/settingsStore';
 import { useAuthStore } from '../stores/authStore';
 import { exportWorkspace } from '../api';
 import { ImportModal } from './ImportModal';
@@ -83,6 +83,91 @@ function Toggle({
   );
 }
 
+// ── Keyboard Shortcuts rebinding ─────────────────────────────────────────────
+
+function ShortcutsSection({
+  shortcuts,
+  onSet,
+  onReset,
+}: {
+  shortcuts: Record<string, string>;
+  onSet: (action: string, key: string) => void;
+  onReset: (action: string) => void;
+}) {
+  const [rebinding, setRebinding] = useState<string | null>(null);
+  const rebindRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    rebindRef.current = rebinding;
+  });
+
+  useEffect(() => {
+    if (!rebinding) return;
+    function onKeyDown(e: KeyboardEvent) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.key === 'Escape') {
+        setRebinding(null);
+        return;
+      }
+      // Ignore modifier-only keypresses
+      if (['Control', 'Shift', 'Alt', 'Meta'].includes(e.key)) return;
+      const parts: string[] = [];
+      if (e.ctrlKey || e.metaKey) parts.push('Ctrl');
+      if (e.shiftKey) parts.push('Shift');
+      if (e.altKey) parts.push('Alt');
+      parts.push(e.key.length === 1 ? e.key.toUpperCase() : e.key);
+      const combo = parts.join('+');
+      onSet(rebindRef.current!, combo);
+      setRebinding(null);
+    }
+    window.addEventListener('keydown', onKeyDown, true);
+    return () => window.removeEventListener('keydown', onKeyDown, true);
+  }, [rebinding, onSet]);
+
+  return (
+    <section className="mb-8">
+      <SectionTitle>Keyboard Shortcuts</SectionTitle>
+      <div className="bg-sidebar dark:bg-sidebar-dark rounded-lg border border-border dark:border-border-dark px-4">
+        {Object.entries(DEFAULT_SHORTCUTS).map(([action, { label, defaultKey }]) => {
+          const currentKey = shortcuts[action] ?? defaultKey;
+          const isCustom = Boolean(shortcuts[action]);
+          const isRebinding = rebinding === action;
+          return (
+            <Row key={action} label={label}>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setRebinding(isRebinding ? null : action)}
+                  title={isRebinding ? 'Press new key combo (Esc to cancel)' : 'Click to rebind'}
+                  className={`px-2 py-0.5 text-xs rounded font-mono transition-colors
+                    ${isRebinding
+                      ? 'bg-accent text-white animate-pulse'
+                      : 'bg-border dark:bg-border-dark text-text dark:text-text-dark hover:bg-accent/20'
+                    }`}
+                >
+                  {isRebinding ? 'Press key…' : currentKey}
+                </button>
+                {isCustom && (
+                  <button
+                    onClick={() => onReset(action)}
+                    className="text-xs text-text-muted dark:text-text-muted-dark hover:text-text dark:hover:text-text-dark underline"
+                    title="Reset to default"
+                  >
+                    Reset
+                  </button>
+                )}
+              </div>
+            </Row>
+          );
+        })}
+      </div>
+      <p className="mt-1 text-xs text-text-muted dark:text-text-muted-dark px-1">
+        Click a shortcut to rebind it. Press Esc to cancel.
+      </p>
+    </section>
+  );
+}
+
 interface SettingsPageProps {
   onClose?: () => void;
 }
@@ -95,10 +180,13 @@ export function SettingsPage({ onClose }: SettingsPageProps) {
     vimMode,
     lineHeight,
     spellCheck,
+    shortcuts,
     setFontSize,
     setVimMode,
     setLineHeight,
     setSpellCheck,
+    setShortcut,
+    resetShortcut,
   } = useSettingsStore();
   const authUser = useAuthStore((s) => s.user);
   const checkSession = useAuthStore((s) => s.checkSession);
@@ -364,25 +452,11 @@ export function SettingsPage({ onClose }: SettingsPageProps) {
           </section>
 
           {/* Keyboard Shortcuts Section */}
-          <section className="mb-8">
-            <SectionTitle>Keyboard Shortcuts</SectionTitle>
-            <div className="bg-sidebar dark:bg-sidebar-dark rounded-lg border border-border dark:border-border-dark px-4">
-              {[
-                { action: 'Command palette / Search', shortcut: 'Ctrl+K or Ctrl+P' },
-                { action: 'New note', shortcut: 'Ctrl+Shift+N' },
-                { action: 'Save', shortcut: 'Ctrl+S' },
-                { action: 'Focus title', shortcut: 'F2' },
-                { action: 'Toggle sidebar', shortcut: '(click sidebar toggle)' },
-              ].map(({ action, shortcut }) => (
-                <Row key={action} label={action}>
-                  <kbd className="px-2 py-0.5 text-xs rounded bg-border dark:bg-border-dark
-                                  text-text dark:text-text-dark font-mono">
-                    {shortcut}
-                  </kbd>
-                </Row>
-              ))}
-            </div>
-          </section>
+          <ShortcutsSection
+            shortcuts={shortcuts}
+            onSet={setShortcut}
+            onReset={resetShortcut}
+          />
 
           {/* About Section */}
           <section className="mb-8">
@@ -392,28 +466,6 @@ export function SettingsPage({ onClose }: SettingsPageProps) {
                 <span className="text-sm text-text-muted dark:text-text-muted-dark font-mono">
                   v0.2.0 ({__GIT_HASH__})
                 </span>
-              </Row>
-              <Row label="Keyboard shortcuts">
-                <div className="flex gap-2 text-xs text-text-muted dark:text-text-muted-dark">
-                  <span>
-                    <kbd className="px-1.5 py-0.5 rounded bg-border dark:bg-border-dark">
-                      Ctrl+K
-                    </kbd>{' '}
-                    Search
-                  </span>
-                  <span>
-                    <kbd className="px-1.5 py-0.5 rounded bg-border dark:bg-border-dark">
-                      Ctrl+Shift+N
-                    </kbd>{' '}
-                    New note
-                  </span>
-                  <span>
-                    <kbd className="px-1.5 py-0.5 rounded bg-border dark:bg-border-dark">
-                      Ctrl+S
-                    </kbd>{' '}
-                    Save
-                  </span>
-                </div>
               </Row>
             </div>
           </section>

@@ -57,6 +57,10 @@ fn collect_all_dirs(base: &Path, dir: &Path, result: &mut Vec<PathBuf>) {
     for entry in entries.flatten() {
         let path = entry.path();
         if path.is_dir() {
+            let dir_name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
+            if dir_name.starts_with('.') {
+                continue; // skip hidden dirs (e.g. .thynk)
+            }
             if let Ok(rel) = path.strip_prefix(base) {
                 result.push(rel.to_path_buf());
             }
@@ -79,6 +83,9 @@ fn build_tree(files: &[PathBuf], dirs: &[PathBuf]) -> Vec<TreeNode> {
             continue;
         }
         let name = components[0].as_os_str().to_string_lossy().to_string();
+        if name.starts_with('.') {
+            continue; // skip hidden directories
+        }
         let entry = dir_map.entry(name).or_default();
         if components.len() > 1 {
             let rest: PathBuf = components[1..].iter().collect();
@@ -90,10 +97,17 @@ fn build_tree(files: &[PathBuf], dirs: &[PathBuf]) -> Vec<TreeNode> {
     // Add files into the map.
     for file in files {
         let components: Vec<_> = file.components().collect();
+        if components.is_empty() {
+            continue;
+        }
+        let first = components[0].as_os_str().to_string_lossy();
+        if first.starts_with('.') {
+            continue; // skip hidden files/dirs at the top level
+        }
         if components.len() == 1 {
             top_files.push(file.to_string_lossy().to_string());
         } else {
-            let dir = components[0].as_os_str().to_string_lossy().to_string();
+            let dir = first.to_string();
             let rest: PathBuf = components[1..].iter().collect();
             dir_map.entry(dir).or_default().0.push(rest);
         }

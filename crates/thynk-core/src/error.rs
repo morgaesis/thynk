@@ -22,6 +22,9 @@ pub enum ThynkError {
 
     #[error("parse error: {0}")]
     ParseError(String),
+
+    #[error("conflict: {0}")]
+    Conflict(String),
 }
 
 pub type Result<T> = std::result::Result<T, ThynkError>;

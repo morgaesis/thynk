@@ -29,6 +29,15 @@ pub struct UploadRecord {
     pub created_at: String,
 }
 
+/// A page lock record.
+pub struct LockRecord {
+    pub note_id: String,
+    pub user_id: String,
+    pub acquired_at: String,
+    pub expires_at: String,
+    pub heartbeat_at: String,
+}
+
 /// An active session record.
 pub struct SessionRecord {
     pub token: String,
@@ -152,6 +161,41 @@ impl Database {
         let _ = self
             .conn
             .execute("ALTER TABLE notes ADD COLUMN last_updated_by TEXT", []);
+
+        // Phase 2 schema additions.
+        // Idempotent: ALTER TABLE ignores errors (column already exists), CREATE TABLE IF NOT EXISTS is safe.
+
+        // Favorites flag on notes.
+        let _ = self.conn.execute(
+            "ALTER TABLE notes ADD COLUMN favorited INTEGER NOT NULL DEFAULT 0",
+            [],
+        );
+
+        // Wiki-link graph edges.
+        self.conn.execute_batch(
+            "
+            CREATE TABLE IF NOT EXISTS note_links (
+                from_id TEXT NOT NULL REFERENCES notes(id) ON DELETE CASCADE,
+                to_id   TEXT NOT NULL REFERENCES notes(id) ON DELETE CASCADE,
+                PRIMARY KEY (from_id, to_id)
+            );
+            CREATE INDEX IF NOT EXISTS idx_note_links_from ON note_links(from_id);
+            CREATE INDEX IF NOT EXISTS idx_note_links_to   ON note_links(to_id);
+            ",
+        )?;
+
+        // Page locks with lease/heartbeat.
+        self.conn.execute_batch(
+            "
+            CREATE TABLE IF NOT EXISTS locks (
+                note_id      TEXT PRIMARY KEY REFERENCES notes(id) ON DELETE CASCADE,
+                user_id      TEXT NOT NULL,
+                acquired_at  TEXT NOT NULL,
+                expires_at   TEXT NOT NULL,
+                heartbeat_at TEXT NOT NULL
+            );
+            ",
+        )?;
 
         info!("database schema initialized");
         Ok(())
@@ -511,6 +555,233 @@ impl Database {
             |row| row.get(0),
         )?;
         Ok(total)
+    }
+
+    // ── Phase 2: Wiki-links ───────────────────────────────────────────────────
+
+    /// Replace all outgoing links from a note (called on every save).
+    pub fn set_note_links(&self, from_id: &str, to_ids: &[String]) -> Result<()> {
+        self.conn
+            .execute("DELETE FROM note_links WHERE from_id = ?1", params![from_id])?;
+        for to_id in to_ids {
+            // Skip self-links.
+            if to_id == from_id {
+                continue;
+            }
+            self.conn.execute(
+                "INSERT OR IGNORE INTO note_links (from_id, to_id) VALUES (?1, ?2)",
+                params![from_id, to_id],
+            )?;
+        }
+        Ok(())
+    }
+
+    /// Get all note IDs that link TO the given note (backlinks).
+    pub fn get_backlinks(&self, note_id: &str) -> Result<Vec<NoteMetadata>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT n.id, n.path, n.title, n.content_hash, n.created_at, n.updated_at, n.last_updated_by
+             FROM note_links nl JOIN notes n ON n.id = nl.from_id
+             WHERE nl.to_id = ?1",
+        )?;
+        let rows = stmt.query_map(params![note_id], |row| {
+            Ok(NoteMetadata {
+                id: row.get(0)?,
+                path: std::path::PathBuf::from(row.get::<_, String>(1)?),
+                title: row.get(2)?,
+                content_hash: row.get(3)?,
+                created_at: chrono::DateTime::parse_from_rfc3339(&row.get::<_, String>(4)?)
+                    .unwrap_or_default()
+                    .with_timezone(&chrono::Utc),
+                updated_at: chrono::DateTime::parse_from_rfc3339(&row.get::<_, String>(5)?)
+                    .unwrap_or_default()
+                    .with_timezone(&chrono::Utc),
+                last_updated_by: row.get(6)?,
+            })
+        })?;
+        let mut result = Vec::new();
+        for row in rows {
+            result.push(row?);
+        }
+        Ok(result)
+    }
+
+    /// Get all note IDs that this note links TO (outgoing links).
+    pub fn get_outgoing_links(&self, note_id: &str) -> Result<Vec<NoteMetadata>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT n.id, n.path, n.title, n.content_hash, n.created_at, n.updated_at, n.last_updated_by
+             FROM note_links nl JOIN notes n ON n.id = nl.to_id
+             WHERE nl.from_id = ?1",
+        )?;
+        let rows = stmt.query_map(params![note_id], |row| {
+            Ok(NoteMetadata {
+                id: row.get(0)?,
+                path: std::path::PathBuf::from(row.get::<_, String>(1)?),
+                title: row.get(2)?,
+                content_hash: row.get(3)?,
+                created_at: chrono::DateTime::parse_from_rfc3339(&row.get::<_, String>(4)?)
+                    .unwrap_or_default()
+                    .with_timezone(&chrono::Utc),
+                updated_at: chrono::DateTime::parse_from_rfc3339(&row.get::<_, String>(5)?)
+                    .unwrap_or_default()
+                    .with_timezone(&chrono::Utc),
+                last_updated_by: row.get(6)?,
+            })
+        })?;
+        let mut result = Vec::new();
+        for row in rows {
+            result.push(row?);
+        }
+        Ok(result)
+    }
+
+    /// Get all note links for the graph view (all edges).
+    pub fn get_all_links(&self) -> Result<Vec<(String, String)>> {
+        let mut stmt = self
+            .conn
+            .prepare("SELECT from_id, to_id FROM note_links")?;
+        let rows = stmt.query_map([], |row| Ok((row.get(0)?, row.get(1)?)))?;
+        let mut result = Vec::new();
+        for row in rows {
+            result.push(row?);
+        }
+        Ok(result)
+    }
+
+    // ── Phase 2: Favorites ────────────────────────────────────────────────────
+
+    /// Toggle the favorited flag for a note.
+    pub fn set_favorited(&self, note_id: &str, favorited: bool) -> Result<()> {
+        let val: i64 = if favorited { 1 } else { 0 };
+        let affected = self.conn.execute(
+            "UPDATE notes SET favorited = ?1 WHERE id = ?2",
+            params![val, note_id],
+        )?;
+        if affected == 0 {
+            return Err(ThynkError::NotFound(note_id.to_string()));
+        }
+        Ok(())
+    }
+
+    /// List only favorited notes.
+    pub fn list_favorited_notes(&self) -> Result<Vec<NoteMetadata>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT id, path, title, content_hash, created_at, updated_at, last_updated_by
+             FROM notes WHERE favorited = 1 ORDER BY updated_at DESC",
+        )?;
+        let rows = stmt.query_map([], |row| {
+            Ok(NoteMetadata {
+                id: row.get(0)?,
+                path: std::path::PathBuf::from(row.get::<_, String>(1)?),
+                title: row.get(2)?,
+                content_hash: row.get(3)?,
+                created_at: chrono::DateTime::parse_from_rfc3339(&row.get::<_, String>(4)?)
+                    .unwrap_or_default()
+                    .with_timezone(&chrono::Utc),
+                updated_at: chrono::DateTime::parse_from_rfc3339(&row.get::<_, String>(5)?)
+                    .unwrap_or_default()
+                    .with_timezone(&chrono::Utc),
+                last_updated_by: row.get(6)?,
+            })
+        })?;
+        let mut result = Vec::new();
+        for row in rows {
+            result.push(row?);
+        }
+        Ok(result)
+    }
+
+    /// Get the favorited flag for a note (returns false if not found).
+    pub fn is_favorited(&self, note_id: &str) -> Result<bool> {
+        let val: i64 = self
+            .conn
+            .query_row(
+                "SELECT favorited FROM notes WHERE id = ?1",
+                params![note_id],
+                |row| row.get(0),
+            )
+            .map_err(|e| match e {
+                rusqlite::Error::QueryReturnedNoRows => ThynkError::NotFound(note_id.to_string()),
+                other => ThynkError::DbError { source: other },
+            })?;
+        Ok(val != 0)
+    }
+
+    // ── Phase 2: Page Locks ───────────────────────────────────────────────────
+
+    /// Acquire or refresh a page lock.
+    pub fn acquire_lock(
+        &self,
+        note_id: &str,
+        user_id: &str,
+        acquired_at: &str,
+        expires_at: &str,
+        heartbeat_at: &str,
+    ) -> Result<()> {
+        // Check if already locked by someone else.
+        let existing: Option<String> = self
+            .conn
+            .query_row(
+                "SELECT user_id FROM locks WHERE note_id = ?1 AND expires_at > ?2",
+                params![note_id, acquired_at],
+                |row| row.get(0),
+            )
+            .ok();
+        if let Some(existing_user) = existing {
+            if existing_user != user_id {
+                return Err(ThynkError::Conflict(format!(
+                    "note is locked by user {existing_user}"
+                )));
+            }
+        }
+        self.conn.execute(
+            "INSERT INTO locks (note_id, user_id, acquired_at, expires_at, heartbeat_at)
+             VALUES (?1, ?2, ?3, ?4, ?5)
+             ON CONFLICT(note_id) DO UPDATE SET
+                user_id      = excluded.user_id,
+                acquired_at  = excluded.acquired_at,
+                expires_at   = excluded.expires_at,
+                heartbeat_at = excluded.heartbeat_at",
+            params![note_id, user_id, acquired_at, expires_at, heartbeat_at],
+        )?;
+        Ok(())
+    }
+
+    /// Release a lock (only the lock owner can do this).
+    pub fn release_lock(&self, note_id: &str, user_id: &str) -> Result<()> {
+        self.conn.execute(
+            "DELETE FROM locks WHERE note_id = ?1 AND user_id = ?2",
+            params![note_id, user_id],
+        )?;
+        Ok(())
+    }
+
+    /// Get the current lock for a note, if any.
+    pub fn get_lock(&self, note_id: &str) -> Result<Option<LockRecord>> {
+        let result = self.conn.query_row(
+            "SELECT note_id, user_id, acquired_at, expires_at, heartbeat_at FROM locks WHERE note_id = ?1",
+            params![note_id],
+            |row| {
+                Ok(LockRecord {
+                    note_id: row.get(0)?,
+                    user_id: row.get(1)?,
+                    acquired_at: row.get(2)?,
+                    expires_at: row.get(3)?,
+                    heartbeat_at: row.get(4)?,
+                })
+            },
+        );
+        match result {
+            Ok(l) => Ok(Some(l)),
+            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+            Err(e) => Err(ThynkError::DbError { source: e }),
+        }
+    }
+
+    /// Purge all expired locks.
+    pub fn cleanup_expired_locks(&self, now: &str) -> Result<()> {
+        self.conn
+            .execute("DELETE FROM locks WHERE expires_at < ?1", params![now])?;
+        Ok(())
     }
 }
 

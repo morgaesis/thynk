@@ -295,6 +295,17 @@ body {
   animation: pulse-recording 1s ease-in-out infinite;
 }
 
+/* Block cursor in vim normal mode */
+.vim-normal-mode .ProseMirror .ProseMirror-cursor {
+  display: inline-block;
+  border-left: none;
+  width: 0.6em;
+  height: 1.2em;
+  background-color: currentColor;
+  opacity: 0.5;
+  vertical-align: text-bottom;
+}
+
 /* Wiki-link decorations rendered by WikiLinkExtension */
 .wiki-link {
   color: var(--color-accent);

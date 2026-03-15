@@ -537,10 +537,16 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
         )}
 
         {/* Editor */}
-        <EditorContent
-          editor={editor}
-          className="text-text dark:text-text-dark"
-        />
+        <div
+          className={
+            vimModeEnabled && vimMode === 'normal' ? 'vim-normal-mode' : ''
+          }
+        >
+          <EditorContent
+            editor={editor}
+            className="text-text dark:text-text-dark"
+          />
+        </div>
       </div>
 
       {/* Vim mode status bar */}

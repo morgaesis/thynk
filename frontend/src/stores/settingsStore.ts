@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 
-export type FontSize = 'sm' | 'md' | 'lg';
-export type LineHeight = 'compact' | 'normal' | 'relaxed';
+export type FontSize = number; // pixels, e.g. 14, 16, 18
+export type LineHeight = number; // e.g. 1.4, 1.6, 1.8
 
 export interface SettingsStore {
   fontSize: FontSize;
@@ -12,6 +12,20 @@ export interface SettingsStore {
   setVimMode: (enabled: boolean) => void;
   setLineHeight: (lh: LineHeight) => void;
   setSpellCheck: (enabled: boolean) => void;
+}
+
+function migrateSize(v: unknown): number {
+  if (typeof v === 'number') return v;
+  if (v === 'sm') return 14;
+  if (v === 'lg') return 18;
+  return 16; // 'md' or fallback
+}
+
+function migrateLineHeight(v: unknown): number {
+  if (typeof v === 'number') return v;
+  if (v === 'compact') return 1.4;
+  if (v === 'relaxed') return 1.8;
+  return 1.6;
 }
 
 function getStored<T>(key: string, fallback: T): T {
@@ -33,9 +47,9 @@ function persist<T>(key: string, value: T): void {
 }
 
 export const useSettingsStore = create<SettingsStore>((set) => ({
-  fontSize: getStored<FontSize>('thynk-font-size', 'md'),
+  fontSize: migrateSize(getStored<unknown>('thynk-font-size', 16)),
   vimMode: getStored<boolean>('thynk-vim-mode', false),
-  lineHeight: getStored<LineHeight>('thynk-line-height', 'normal'),
+  lineHeight: migrateLineHeight(getStored<unknown>('thynk-line-height', 1.6)),
   spellCheck: getStored<boolean>('thynk-spell-check', true),
 
   setFontSize: (size) => {

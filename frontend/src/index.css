@@ -37,6 +37,9 @@ body {
 .tiptap {
   outline: none;
   min-height: 300px;
+  /* Font size and line height from settings */
+  font-size: var(--editor-font-size, 16px);
+  line-height: var(--editor-line-height, 1.6);
 }
 
 .tiptap p.is-editor-empty:first-child::before {
@@ -319,4 +322,17 @@ body {
 }
 .wiki-link:hover {
   background-color: color-mix(in srgb, var(--color-accent) 20%, transparent);
+}
+
+/* Settings overlay slide-in animation */
+@keyframes slide-in-right {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+.animate-slide-in-right {
+  animation: slide-in-right 0.2s ease-out;
 }

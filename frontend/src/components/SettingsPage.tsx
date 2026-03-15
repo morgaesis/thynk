@@ -120,26 +120,27 @@ export function SettingsPage() {
         <section className="mb-8">
           <SectionTitle>Editor</SectionTitle>
           <div className="bg-sidebar dark:bg-sidebar-dark rounded-lg border border-border dark:border-border-dark px-4">
-            <Row label="Font size">
-              <RadioGroup
-                options={[
-                  { value: 'sm', label: 'Small' },
-                  { value: 'md', label: 'Medium' },
-                  { value: 'lg', label: 'Large' },
-                ]}
+            <Row label="Font size (px)">
+              <input
+                type="number"
+                min={10}
+                max={32}
                 value={fontSize}
-                onChange={setFontSize}
+                onChange={(e) => setFontSize(Number(e.target.value))}
+                className="w-20 px-2 py-1 text-sm rounded border border-border dark:border-border-dark
+                           bg-surface dark:bg-surface-dark text-text dark:text-text-dark"
               />
             </Row>
             <Row label="Line height">
-              <RadioGroup
-                options={[
-                  { value: 'compact', label: 'Compact' },
-                  { value: 'normal', label: 'Normal' },
-                  { value: 'relaxed', label: 'Relaxed' },
-                ]}
+              <input
+                type="number"
+                min={1.0}
+                max={3.0}
+                step={0.1}
                 value={lineHeight}
-                onChange={setLineHeight}
+                onChange={(e) => setLineHeight(Number(e.target.value))}
+                className="w-20 px-2 py-1 text-sm rounded border border-border dark:border-border-dark
+                           bg-surface dark:bg-surface-dark text-text dark:text-text-dark"
               />
             </Row>
             <Row label="Vim mode">

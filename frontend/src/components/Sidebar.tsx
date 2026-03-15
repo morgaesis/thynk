@@ -13,6 +13,7 @@ import {
   VscSettingsGear,
   VscTypeHierarchySub,
   VscCalendar,
+  VscGripper,
 } from 'react-icons/vsc';
 import { useNoteStore } from '../stores/noteStore';
 import { useUIStore } from '../stores/uiStore';
@@ -49,6 +50,7 @@ function TreeItem({
   const [hoveredPath, setHoveredPath] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [favoriting, setFavoriting] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
 
   if (isDir) {
     return (
@@ -116,9 +118,29 @@ function TreeItem({
 
   return (
     <li
-      className="group relative"
+      className={`group relative ${dragOver ? 'outline outline-1 outline-accent rounded-md bg-accent/5' : ''}`}
       onMouseEnter={() => setHoveredPath(true)}
       onMouseLeave={() => setHoveredPath(false)}
+      draggable
+      onDragStart={(e) => {
+        e.dataTransfer.setData('text/plain', path);
+        e.dataTransfer.effectAllowed = 'move';
+      }}
+      onDragOver={(e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        setDragOver(true);
+      }}
+      onDragLeave={() => setDragOver(false)}
+      onDrop={(e) => {
+        e.preventDefault();
+        setDragOver(false);
+        const sourcePath = e.dataTransfer.getData('text/plain');
+        if (sourcePath && sourcePath !== path) {
+          // TODO: call backend file move endpoint when available
+          addToast('info', `Move "${sourcePath}" → "${path}" (backend move endpoint pending)`);
+        }
+      }}
     >
       <button
         onClick={() => noteMeta && openNoteByPath(path)}
@@ -129,8 +151,12 @@ function TreeItem({
               ? 'bg-accent/10 text-accent dark:text-accent'
               : 'text-text dark:text-text-dark hover:bg-border dark:hover:bg-border-dark'
           }`}
-        style={{ paddingLeft: `${12 + level * 12}px`, paddingRight: '56px' }}
+        style={{ paddingLeft: `${12 + level * 12}px`, paddingRight: '68px' }}
       >
+        <VscGripper
+          size={12}
+          className="shrink-0 text-text-muted dark:text-text-muted-dark opacity-0 group-hover:opacity-50 cursor-grab"
+        />
         <VscFile size={14} className="shrink-0" />
         <span className="truncate flex-1 min-w-0">
           {node.name.replace(/\.md$/, '')}

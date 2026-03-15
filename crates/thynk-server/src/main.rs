@@ -76,8 +76,17 @@ async fn main() -> anyhow::Result<()> {
     let (events_tx, _) = broadcast::channel::<WsEvent>(256);
 
     let s3_bucket = build_s3_bucket();
-    if s3_bucket.is_none() {
-        info!("S3 not configured — file uploads will return 503");
+    if let Some(ref bucket) = s3_bucket {
+        let bucket_name = std::env::var("S3_BUCKET").unwrap_or_default();
+        info!("Uploads: S3 (bucket: {bucket_name})");
+        // Health check — non-fatal.
+        match bucket.list("".to_string(), None).await {
+            Ok(_) => info!("S3 health check: OK"),
+            Err(e) => warn!("S3 health check failed: {e}. Uploads may fail."),
+        }
+    } else {
+        let uploads_path = config.data_dir.join(".uploads");
+        info!("Uploads: local filesystem ({})", uploads_path.display());
     }
 
     let state = AppState {

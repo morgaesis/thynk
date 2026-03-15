@@ -1,9 +1,11 @@
+use axum::body::Body;
 use axum::extract::{Multipart, Path, State};
 use axum::http::StatusCode;
-use axum::response::IntoResponse;
+use axum::response::{IntoResponse, Response};
 use axum::Json;
 use chrono::Utc;
 use serde::Serialize;
+use std::path::PathBuf;
 use uuid::Uuid;
 
 use crate::state::AppState;
@@ -64,19 +66,6 @@ pub async fn upload_file(
     State(state): State<AppState>,
     mut multipart: Multipart,
 ) -> impl IntoResponse {
-    // Check S3 is configured.
-    let bucket = match &state.s3_bucket {
-        Some(b) => b.clone(),
-        None => {
-            return err(
-                StatusCode::SERVICE_UNAVAILABLE,
-                "storage_not_configured",
-                "S3 storage is not configured",
-            )
-            .into_response();
-        }
-    };
-
     // Read the `file` field from multipart.
     let mut file_bytes: Option<Vec<u8>> = None;
     let mut file_name = "upload".to_string();
@@ -158,28 +147,52 @@ pub async fn upload_file(
         .into_response();
     }
 
-    // Generate upload ID and S3 key.
+    // Generate upload ID.
     let upload_id = Uuid::new_v4().to_string();
+    // s3_key stores the relative path (works for both S3 and local).
     let s3_key = format!("{user_id}/{upload_id}-{file_name}");
 
-    // Upload to S3.
-    match bucket.put_object(&s3_key, &bytes).await {
-        Ok(response) => {
-            let code = response.status_code();
-            if !(200..300).contains(&code) {
+    if let Some(bucket) = &state.s3_bucket {
+        // S3 mode: upload to S3.
+        let bucket = bucket.clone();
+        match bucket.put_object(&s3_key, &bytes).await {
+            Ok(response) => {
+                let code = response.status_code();
+                if !(200..300).contains(&code) {
+                    return err(
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        "s3_error",
+                        &format!("S3 returned status {code}"),
+                    )
+                    .into_response();
+                }
+            }
+            Err(e) => {
                 return err(
                     StatusCode::INTERNAL_SERVER_ERROR,
                     "s3_error",
-                    &format!("S3 returned status {code}"),
+                    &format!("Failed to upload to S3: {e}"),
                 )
                 .into_response();
             }
         }
-        Err(e) => {
+    } else {
+        // Local mode: store file on disk.
+        let uploads_dir = state.config.data_dir.join(".uploads").join(user_id);
+        if let Err(e) = tokio::fs::create_dir_all(&uploads_dir).await {
             return err(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                "s3_error",
-                &format!("Failed to upload to S3: {e}"),
+                "storage_error",
+                &format!("Failed to create uploads directory: {e}"),
+            )
+            .into_response();
+        }
+        let file_path = uploads_dir.join(format!("{upload_id}-{file_name}"));
+        if let Err(e) = tokio::fs::write(&file_path, &bytes).await {
+            return err(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "storage_error",
+                &format!("Failed to write file: {e}"),
             )
             .into_response();
         }
@@ -222,23 +235,7 @@ pub async fn upload_file(
 
 // ── GET /api/uploads/:id ─────────────────────────────────────────────────────
 
-pub async fn get_upload(
-    State(state): State<AppState>,
-    Path(id): Path<String>,
-) -> impl IntoResponse {
-    // Check S3 is configured.
-    let bucket = match &state.s3_bucket {
-        Some(b) => b.clone(),
-        None => {
-            return err(
-                StatusCode::SERVICE_UNAVAILABLE,
-                "storage_not_configured",
-                "S3 storage is not configured",
-            )
-            .into_response();
-        }
-    };
-
+pub async fn get_upload(State(state): State<AppState>, Path(id): Path<String>) -> Response {
     // Look up in DB.
     let record = {
         let db = state.db.lock().await;
@@ -258,22 +255,43 @@ pub async fn get_upload(
         }
     };
 
-    // Generate presigned URL.
-    let expiry = 3600u32;
-    let presigned_url = match bucket.presign_get(&record.s3_key, expiry, None).await {
-        Ok(url) => url,
-        Err(e) => {
-            return err(
+    if let Some(bucket) = &state.s3_bucket {
+        // S3 mode: generate presigned URL and redirect.
+        let bucket = bucket.clone();
+        let expiry = 3600u32;
+        let presigned_url = match bucket.presign_get(&record.s3_key, expiry, None).await {
+            Ok(url) => url,
+            Err(e) => {
+                return err(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "s3_error",
+                    &format!("Failed to generate presigned URL: {e}"),
+                )
+                .into_response();
+            }
+        };
+        (StatusCode::FOUND, [("Location", presigned_url.as_str())]).into_response()
+    } else {
+        // Local mode: read file from disk and return bytes.
+        let file_path: PathBuf = state.config.data_dir.join(".uploads").join(&record.s3_key);
+        match tokio::fs::read(&file_path).await {
+            Ok(data) => Response::builder()
+                .status(StatusCode::OK)
+                .header("Content-Type", &record.content_type)
+                .header(
+                    "Content-Disposition",
+                    format!("inline; filename=\"{}\"", record.filename),
+                )
+                .body(Body::from(data))
+                .unwrap_or_else(|_| StatusCode::INTERNAL_SERVER_ERROR.into_response()),
+            Err(e) => err(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                "s3_error",
-                &format!("Failed to generate presigned URL: {e}"),
+                "storage_error",
+                &format!("Failed to read file: {e}"),
             )
-            .into_response();
+            .into_response(),
         }
-    };
-
-    // Redirect to presigned URL.
-    (StatusCode::FOUND, [("Location", presigned_url.as_str())]).into_response()
+    }
 }
 
 // ── Tests ─────────────────────────────────────────────────────────────────────

@@ -9,9 +9,20 @@ use tokio::sync::{broadcast, Mutex};
 #[serde(tag = "type", rename_all = "snake_case")]
 #[allow(clippy::enum_variant_names)]
 pub enum WsEvent {
-    FileCreated { path: String },
-    FileModified { path: String },
-    FileDeleted { path: String },
+    FileCreated {
+        path: String,
+    },
+    FileModified {
+        path: String,
+    },
+    FileDeleted {
+        path: String,
+    },
+    StatusChanged {
+        note_id: String,
+        title: String,
+        status: String,
+    },
 }
 
 /// Shared application state passed to all route handlers.

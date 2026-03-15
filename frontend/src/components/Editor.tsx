@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState, createPortal } from 'react';
 import {
   useEditor,
   EditorContent,
@@ -18,9 +18,14 @@ import {
 } from '@tiptap/pm/markdown';
 import { useNoteStore } from '../stores/noteStore';
 import { useUIStore } from '../stores/uiStore';
+import { useAuthStore } from '../stores/authStore';
 import { DictationButton } from './DictationButton';
 import { FileUploadExtension } from '../extensions/FileUploadExtension';
 import { useFileUpload } from '../hooks/useFileUpload';
+import { useLock } from '../hooks/useLock';
+import { LockIndicator } from './LockIndicator';
+import { WikiLinkExtension } from '../extensions/WikiLinkExtension';
+import { WikiLinkSuggestions } from './WikiLinkSuggestions';
 
 // Create lowlight instance with common languages
 const lowlight = createLowlight(common);
@@ -106,7 +111,9 @@ const CodeBlockExitOnDoubleEnter = Extension.create({
           return editor
             .chain()
             .deleteRange({ from: $from.pos - 1, to: $from.pos })
-            .insertContentAt($from.after($from.depth - 1), { type: 'paragraph' })
+            .insertContentAt($from.after($from.depth - 1), {
+              type: 'paragraph',
+            })
             .focus($from.after($from.depth - 1) + 1)
             .run();
         }
@@ -183,19 +190,41 @@ const HeadingBackspaceFix = Extension.create({
 export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
   const activeNote = useNoteStore((s) => s.activeNote);
   const updateNote = useNoteStore((s) => s.updateNote);
+  const openNoteByPath = useNoteStore((s) => s.openNoteByPath);
+  const notes = useNoteStore((s) => s.notes);
   const saving = useNoteStore((s) => s.saving);
   const addToast = useUIStore((s) => s.addToast);
+  const authUser = useAuthStore((s) => s.user);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const titleRef = useRef<HTMLInputElement>(null);
   const activeNoteRef = useRef(activeNote);
   const editorRef = useRef<TipTapEditor | null>(null);
   const { upload } = useFileUpload();
 
+  // Wiki-link autocomplete state
+  const [wikiSuggest, setWikiSuggest] = useState<{
+    query: string;
+    anchorRect: DOMRect;
+  } | null>(null);
+
+  const currentUsername = authUser?.username ?? '';
+  const {
+    locked,
+    lockedByMe,
+    lockedBy,
+    acquireLock: doAcquireLock,
+    releaseLock: doReleaseLock,
+  } = useLock(activeNote?.id, currentUsername);
+
   useEffect(() => {
     activeNoteRef.current = activeNote;
   }, [activeNote]);
 
+  // Editor is read-only when another user holds the lock
+  const isReadOnly = locked && !lockedByMe;
+
   const editor = useEditor({
+    editable: !isReadOnly,
     extensions: [
       StarterKit.configure({
         // Disable built-in CodeBlock since we use CodeBlockLowlight
@@ -252,6 +281,13 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
   useEffect(() => {
     editorRef.current = editor ?? null;
   }, [editor]);
+
+  // Sync editable state when lock changes
+  useEffect(() => {
+    if (editor) {
+      editor.setEditable(!isReadOnly);
+    }
+  }, [editor, isReadOnly]);
 
   // Sync editor content when active note changes
   useEffect(() => {
@@ -367,10 +403,22 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
               <span>Last edited by {activeNote.last_updated_by}</span>
             </>
           )}
-          <span className="ml-auto">
+          <span className="ml-auto flex items-center gap-2">
+            <LockIndicator
+              locked={locked}
+              lockedByMe={lockedByMe}
+              lockedBy={lockedBy}
+              onAcquire={doAcquireLock}
+              onRelease={doReleaseLock}
+            />
             <DictationButton editor={editor} />
           </span>
         </div>
+        {locked && !lockedByMe && (
+          <div className="mb-3 px-3 py-2 rounded-md bg-red-500/10 border border-red-500/20 text-xs text-red-600 dark:text-red-400">
+            This note is locked by <strong>{lockedBy}</strong> and is read-only.
+          </div>
+        )}
 
         {/* Editor */}
         <EditorContent

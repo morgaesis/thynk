@@ -31,15 +31,38 @@ export function CalendarView({ onClose }: Props) {
       .catch(() => {});
   }, []);
 
-  // Build a map of dateStr -> notes for notes that have a 'date' property
-  // Since NoteMetadata doesn't include content, we check updated_at as fallback
-  // and rely on note title patterns. For actual date frontmatter, we'd need full content.
-  // We use the note's updated_at date as calendar placement.
+  // ESC closes the calendar view
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        onClose?.();
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
+  // Only show notes whose title or path contains a YYYY-MM-DD date pattern.
+  // Notes without an explicit date are not placed on the calendar.
+  const DATE_PATTERN = /(\d{4}-\d{2}-\d{2})/;
   const notesByDate: Record<string, NoteMetadata[]> = {};
   for (const note of notes) {
-    const dateStr = toLocalDateStr(new Date(note.updated_at));
-    if (!notesByDate[dateStr]) notesByDate[dateStr] = [];
-    notesByDate[dateStr].push(note);
+    // Check title for date pattern first
+    const titleMatch = DATE_PATTERN.exec(note.title);
+    if (titleMatch) {
+      const dateStr = titleMatch[1];
+      if (!notesByDate[dateStr]) notesByDate[dateStr] = [];
+      notesByDate[dateStr].push(note);
+      continue;
+    }
+    // Fall back to checking the path
+    const pathMatch = DATE_PATTERN.exec(note.path);
+    if (pathMatch) {
+      const dateStr = pathMatch[1];
+      if (!notesByDate[dateStr]) notesByDate[dateStr] = [];
+      notesByDate[dateStr].push(note);
+    }
+    // Notes without a date pattern are skipped
   }
 
   // Calendar grid computation
@@ -121,17 +144,6 @@ export function CalendarView({ onClose }: Props) {
             title="Next month"
           >
             <VscChevronRight size={16} />
-          </button>
-          <button
-            onClick={() => {
-              setYear(today.getFullYear());
-              setMonth(today.getMonth());
-            }}
-            className="px-2 py-0.5 rounded text-xs border border-border dark:border-border-dark
-                       text-text-muted dark:text-text-muted-dark
-                       hover:bg-border dark:hover:bg-border-dark transition-colors ml-2"
-          >
-            Today
           </button>
         </div>
         {onClose && (

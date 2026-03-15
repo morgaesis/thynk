@@ -15,6 +15,7 @@ import {
   VscTypeHierarchySub,
   VscCloudDownload,
   VscCloudUpload,
+  VscCalendar,
 } from 'react-icons/vsc';
 import { useNoteStore } from '../stores/noteStore';
 import { useUIStore } from '../stores/uiStore';
@@ -27,6 +28,7 @@ import { TemplateSelector } from './TemplateSelector';
 import { AutomationLog } from './AutomationLog';
 import { useAutomationEvents } from '../hooks/useAutomationEvents';
 import { ImportModal } from './ImportModal';
+import { CalendarView } from './CalendarView';
 import type { TreeNode, NoteMetadata } from '../types';
 import { getTree, toggleFavorite, getFavorites, exportWorkspace } from '../api';
 
@@ -306,6 +308,7 @@ export function Sidebar() {
   const [newNotePath, setNewNotePath] = useState('');
   const [showTemplateSelector, setShowTemplateSelector] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
+  const [showFullCalendar, setShowFullCalendar] = useState(false);
   // Tag filter state: when a tag is selected, replace the file tree with filtered notes.
   const [tagFilterNotes, setTagFilterNotes] = useState<NoteMetadata[] | null>(
     null,
@@ -469,6 +472,15 @@ export function Sidebar() {
             New from Template
           </button>
           <DailyNoteButton />
+          <button
+            onClick={() => setShowFullCalendar(true)}
+            className="flex items-center gap-2 w-full px-3 py-2 text-sm rounded-md
+                       text-text-muted dark:text-text-muted-dark
+                       hover:bg-border dark:hover:bg-border-dark transition-colors"
+          >
+            <VscCalendar size={16} />
+            Calendar
+          </button>
         </div>
 
         {/* Daily note calendar toggle */}
@@ -654,6 +666,18 @@ export function Sidebar() {
           onClose={() => setShowImport(false)}
           onImported={handleImported}
         />
+      )}
+
+      {/* Full CalendarView modal */}
+      {showFullCalendar && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div
+            className="w-[900px] max-w-[95vw] h-[600px] max-h-[90vh] rounded-xl shadow-xl
+                        overflow-hidden border border-border dark:border-border-dark"
+          >
+            <CalendarView onClose={() => setShowFullCalendar(false)} />
+          </div>
+        </div>
       )}
     </>
   );

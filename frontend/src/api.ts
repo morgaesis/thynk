@@ -150,3 +150,35 @@ export async function releaseLock(noteId: string): Promise<void> {
 export async function heartbeatLock(noteId: string): Promise<LockResponse> {
   return request(`/notes/${noteId}/lock/heartbeat`, { method: 'POST' });
 }
+
+// ── Wiki-links & Graph ────────────────────────────────────────────────────────
+
+export async function getBacklinks(noteId: string): Promise<NoteMetadata[]> {
+  return request(`/notes/${noteId}/backlinks`);
+}
+
+export async function getOutgoingLinks(
+  noteId: string,
+): Promise<NoteMetadata[]> {
+  return request(`/notes/${noteId}/links`);
+}
+
+export interface GraphNode {
+  id: string;
+  title: string;
+  path: string;
+}
+
+export interface GraphEdge {
+  from: string;
+  to: string;
+}
+
+export interface GraphData {
+  nodes: GraphNode[];
+  edges: GraphEdge[];
+}
+
+export async function getGraph(): Promise<GraphData> {
+  return request('/graph');
+}

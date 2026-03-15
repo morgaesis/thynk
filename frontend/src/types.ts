@@ -14,9 +14,15 @@ export interface NoteMetadata {
   path: string;
   title: string;
   content_hash: string;
+  favorited?: boolean;
   created_at: string;
   updated_at: string;
   last_updated_by?: string;
+}
+
+export interface TagEntry {
+  name: string;
+  count: number;
 }
 
 export interface SearchResult {

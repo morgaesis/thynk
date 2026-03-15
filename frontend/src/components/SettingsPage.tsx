@@ -5,6 +5,7 @@ import { useSettingsStore } from '../stores/settingsStore';
 import { useAuthStore } from '../stores/authStore';
 import { exportWorkspace } from '../api';
 import { ImportModal } from './ImportModal';
+import type { User } from '../stores/authStore';
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
@@ -100,11 +101,47 @@ export function SettingsPage({ onClose }: SettingsPageProps) {
     setSpellCheck,
   } = useSettingsStore();
   const authUser = useAuthStore((s) => s.user);
+  const checkSession = useAuthStore((s) => s.checkSession);
 
   const [exporting, setExporting] = useState(false);
   const [showImport, setShowImport] = useState<'markdown' | 'obsidian' | null>(
     null,
   );
+  const [editingDisplayName, setEditingDisplayName] = useState(false);
+  const [displayNameValue, setDisplayNameValue] = useState(
+    authUser?.display_name ?? authUser?.username ?? '',
+  );
+  const [savingName, setSavingName] = useState(false);
+  const [displayNameError, setDisplayNameError] = useState<string | null>(null);
+
+  const handleSaveDisplayName = useCallback(async () => {
+    setSavingName(true);
+    setDisplayNameError(null);
+    try {
+      const res = await fetch('/api/auth/me', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ display_name: displayNameValue || null }),
+      });
+      if (!res.ok) {
+        const body = (await res.json().catch(() => ({}))) as {
+          message?: string;
+        };
+        throw new Error(body.message ?? `Error ${res.status}`);
+      }
+      const updated = (await res.json()) as User;
+      useAuthStore.setState({ user: updated });
+      setEditingDisplayName(false);
+      void checkSession();
+    } catch (e) {
+      setDisplayNameError(
+        e instanceof Error ? e.message : 'Failed to save display name',
+      );
+    } finally {
+      setSavingName(false);
+    }
+  }, [displayNameValue, checkSession]);
 
   const handleExport = useCallback(async () => {
     setExporting(true);
@@ -206,9 +243,62 @@ export function SettingsPage({ onClose }: SettingsPageProps) {
                     </span>
                   </Row>
                   <Row label="Display name">
-                    <span className="text-sm text-text-muted dark:text-text-muted-dark">
-                      {authUser.display_name ?? authUser.username}
-                    </span>
+                    {editingDisplayName ? (
+                      <div className="flex flex-col items-end gap-1">
+                        <div className="flex items-center gap-2">
+                          <input
+                            value={displayNameValue}
+                            onChange={(e) =>
+                              setDisplayNameValue(e.target.value)
+                            }
+                            className="px-2 py-0.5 text-sm rounded border border-border dark:border-border-dark
+                                       bg-surface dark:bg-surface-dark text-text dark:text-text-dark"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter')
+                                void handleSaveDisplayName();
+                              if (e.key === 'Escape')
+                                setEditingDisplayName(false);
+                            }}
+                            autoFocus
+                          />
+                          <button
+                            onClick={() => void handleSaveDisplayName()}
+                            disabled={savingName}
+                            className="text-xs text-accent hover:underline disabled:opacity-50"
+                          >
+                            {savingName ? 'Saving…' : 'Save'}
+                          </button>
+                          <button
+                            onClick={() => setEditingDisplayName(false)}
+                            className="text-xs text-text-muted dark:text-text-muted-dark hover:underline"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                        {displayNameError && (
+                          <span className="text-xs text-red-500">
+                            {displayNameError}
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-text-muted dark:text-text-muted-dark">
+                          {authUser.display_name ?? authUser.username}
+                        </span>
+                        <button
+                          onClick={() => {
+                            setDisplayNameValue(
+                              authUser.display_name ?? authUser.username,
+                            );
+                            setEditingDisplayName(true);
+                          }}
+                          className="text-xs text-accent hover:underline"
+                        >
+                          Edit
+                        </button>
+                      </div>
+                    )}
                   </Row>
                   <Row label="Upload storage">
                     <span className="text-sm text-text-muted dark:text-text-muted-dark">

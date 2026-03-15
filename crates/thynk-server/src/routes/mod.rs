@@ -13,7 +13,7 @@ pub mod ws;
 
 use axum::extract::DefaultBodyLimit;
 use axum::middleware;
-use axum::routing::{get, post};
+use axum::routing::{get, patch, post};
 use axum::Router;
 
 use crate::state::AppState;
@@ -36,6 +36,7 @@ pub fn router(state: AppState) -> Router {
         .with_state(state.clone());
 
     let protected_routes = Router::new()
+        .route("/api/auth/me", patch(auth::update_me))
         .route(
             "/api/notes",
             get(notes::list_notes).post(notes::create_note),

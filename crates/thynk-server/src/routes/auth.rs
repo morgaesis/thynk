@@ -291,6 +291,60 @@ pub async fn me(jar: CookieJar, State(state): State<AppState>) -> Response {
     }
 }
 
+// ── PATCH /api/auth/me ────────────────────────────────────────────────────────
+
+#[derive(Deserialize)]
+pub struct UpdateMeRequest {
+    pub display_name: Option<String>,
+}
+
+pub async fn update_me(
+    axum::extract::Extension(auth_user): axum::extract::Extension<AuthUser>,
+    State(state): State<AppState>,
+    Json(body): Json<UpdateMeRequest>,
+) -> Response {
+    let db = state.db.lock().await;
+
+    let user = match db.get_user_by_username(&auth_user.username) {
+        Ok(Some(u)) => u,
+        Ok(None) => {
+            return err_json(
+                StatusCode::NOT_FOUND,
+                "not_found",
+                "User not found",
+            );
+        }
+        Err(e) => {
+            return err_json(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "db_error",
+                &e.to_string(),
+            );
+        }
+    };
+
+    if let Err(e) = db.update_display_name(&user.id, body.display_name.as_deref()) {
+        return err_json(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "db_error",
+            &e.to_string(),
+        );
+    }
+
+    let updated_display_name = body.display_name;
+    (
+        StatusCode::OK,
+        Json(MeResponse {
+            id: user.id,
+            username: user.username,
+            display_name: updated_display_name,
+            storage_used: user.storage_used,
+            storage_limit: user.storage_limit,
+        }),
+    )
+        .into_response()
+}
+
 // ── Auth middleware ────────────────────────────────────────────────────────────
 
 /// Tower middleware that rejects unauthenticated requests with 401.

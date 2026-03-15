@@ -488,6 +488,19 @@ impl Database {
         Ok(())
     }
 
+    /// Update the display_name for a user.
+    pub fn update_display_name(
+        &self,
+        user_id: &str,
+        display_name: Option<&str>,
+    ) -> anyhow::Result<()> {
+        self.conn.execute(
+            "UPDATE users SET display_name = ?1 WHERE id = ?2",
+            params![display_name, user_id],
+        )?;
+        Ok(())
+    }
+
     // ── Auth: Sessions ────────────────────────────────────────────────────────
 
     /// Insert a new session.

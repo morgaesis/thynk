@@ -97,6 +97,7 @@ If any step fails, fix it before reporting completion. Do not leave broken build
 - Keep `STATE.md` updated when making significant progress or decisions
 - Update `ROADMAP.md` when phase scope changes
 - All features ship in a single release (no v1/v2 split)
+- Commit messages MUST follow Conventional Commits format: `type(scope)?: description`
 
 ## Parallel Subagents
 

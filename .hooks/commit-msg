@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+MSG=$(head -1 "$1")
+
+# Conventional commit regex: type(scope)?: description
+if ! echo "$MSG" | grep -qE '^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\(.+\))?: .{1,}'; then
+  echo "ERROR: Commit message must follow Conventional Commits format:"
+  echo "  feat: add new feature"
+  echo "  fix(editor): resolve paste issue"
+  echo "  docs: update roadmap"
+  echo "  chore: update dependencies"
+  echo ""
+  echo "Got: $MSG"
+  exit 1
+fi
+
+# Strip any Co-Authored-By lines mentioning AI
+if grep -qiE "^Co-Authored-By:.*([Cc]laude|[Aa]nthrop|[Aa][Ii])" "$1"; then
+  sed -i "/^Co-Authored-By:.*[Cc]laude/d; /^Co-Authored-By:.*[Aa]nthrop/d; /^Co-Authored-By:.*[Aa][Ii]/d" "$1"
+fi

@@ -22,6 +22,7 @@ import { TagBrowser, TagFilteredNotes } from './TagBrowser';
 import { DailyNoteButton } from './DailyNoteButton';
 import { DailyNoteCalendar } from './DailyNoteCalendar';
 import { TemplateSelector } from './TemplateSelector';
+import { AutomationLog, useAutomationEvents } from './AutomationLog';
 import type { TreeNode, NoteMetadata } from '../types';
 import { getTree, toggleFavorite, getFavorites } from '../api';
 
@@ -294,6 +295,7 @@ export function Sidebar() {
   const toggleSidebar = useUIStore((s) => s.toggleSidebar);
   const authUser = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
+  const automationEvents = useAutomationEvents();
 
   const [tree, setTree] = useState<TreeNode[]>([]);
   const [showNewNote, setShowNewNote] = useState(false);
@@ -486,6 +488,9 @@ export function Sidebar() {
 
           {/* Recent Notes */}
           <RecentNotesSection />
+
+          {/* Automation log */}
+          <AutomationLog events={automationEvents} />
 
           {/* Tag Browser */}
           <TagBrowser onTagFilter={handleTagFilter} />

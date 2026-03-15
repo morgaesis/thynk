@@ -20,7 +20,6 @@ export function WikiLinkSuggestions({
 }: Props) {
   const notes = useNoteStore((s) => s.notes);
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const listRef = useRef<HTMLUListElement>(null);
 
   const filtered = notes
     .filter((n) => n.title.toLowerCase().includes(query.toLowerCase()))
@@ -78,7 +77,7 @@ export function WikiLinkSuggestions({
       className="bg-surface dark:bg-surface-dark border border-border dark:border-border-dark
                  rounded-lg shadow-lg overflow-hidden min-w-[200px] max-w-[320px]"
     >
-      <ul ref={listRef} role="listbox" aria-label="Note suggestions">
+      <ul role="listbox" aria-label="Note suggestions">
         {filtered.map((note, i) => (
           <li
             key={note.id}

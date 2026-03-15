@@ -20,7 +20,6 @@ import { useUIStore } from '../stores/uiStore';
 import { useAuthStore } from '../stores/authStore';
 import { ThemeToggle } from './ThemeToggle';
 import { TagBrowser, TagFilteredNotes } from './TagBrowser';
-import { DailyNoteButton } from './DailyNoteButton';
 import { DailyNoteCalendar } from './DailyNoteCalendar';
 import { TemplateSelector } from './TemplateSelector';
 import { AutomationLog } from './AutomationLog';
@@ -473,7 +472,6 @@ export function Sidebar() {
             <VscLayoutMenubar size={16} />
             New from Template
           </button>
-          <DailyNoteButton />
           <button
             onClick={() => {
               window.history.pushState({}, '', '/calendar');

@@ -8,27 +8,38 @@ interface Props {
 export function ReadAloudButton({ editor }: Props) {
   const [speaking, setSpeaking] = useState(false);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const speakingRef = useRef(false);
 
   const supported = typeof window !== 'undefined' && 'speechSynthesis' in window;
 
-  // Stop when component unmounts
-  useEffect(() => {
-    return () => {
-      window.speechSynthesis?.cancel();
-    };
+  // Stop speech without touching React state — safe to call from effects
+  const stopSpeechOnly = useCallback(() => {
+    if (utteranceRef.current) {
+      utteranceRef.current.onend = null;
+      utteranceRef.current.onerror = null;
+      utteranceRef.current = null;
+    }
+    speakingRef.current = false;
+    window.speechSynthesis?.cancel();
   }, []);
 
-  // Stop when editor note changes
+  // Stop when component unmounts
   useEffect(() => {
-    window.speechSynthesis?.cancel();
-    setSpeaking(false);
-  }, [editor]);
+    return stopSpeechOnly;
+  }, [stopSpeechOnly]);
+
+  // Stop when editor changes (note switch) — clean up external resource only
+  useEffect(() => {
+    return () => {
+      stopSpeechOnly();
+    };
+  }, [editor, stopSpeechOnly]);
 
   const handleToggle = useCallback(() => {
     if (!editor || !supported) return;
 
-    if (speaking) {
-      window.speechSynthesis.cancel();
+    if (speakingRef.current) {
+      stopSpeechOnly();
       setSpeaking(false);
       return;
     }
@@ -39,12 +50,19 @@ export function ReadAloudButton({ editor }: Props) {
 
     const utterance = new SpeechSynthesisUtterance(text);
     utteranceRef.current = utterance;
-    utterance.onend = () => setSpeaking(false);
-    utterance.onerror = () => setSpeaking(false);
+    utterance.onend = () => {
+      speakingRef.current = false;
+      setSpeaking(false);
+    };
+    utterance.onerror = () => {
+      speakingRef.current = false;
+      setSpeaking(false);
+    };
 
     window.speechSynthesis.speak(utterance);
+    speakingRef.current = true;
     setSpeaking(true);
-  }, [editor, speaking, supported]);
+  }, [editor, supported, stopSpeechOnly]);
 
   if (!supported) return null;
 

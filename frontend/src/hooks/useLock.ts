@@ -134,7 +134,7 @@ export function useLock(
       cancelled = true;
       clearInterval(interval);
     };
-  }, [noteId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [noteId]); // intentionally omit currentUserRef — it's a ref, not a reactive value
 
   // Release lock on unmount if we hold it
   useEffect(() => {

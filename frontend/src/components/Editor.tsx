@@ -41,6 +41,8 @@ import {
 } from '../extensions/VimModeExtension';
 import { VimStatusBar } from './VimStatusBar';
 import { TableControls } from './TableControls';
+import { SlashCommandExtension, type SlashCommandState } from '../extensions/SlashCommandExtension';
+import { SlashCommandMenu } from './SlashCommandMenu';
 
 // Create lowlight instance with common languages
 const lowlight = createLowlight(common);
@@ -229,6 +231,15 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
     anchorRect: DOMRect;
   } | null>(null);
 
+  // Slash command menu state
+  const [slashState, setSlashState] = useState<SlashCommandState>({
+    active: false,
+    query: '',
+    from: 0,
+    to: 0,
+    anchorRect: null,
+  });
+
   const currentUsername = authUser?.username ?? '';
   const {
     locked,
@@ -289,6 +300,7 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
           }
         },
       }),
+      SlashCommandExtension.configure({ onStateChange: setSlashState }),
       ...(vimModeEnabled
         ? [VimModeExtension.configure({ onModeChange: setVimMode })]
         : []),
@@ -573,6 +585,17 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
             onSelect={handleWikiSelect}
             onClose={() => setWikiSuggest(null)}
             anchorRect={wikiSuggest.anchorRect}
+          />,
+          document.body,
+        )}
+
+      {/* Slash command menu */}
+      {editor && slashState.active &&
+        createPortal(
+          <SlashCommandMenu
+            slashState={slashState}
+            editor={editor}
+            onClose={() => setSlashState((s) => ({ ...s, active: false }))}
           />,
           document.body,
         )}

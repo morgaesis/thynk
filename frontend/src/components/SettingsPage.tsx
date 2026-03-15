@@ -190,9 +190,9 @@ export function SettingsPage({ onClose }: SettingsPageProps) {
                     {authUser.display_name ?? authUser.username}
                   </span>
                 </Row>
-                <Row label="Storage used">
+                <Row label="Upload storage">
                   <span className="text-sm text-text-muted dark:text-text-muted-dark">
-                    {formatBytes(authUser.storage_used)} /{' '}
+                    {formatBytes(authUser.storage_used)} used of{' '}
                     {formatBytes(authUser.storage_limit)}
                   </span>
                 </Row>
@@ -211,7 +211,7 @@ export function SettingsPage({ onClose }: SettingsPageProps) {
           <div className="bg-sidebar dark:bg-sidebar-dark rounded-lg border border-border dark:border-border-dark px-4">
             <Row label="Version">
               <span className="text-sm text-text-muted dark:text-text-muted-dark font-mono">
-                v0.2.0
+                v0.2.0 ({__GIT_HASH__})
               </span>
             </Row>
             <Row label="Keyboard shortcuts">

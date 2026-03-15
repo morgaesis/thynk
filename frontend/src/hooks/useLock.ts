@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { acquireLock, releaseLock, heartbeatLock } from '../api';
+import { acquireLock, releaseLock, heartbeatLock, getLock } from '../api';
 
 export interface LockState {
   locked: boolean;
@@ -94,6 +94,47 @@ export function useLock(
     }, 0);
     return () => clearTimeout(id);
   }, [noteId, stopHeartbeat]);
+
+  // On note change, check current lock status
+  useEffect(() => {
+    if (!noteId) return;
+
+    let cancelled = false;
+
+    const checkLock = async () => {
+      try {
+        const result = await getLock(noteId);
+        if (cancelled) return;
+        if (result.locked && result.user !== currentUserRef.current) {
+          setLockState({
+            locked: true,
+            lockedByMe: false,
+            lockedBy: result.user ?? null,
+            expiresAt: result.expires_at ?? null,
+          });
+        } else if (!result.locked) {
+          setLockState(prev =>
+            prev.lockedByMe ? prev : {
+              locked: false,
+              lockedByMe: false,
+              lockedBy: null,
+              expiresAt: null,
+            }
+          );
+        }
+      } catch {
+        // ignore
+      }
+    };
+
+    void checkLock();
+    const interval = setInterval(checkLock, 10_000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [noteId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Release lock on unmount if we hold it
   useEffect(() => {

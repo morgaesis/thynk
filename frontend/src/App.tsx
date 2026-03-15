@@ -16,7 +16,11 @@ function App() {
   const fetchNotes = useNoteStore((s) => s.fetchNotes);
   const openNoteByPath = useNoteStore((s) => s.openNoteByPath);
 
+  // Start as connected (no indicator shown). Only show indicator after an
+  // unexpected disconnect — not on initial connection or clean closes.
   const [wsConnected, setWsConnected] = useState(true);
+  const hasConnectedRef = useRef(false);
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Keep a ref to editor content for Ctrl+S force-save.
   // The Editor component manages its own debounce; we expose a save trigger via store.
@@ -55,14 +59,46 @@ function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [toggleCommandPalette, createNote, activeNote, updateNote]);
 
-  // WebSocket connection — auto-reconnects via ReconnectingWebSocket
+  // WebSocket connection — auto-reconnects via ReconnectingWebSocket.
+  // The reconnecting indicator is only shown after an unexpected disconnect
+  // (not on initial connect or clean closes), and only after a 2-second delay
+  // so brief reconnects are invisible.
   useEffect(() => {
     const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const host = window.location.host;
     const ws = new ReconnectingWebSocket(`${proto}//${host}/api/ws`);
 
-    ws.onopen = () => setWsConnected(true);
-    ws.onclose = () => setWsConnected(false);
+    const scheduleReconnecting = () => {
+      if (reconnectTimerRef.current === null) {
+        reconnectTimerRef.current = setTimeout(() => {
+          reconnectTimerRef.current = null;
+          setWsConnected(false);
+        }, 2000);
+      }
+    };
+
+    ws.onopen = () => {
+      hasConnectedRef.current = true;
+      if (reconnectTimerRef.current !== null) {
+        clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+      }
+      setWsConnected(true);
+    };
+
+    ws.onerror = () => {
+      // Only show indicator if we've connected before (not on initial attempt).
+      if (hasConnectedRef.current) {
+        scheduleReconnecting();
+      }
+    };
+
+    ws.onclose = (ev) => {
+      // Only show indicator after first connect and only on unexpected closes.
+      if (hasConnectedRef.current && !ev.wasClean) {
+        scheduleReconnecting();
+      }
+    };
 
     ws.onmessage = (ev) => {
       try {
@@ -86,6 +122,10 @@ function App() {
     };
 
     return () => {
+      if (reconnectTimerRef.current !== null) {
+        clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+      }
       ws.close();
     };
   }, [fetchNotes, addToast]);

@@ -10,6 +10,30 @@ use thynk_core::{Note, NoteStorage};
 
 use crate::state::AppState;
 
+/// Convert a title to a filesystem path, preserving `/` as directory separators.
+/// Each path component is sanitized by stripping only characters that are invalid
+/// on Linux filesystems (null bytes and control characters). Unicode, spaces,
+/// accents, CJK, emoji, etc. are all preserved.
+fn title_to_path(title: &str) -> String {
+    let parts: Vec<&str> = title.split('/').collect();
+    let sanitized: Vec<String> = parts
+        .iter()
+        .map(|component| {
+            let cleaned: String = component
+                .chars()
+                .filter(|c| *c != '\0' && !c.is_control())
+                .collect();
+            let cleaned = cleaned.trim().to_string();
+            if cleaned.is_empty() {
+                "untitled".to_string()
+            } else {
+                cleaned
+            }
+        })
+        .collect();
+    format!("{}.md", sanitized.join("/"))
+}
+
 // ── Error helpers ────────────────────────────────────────────────────────────
 
 #[derive(Serialize)]
@@ -89,28 +113,7 @@ pub async fn create_note(
     State(state): State<AppState>,
     Json(body): Json<CreateNoteRequest>,
 ) -> impl IntoResponse {
-    let path = body.path.unwrap_or_else(|| {
-        let slug: String = body
-            .title
-            .to_lowercase()
-            .chars()
-            .map(|c| {
-                if c.is_alphanumeric() || c == '-' {
-                    c
-                } else {
-                    '-'
-                }
-            })
-            .collect::<String>()
-            .trim_matches('-')
-            .to_string();
-        let slug = if slug.is_empty() {
-            "untitled".to_string()
-        } else {
-            slug
-        };
-        format!("{slug}.md")
-    });
+    let path = body.path.unwrap_or_else(|| title_to_path(&body.title));
 
     // Ensure unique path by appending timestamp suffix if needed.
     let storage = state.storage.lock().await;
@@ -123,7 +126,13 @@ pub async fn create_note(
                 .to_string_lossy()
                 .to_string();
             let ts = chrono::Utc::now().timestamp_millis();
-            format!("{stem}-{ts}.md")
+            let new_name = format!("{stem}-{ts}.md");
+            match candidate.parent() {
+                Some(parent) if parent != std::path::Path::new("") => {
+                    parent.join(new_name).to_string_lossy().to_string()
+                }
+                _ => new_name,
+            }
         } else {
             path
         }
@@ -210,25 +219,7 @@ pub async fn update_note(
     // Auto-rename file based on new title (if no explicit path change requested).
     if body.path.is_none() {
         if let Some(ref new_title) = body.title {
-            let slug: String = new_title
-                .to_lowercase()
-                .chars()
-                .map(|c| {
-                    if c.is_alphanumeric() || c == '-' {
-                        c
-                    } else {
-                        '-'
-                    }
-                })
-                .collect::<String>()
-                .trim_matches('-')
-                .to_string();
-            let slug = if slug.is_empty() {
-                "untitled".to_string()
-            } else {
-                slug
-            };
-            let new_path = PathBuf::from(format!("{slug}.md"));
+            let new_path = PathBuf::from(title_to_path(new_title));
             if new_path != note.path && !storage.exists(&new_path) {
                 let _ = storage.delete_note(&note.path);
                 note.path = new_path;
@@ -299,4 +290,40 @@ pub async fn delete_note(
     }
 
     StatusCode::NO_CONTENT.into_response()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_title_to_path_simple() {
+        assert_eq!(title_to_path("My Note"), "My Note.md");
+    }
+
+    #[test]
+    fn test_title_to_path_preserves_slash_as_dir_separator() {
+        assert_eq!(title_to_path("foo/bar"), "foo/bar.md");
+    }
+
+    #[test]
+    fn test_title_to_path_unicode() {
+        assert_eq!(title_to_path("Résumé Notes"), "Résumé Notes.md");
+    }
+
+    #[test]
+    fn test_title_to_path_cjk_with_dir() {
+        assert_eq!(title_to_path("日本語/メモ"), "日本語/メモ.md");
+    }
+
+    #[test]
+    fn test_title_to_path_empty_component_becomes_untitled() {
+        assert_eq!(title_to_path(""), "untitled.md");
+    }
+
+    #[test]
+    fn test_title_to_path_strips_control_chars() {
+        // null byte and control chars should be stripped
+        assert_eq!(title_to_path("note\0name"), "notename.md");
+    }
 }

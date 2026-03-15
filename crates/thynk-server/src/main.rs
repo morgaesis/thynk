@@ -78,10 +78,31 @@ async fn main() -> anyhow::Result<()> {
 }
 
 /// Walk the data directory and index every markdown file into SQLite.
+/// Also purges DB entries for files that no longer exist on disk.
 fn index_all_files(db: &Database, storage: &FilesystemStorage) {
     match storage.list_files() {
         Ok(files) => {
             let count = files.len();
+
+            // Purge orphaned DB entries (notes in DB whose file no longer exists).
+            if let Ok(db_notes) = db.list_notes() {
+                use std::collections::HashSet;
+                let on_disk: HashSet<std::path::PathBuf> = files.iter().cloned().collect();
+                let mut purged = 0usize;
+                for meta in db_notes {
+                    if !on_disk.contains(&meta.path) {
+                        if let Err(e) = db.delete_note(&meta.id) {
+                            warn!("Failed to purge orphan {}: {e}", meta.path.display());
+                        } else {
+                            purged += 1;
+                        }
+                    }
+                }
+                if purged > 0 {
+                    info!("Purged {purged} orphaned DB entry/entries with no corresponding file");
+                }
+            }
+
             for path in &files {
                 // Read raw content from file.
                 let raw = match storage.read_note(path) {

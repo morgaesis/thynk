@@ -96,20 +96,20 @@ Add intelligence, cloud sync, and production-readiness.
 
 ### Deliverables
 
-| Deliverable              | Description                                              |
-| ------------------------ | -------------------------------------------------------- |
-| BYOK AI Integration      | OpenAI, Anthropic, OpenRouter, local Ollama support      |
-| AI Writing Assist        | Summarization, Q&A over notes, writing suggestions       |
-| AI Link Suggestions      | Suggest connections between notes                        |
-| Semantic Search          | Embeddings stored in SQLite, vector similarity search    |
-| Custom Sync Engine       | Differential sync between local and cloud instances      |
-| Cloud Deployment         | Per-workspace instances, scale-to-zero (Fly.io Machines) |
-| Conflict Resolution      | CRDT-based merge for sync conflicts                      |
-| Audit Trail              | Append-only changelog: who changed what, when            |
-| Auth System              | JWT/session auth, OAuth (GitHub, Google) login methods   |
-| Onboarding Flow          | Guided tutorial, progressive complexity                  |
-| Performance Optimization | Meet all performance benchmarks                          |
-| Cloud Transcription      | ElevenLabs / Whisper API fallback for dictation (BYOK)   |
+| Deliverable              | Description                                                       |
+| ------------------------ | ----------------------------------------------------------------- |
+| BYOK AI Integration      | OpenAI, Anthropic, OpenRouter, local Ollama support               |
+| AI Writing Assist        | Summarization, Q&A over notes, writing suggestions                |
+| AI Link Suggestions      | Suggest connections between notes                                 |
+| Semantic Search          | Embeddings stored in SQLite, vector similarity search             |
+| Custom Sync Engine       | Differential sync between local and cloud instances               |
+| Cloud Deployment         | Per-workspace instances, scale-to-zero (Fly.io Machines)          |
+| Conflict Resolution      | CRDT-based merge for sync conflicts                               |
+| Audit Trail              | Append-only changelog: who changed what, when                     |
+| Auth System              | JWT/session auth, OAuth (GitHub, Google) login methods            |
+| Onboarding Flow          | Guided tutorial, progressive complexity                           |
+| Performance Optimization | Meet all performance benchmarks                                   |
+| Cloud Transcription      | ElevenLabs / Whisper API fallback for dictation (BYOK)            |
 | Custom S3 Storage        | Allow users to configure their own S3-compatible storage endpoint |
 
 ### Exit Criteria
@@ -129,19 +129,21 @@ Enable real-time collaboration and ship native apps.
 
 ### Deliverables
 
-| Deliverable           | Description                                          |
-| --------------------- | ---------------------------------------------------- |
-| P2P Real-Time Editing | Yjs + y-webrtc (STUN) for live collaborative editing |
-| Cursor Presence       | See other users' cursors and selections              |
-| User Awareness        | Who's online, who's viewing what                     |
-| @Mentions             | Mention users for assignment and notification        |
-| Notifications         | In-app notification system for mentions, assignments |
-| Permissions           | View/edit/admin roles per workspace and per page     |
-| Shared Workspaces     | Invite users, manage workspace membership            |
-| Signaling Server      | WebRTC signaling in Rust, TURN fallback              |
-| Desktop Apps          | Tauri packaging for Mac, Windows, Linux              |
-| Mobile Apps           | Tauri for iOS and Android                            |
-| Cross-Platform Sync   | Desktop/mobile sync with cloud, offline support      |
+| Deliverable           | Description                                                     |
+| --------------------- | --------------------------------------------------------------- |
+| P2P Real-Time Editing | Yjs + y-webrtc (STUN) for live collaborative editing            |
+| Cursor Presence       | See other users' cursors and selections                         |
+| User Awareness        | Who's online, who's viewing what                                |
+| @Mentions             | Mention users for assignment and notification                   |
+| Notifications         | In-app notification system for mentions, assignments            |
+| Permissions           | View/edit/admin roles per workspace and per page                |
+| Shared Workspaces     | Invite users, manage workspace membership                       |
+| Signaling Server      | WebRTC signaling in Rust, TURN fallback                         |
+| Desktop Apps          | Tauri packaging for Mac, Windows, Linux                         |
+| Mobile Apps           | Tauri for iOS and Android                                       |
+| Cross-Platform Sync   | Desktop/mobile sync with cloud, offline support                 |
+| CLI Interface         | `thynk` CLI for CRUD, search, export (LLM-friendly output mode) |
+| User Profiles         | View shared docs, activity, mutual work with other users        |
 
 ### Exit Criteria
 

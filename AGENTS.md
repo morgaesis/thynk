@@ -99,6 +99,10 @@ If any step fails, fix it before reporting completion. Do not leave broken build
 - All features ship in a single release (no v1/v2 split)
 - Commit messages MUST follow Conventional Commits format: `type(scope)?: description`
 
+## Data Safety
+
+NEVER delete user data. The `data_dir` (default `./data` or `$THYNK_DATA_DIR`) contains real user documents. Tests MUST use isolated temporary directories. No automated process (CI, deploy, cleanup) may touch the data directory.
+
 ## Parallel Subagents
 
 When implementing multiple independent features or fixes, use parallel subagents aggressively. Launch separate agents for tasks that don't depend on each other (e.g., backend and frontend fixes, independent bug fixes). This maximizes throughput.

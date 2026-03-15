@@ -363,6 +363,27 @@ export function SettingsPage({ onClose }: SettingsPageProps) {
             </div>
           </section>
 
+          {/* Keyboard Shortcuts Section */}
+          <section className="mb-8">
+            <SectionTitle>Keyboard Shortcuts</SectionTitle>
+            <div className="bg-sidebar dark:bg-sidebar-dark rounded-lg border border-border dark:border-border-dark px-4">
+              {[
+                { action: 'Command palette / Search', shortcut: 'Ctrl+K or Ctrl+P' },
+                { action: 'New note', shortcut: 'Ctrl+Shift+N' },
+                { action: 'Save', shortcut: 'Ctrl+S' },
+                { action: 'Focus title', shortcut: 'F2' },
+                { action: 'Toggle sidebar', shortcut: '(click sidebar toggle)' },
+              ].map(({ action, shortcut }) => (
+                <Row key={action} label={action}>
+                  <kbd className="px-2 py-0.5 text-xs rounded bg-border dark:bg-border-dark
+                                  text-text dark:text-text-dark font-mono">
+                    {shortcut}
+                  </kbd>
+                </Row>
+              ))}
+            </div>
+          </section>
+
           {/* About Section */}
           <section className="mb-8">
             <SectionTitle>About</SectionTitle>

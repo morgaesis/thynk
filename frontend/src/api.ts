@@ -182,3 +182,56 @@ export interface GraphData {
 export async function getGraph(): Promise<GraphData> {
   return request('/graph');
 }
+
+// ── Export / Import ───────────────────────────────────────────────────────────
+
+export async function exportWorkspace(): Promise<void> {
+  const res = await fetch('/api/export', { credentials: 'same-origin' });
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`Export failed: ${res.status}: ${body}`);
+  }
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'thynk-export.zip';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+export interface ImportResult {
+  imported: number;
+  attachments: number;
+  errors: string[];
+}
+
+export async function importMarkdown(file: File): Promise<ImportResult> {
+  const form = new FormData();
+  form.append('file', file);
+  const res = await fetch('/api/import/markdown', {
+    method: 'POST',
+    credentials: 'same-origin',
+    body: form,
+  });
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`Import failed: ${res.status}: ${body}`);
+  }
+  return res.json();
+}
+
+export async function importObsidian(file: File): Promise<ImportResult> {
+  const form = new FormData();
+  form.append('file', file);
+  const res = await fetch('/api/import/obsidian', {
+    method: 'POST',
+    credentials: 'same-origin',
+    body: form,
+  });
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`Import failed: ${res.status}: ${body}`);
+  }
+  return res.json();
+}

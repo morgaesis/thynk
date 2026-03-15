@@ -5,6 +5,7 @@ import { CommandPalette } from './components/CommandPalette';
 import { ToastContainer } from './components/Toast';
 import { LoginPage } from './components/LoginPage';
 import { SettingsPage } from './components/SettingsPage';
+import { GraphView } from './components/GraphView';
 import { useUIStore } from './stores/uiStore';
 import { useNoteStore } from './stores/noteStore';
 import { useAuthStore } from './stores/authStore';
@@ -24,6 +25,7 @@ function App() {
 
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
   const isSettingsPage = currentPath === '/settings';
+  const isGraphPage = currentPath === '/graph';
 
   // Start as connected (no indicator shown). Only show indicator after an
   // unexpected disconnect — not on initial connection or clean closes.
@@ -213,6 +215,15 @@ function App() {
     return (
       <div className="h-full bg-surface dark:bg-surface-dark">
         <SettingsPage />
+        <ToastContainer />
+      </div>
+    );
+  }
+
+  if (isGraphPage) {
+    return (
+      <div className="h-full bg-surface dark:bg-surface-dark">
+        <GraphView />
         <ToastContainer />
       </div>
     );

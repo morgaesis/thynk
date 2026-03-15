@@ -12,6 +12,7 @@ import {
   VscStarFull,
   VscLayoutMenubar,
   VscSettingsGear,
+  VscTypeHierarchySub,
 } from 'react-icons/vsc';
 import { useNoteStore } from '../stores/noteStore';
 import { useUIStore } from '../stores/uiStore';
@@ -419,6 +420,18 @@ export function Sidebar() {
           >
             <VscNewFile size={16} />
             New Note
+          </button>
+          <button
+            onClick={() => {
+              window.history.pushState({}, '', '/graph');
+              window.dispatchEvent(new PopStateEvent('popstate'));
+            }}
+            className="flex items-center gap-2 w-full px-3 py-2 text-sm rounded-md
+                       text-text-muted dark:text-text-muted-dark
+                       hover:bg-border dark:hover:bg-border-dark transition-colors"
+          >
+            <VscTypeHierarchySub size={16} />
+            Graph
           </button>
           <button
             onClick={() => setShowTemplateSelector(true)}

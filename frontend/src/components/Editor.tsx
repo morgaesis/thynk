@@ -20,6 +20,7 @@ import {
 import { useNoteStore } from '../stores/noteStore';
 import { useUIStore } from '../stores/uiStore';
 import { useAuthStore } from '../stores/authStore';
+import { useSettingsStore } from '../stores/settingsStore';
 import { DictationButton } from './DictationButton';
 import { FileUploadExtension } from '../extensions/FileUploadExtension';
 import { useFileUpload } from '../hooks/useFileUpload';
@@ -28,6 +29,8 @@ import { LockIndicator } from './LockIndicator';
 import { WikiLinkExtension } from '../extensions/WikiLinkExtension';
 import { WikiLinkSuggestions } from './WikiLinkSuggestions';
 import { BacklinksPanel } from './BacklinksPanel';
+import { VimModeExtension, getVimMode, type VimMode } from '../extensions/VimModeExtension';
+import { VimStatusBar } from './VimStatusBar';
 
 // Create lowlight instance with common languages
 const lowlight = createLowlight(common);
@@ -195,6 +198,8 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
   const saving = useNoteStore((s) => s.saving);
   const addToast = useUIStore((s) => s.addToast);
   const authUser = useAuthStore((s) => s.user);
+  const vimModeEnabled = useSettingsStore((s) => s.vimMode);
+  const [vimMode, setVimMode] = useState<VimMode>('normal');
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const titleRef = useRef<HTMLInputElement>(null);
   const activeNoteRef = useRef(activeNote);
@@ -263,6 +268,9 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
           }
         },
       }),
+      ...(vimModeEnabled
+        ? [VimModeExtension.configure({ onModeChange: setVimMode })]
+        : []),
     ],
     content: '',
     editorProps: {
@@ -310,6 +318,11 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
       if (debounceRef.current) clearTimeout(debounceRef.current);
       updateNote(note.id, { content: getMarkdown(e) });
     },
+    onTransaction: ({ editor: e }) => {
+      if (vimModeEnabled) {
+        setVimMode(getVimMode(e.state));
+      }
+    },
   });
 
   // Keep editorRef in sync
@@ -323,6 +336,13 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
       editor.setEditable(!isReadOnly);
     }
   }, [editor, isReadOnly]);
+
+  // Reset vim mode to normal when switching notes
+  useEffect(() => {
+    if (vimModeEnabled) {
+      setVimMode('normal');
+    }
+  }, [activeNote?.id, vimModeEnabled]);
 
   // Sync editor content when active note changes
   useEffect(() => {
@@ -483,6 +503,9 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
           className="text-text dark:text-text-dark"
         />
       </div>
+
+      {/* Vim mode status bar */}
+      {vimModeEnabled && <VimStatusBar mode={vimMode} />}
 
       {/* Backlinks panel – rendered below the writing area */}
       <div className="max-w-3xl mx-auto w-full">

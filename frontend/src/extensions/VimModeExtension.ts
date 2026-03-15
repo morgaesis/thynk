@@ -439,7 +439,7 @@ function handleNormalMode(
   // Backspace (delete backwards in normal mode)
   if (event.key === 'Backspace') {
     event.preventDefault();
-    joinBackward(state, dispatch) || selectNodeBackward(state, dispatch);
+    void (joinBackward(state, dispatch) || selectNodeBackward(state, dispatch));
     return true;
   }
 

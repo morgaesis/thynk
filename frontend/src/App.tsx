@@ -83,7 +83,7 @@ function App() {
         reconnectTimerRef.current = setTimeout(() => {
           reconnectTimerRef.current = null;
           setWsConnected(false);
-        }, 2000);
+        }, 3000);
       }
     };
 
@@ -105,7 +105,8 @@ function App() {
 
     ws.onclose = (ev) => {
       // Only show indicator after first connect and only on unexpected closes.
-      if (hasConnectedRef.current && !ev.wasClean) {
+      // Codes 1000 (Normal Closure) and 1001 (Going Away) are expected.
+      if (hasConnectedRef.current && !ev.wasClean && ev.code !== 1000 && ev.code !== 1001) {
         scheduleReconnecting();
       }
     };

@@ -110,6 +110,7 @@ Add intelligence, cloud sync, and production-readiness.
 | Onboarding Flow          | Guided tutorial, progressive complexity                  |
 | Performance Optimization | Meet all performance benchmarks                          |
 | Cloud Transcription      | ElevenLabs / Whisper API fallback for dictation (BYOK)   |
+| Custom S3 Storage        | Allow users to configure their own S3-compatible storage endpoint |
 
 ### Exit Criteria
 

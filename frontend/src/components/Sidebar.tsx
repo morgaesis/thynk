@@ -7,7 +7,6 @@ import {
   VscTrash,
   VscFolder,
   VscChevronDown,
-  VscSignOut,
   VscStarEmpty,
   VscStarFull,
   VscLayoutMenubar,
@@ -299,7 +298,6 @@ export function Sidebar() {
   const sidebarOpen = useUIStore((s) => s.sidebarOpen);
   const toggleSidebar = useUIStore((s) => s.toggleSidebar);
   const authUser = useAuthStore((s) => s.user);
-  const logout = useAuthStore((s) => s.logout);
   const automationEvents = useAutomationEvents();
 
   const [tree, setTree] = useState<TreeNode[]>([]);
@@ -590,8 +588,7 @@ export function Sidebar() {
               <div className="flex items-center gap-0.5">
                 <button
                   onClick={() => {
-                    const url = `${window.location.pathname}?settings=open`;
-                    window.history.pushState({}, '', url);
+                    window.history.pushState({}, '', '/settings');
                     window.dispatchEvent(new PopStateEvent('popstate'));
                   }}
                   title="Settings"
@@ -601,16 +598,6 @@ export function Sidebar() {
                              transition-colors"
                 >
                   <VscSettingsGear size={14} />
-                </button>
-                <button
-                  onClick={() => logout()}
-                  title="Sign out"
-                  className="p-1 rounded text-text-muted dark:text-text-muted-dark
-                             hover:bg-border dark:hover:bg-border-dark
-                             hover:text-text dark:hover:text-text-dark
-                             transition-colors"
-                >
-                  <VscSignOut size={14} />
                 </button>
               </div>
             </div>

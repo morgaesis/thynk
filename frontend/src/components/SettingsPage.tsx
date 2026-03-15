@@ -306,6 +306,16 @@ export function SettingsPage({ onClose }: SettingsPageProps) {
                       {formatBytes(authUser.storage_limit)}
                     </span>
                   </Row>
+                  <Row label="Sign out">
+                    <button
+                      onClick={() => useAuthStore.getState().logout()}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded
+                               bg-border dark:bg-border-dark text-text dark:text-text-dark
+                               hover:bg-red-500/10 hover:text-red-500 transition-colors"
+                    >
+                      Sign out
+                    </button>
+                  </Row>
                 </>
               ) : (
                 <div className="py-3 text-sm text-text-muted dark:text-text-muted-dark">

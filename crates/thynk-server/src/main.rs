@@ -71,6 +71,10 @@ async fn main() -> anyhow::Result<()> {
     // Index all existing markdown files on startup.
     index_all_files(&db, &storage);
 
+    let doc_count = db.list_notes().map(|n| n.len()).unwrap_or(0);
+    println!("Data directory: {}", config.data_dir.display());
+    println!("Documents indexed: {}", doc_count);
+
     let data_dir = storage.data_dir().clone();
 
     let (events_tx, _) = broadcast::channel::<WsEvent>(256);

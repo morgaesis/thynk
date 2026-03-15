@@ -50,7 +50,9 @@ export const VimModeExtension = Extension.create<VimModeOptions>({
             return createInitialState();
           },
           apply(tr: Transaction, prev: VimPluginState): VimPluginState {
-            const meta = tr.getMeta(vimPluginKey) as Partial<VimPluginState> | undefined;
+            const meta = tr.getMeta(vimPluginKey) as
+              | Partial<VimPluginState>
+              | undefined;
             if (meta) {
               return { ...prev, ...meta };
             }
@@ -126,7 +128,11 @@ function handleVisualMode(
       const { from } = state.selection;
       if (from > 0) {
         const newFrom = Math.max(0, from - 1);
-        const newSel = TextSelection.create(state.doc, newFrom, state.selection.to);
+        const newSel = TextSelection.create(
+          state.doc,
+          newFrom,
+          state.selection.to,
+        );
         dispatch(state.tr.setSelection(newSel));
       }
       return true;
@@ -137,7 +143,11 @@ function handleVisualMode(
       const { to } = state.selection;
       if (to < state.doc.content.size) {
         const newTo = Math.min(state.doc.content.size, to + 1);
-        const newSel = TextSelection.create(state.doc, state.selection.from, newTo);
+        const newSel = TextSelection.create(
+          state.doc,
+          state.selection.from,
+          newTo,
+        );
         dispatch(state.tr.setSelection(newSel));
       }
       return true;
@@ -166,7 +176,10 @@ function handleVisualMode(
 function moveCursorHorizontal(view: EditorView, delta: number) {
   const { state, dispatch } = view;
   const { selection } = state;
-  const pos = Math.max(0, Math.min(state.doc.content.size, selection.from + delta));
+  const pos = Math.max(
+    0,
+    Math.min(state.doc.content.size, selection.from + delta),
+  );
   try {
     const sel = Selection.near(state.doc.resolve(pos));
     dispatch(state.tr.setSelection(sel));
@@ -180,7 +193,10 @@ function moveCursorVertical(view: EditorView, delta: number) {
   const { selection } = state;
   const coords = view.coordsAtPos(selection.from);
   const lineHeight = 24; // approximate
-  const targetCoords = { left: coords.left, top: coords.top + delta * lineHeight };
+  const targetCoords = {
+    left: coords.left,
+    top: coords.top + delta * lineHeight,
+  };
   const pos = view.posAtCoords(targetCoords);
   if (pos) {
     try {
@@ -237,7 +253,12 @@ function handleNormalMode(
     const { $from } = state.selection;
     const end = $from.end();
     const insertPos = end;
-    dispatch(state.tr.insert(insertPos, state.schema.nodes.paragraph?.create() ?? state.schema.text('\n')));
+    dispatch(
+      state.tr.insert(
+        insertPos,
+        state.schema.nodes.paragraph?.create() ?? state.schema.text('\n'),
+      ),
+    );
     setMode(view, 'insert', onModeChange);
     return true;
   }
@@ -344,13 +365,21 @@ function handleNormalMode(
       // Go to document start
       try {
         const sel = Selection.near(state.doc.resolve(1));
-        dispatch(state.tr.setSelection(sel).setMeta(vimPluginKey, { mode: 'normal', pendingKey: '' }));
+        dispatch(
+          state.tr
+            .setSelection(sel)
+            .setMeta(vimPluginKey, { mode: 'normal', pendingKey: '' }),
+        );
       } catch {
-        dispatch(state.tr.setMeta(vimPluginKey, { mode: 'normal', pendingKey: '' }));
+        dispatch(
+          state.tr.setMeta(vimPluginKey, { mode: 'normal', pendingKey: '' }),
+        );
       }
     } else {
       // Set pending key
-      dispatch(state.tr.setMeta(vimPluginKey, { mode: 'normal', pendingKey: 'g' }));
+      dispatch(
+        state.tr.setMeta(vimPluginKey, { mode: 'normal', pendingKey: 'g' }),
+      );
     }
     return true;
   }
@@ -372,9 +401,15 @@ function handleNormalMode(
       const { $from } = state.selection;
       const nodeStart = $from.before($from.depth);
       const nodeEnd = $from.after($from.depth);
-      dispatch(state.tr.delete(nodeStart, nodeEnd).setMeta(vimPluginKey, { mode: 'normal', pendingKey: '' }));
+      dispatch(
+        state.tr
+          .delete(nodeStart, nodeEnd)
+          .setMeta(vimPluginKey, { mode: 'normal', pendingKey: '' }),
+      );
     } else {
-      dispatch(state.tr.setMeta(vimPluginKey, { mode: 'normal', pendingKey: 'd' }));
+      dispatch(
+        state.tr.setMeta(vimPluginKey, { mode: 'normal', pendingKey: 'd' }),
+      );
     }
     return true;
   }
@@ -383,9 +418,13 @@ function handleNormalMode(
   if (event.key === 'y') {
     event.preventDefault();
     if (pending === 'y') {
-      dispatch(state.tr.setMeta(vimPluginKey, { mode: 'normal', pendingKey: '' }));
+      dispatch(
+        state.tr.setMeta(vimPluginKey, { mode: 'normal', pendingKey: '' }),
+      );
     } else {
-      dispatch(state.tr.setMeta(vimPluginKey, { mode: 'normal', pendingKey: 'y' }));
+      dispatch(
+        state.tr.setMeta(vimPluginKey, { mode: 'normal', pendingKey: 'y' }),
+      );
     }
     return true;
   }
@@ -407,10 +446,37 @@ function handleNormalMode(
   // Absorb other keys in normal mode to prevent unwanted typing
   // But allow function keys, arrows, etc.
   const absorbed = [
-    'p', 'P', 'c', 'C', 'r', 'R', 's', 'S', 'n', 'N',
-    'f', 'F', 't', 'T', 'e', 'E',
-    '1', '2', '3', '4', '5', '6', '7', '8', '9',
-    '/', '?', ':', ';', ',', '.',
+    'p',
+    'P',
+    'c',
+    'C',
+    'r',
+    'R',
+    's',
+    'S',
+    'n',
+    'N',
+    'f',
+    'F',
+    't',
+    'T',
+    'e',
+    'E',
+    '1',
+    '2',
+    '3',
+    '4',
+    '5',
+    '6',
+    '7',
+    '8',
+    '9',
+    '/',
+    '?',
+    ':',
+    ';',
+    ',',
+    '.',
   ];
 
   if (absorbed.includes(event.key)) {

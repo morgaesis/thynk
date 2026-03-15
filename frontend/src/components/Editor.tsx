@@ -29,7 +29,11 @@ import { LockIndicator } from './LockIndicator';
 import { WikiLinkExtension } from '../extensions/WikiLinkExtension';
 import { WikiLinkSuggestions } from './WikiLinkSuggestions';
 import { BacklinksPanel } from './BacklinksPanel';
-import { VimModeExtension, getVimMode, type VimMode } from '../extensions/VimModeExtension';
+import {
+  VimModeExtension,
+  getVimMode,
+  type VimMode,
+} from '../extensions/VimModeExtension';
 import { VimStatusBar } from './VimStatusBar';
 
 // Create lowlight instance with common languages

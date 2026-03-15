@@ -7,10 +7,15 @@ type Tab = 'obsidian' | 'markdown';
 interface ImportModalProps {
   onClose: () => void;
   onImported: () => void;
+  initialTab?: Tab;
 }
 
-export function ImportModal({ onClose, onImported }: ImportModalProps) {
-  const [tab, setTab] = useState<Tab>('obsidian');
+export function ImportModal({
+  onClose,
+  onImported,
+  initialTab = 'obsidian',
+}: ImportModalProps) {
+  const [tab, setTab] = useState<Tab>(initialTab);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ImportResult | null>(null);
   const [error, setError] = useState<string | null>(null);

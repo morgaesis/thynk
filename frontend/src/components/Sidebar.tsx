@@ -13,8 +13,6 @@ import {
   VscLayoutMenubar,
   VscSettingsGear,
   VscTypeHierarchySub,
-  VscCloudDownload,
-  VscCloudUpload,
   VscCalendar,
 } from 'react-icons/vsc';
 import { useNoteStore } from '../stores/noteStore';
@@ -27,11 +25,10 @@ import { DailyNoteCalendar } from './DailyNoteCalendar';
 import { TemplateSelector } from './TemplateSelector';
 import { AutomationLog } from './AutomationLog';
 import { useAutomationEvents } from '../hooks/useAutomationEvents';
-import { ImportModal } from './ImportModal';
 import { CalendarView } from './CalendarView';
 import { BacklinksPanel } from './BacklinksPanel';
 import type { TreeNode, NoteMetadata } from '../types';
-import { getTree, toggleFavorite, getFavorites, exportWorkspace } from '../api';
+import { getTree, toggleFavorite, getFavorites } from '../api';
 
 function TreeItem({
   node,
@@ -316,8 +313,6 @@ export function Sidebar() {
     null,
   );
   const [activeTag, setActiveTag] = useState<string | null>(null);
-  const [showImport, setShowImport] = useState(false);
-  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     fetchNotes().then(() => {
@@ -379,24 +374,6 @@ export function Sidebar() {
     },
     [],
   );
-
-  const handleExport = useCallback(async () => {
-    setExporting(true);
-    try {
-      await exportWorkspace();
-    } catch (err) {
-      console.error('Export failed:', err);
-    } finally {
-      setExporting(false);
-    }
-  }, []);
-
-  const handleImported = useCallback(() => {
-    fetchNotes();
-    getTree()
-      .then(setTree)
-      .catch(() => {});
-  }, [fetchNotes]);
 
   if (!sidebarOpen) {
     return (
@@ -604,34 +581,6 @@ export function Sidebar() {
               New
             </p>
           </div>
-          {/* Import / Export actions */}
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => setShowImport(true)}
-              title="Import notes"
-              className="flex items-center gap-1.5 px-2 py-1 text-xs rounded
-                         text-text-muted dark:text-text-muted-dark
-                         hover:bg-border dark:hover:bg-border-dark
-                         hover:text-text dark:hover:text-text-dark
-                         transition-colors"
-            >
-              <VscCloudUpload size={13} />
-              Import
-            </button>
-            <button
-              onClick={handleExport}
-              disabled={exporting}
-              title="Export all notes as zip"
-              className="flex items-center gap-1.5 px-2 py-1 text-xs rounded
-                         text-text-muted dark:text-text-muted-dark
-                         hover:bg-border dark:hover:bg-border-dark
-                         hover:text-text dark:hover:text-text-dark
-                         disabled:opacity-50 transition-colors"
-            >
-              <VscCloudDownload size={13} />
-              {exporting ? 'Exporting…' : 'Export'}
-            </button>
-          </div>
           {/* User info + settings + logout */}
           {authUser && (
             <div className="flex items-center justify-between">
@@ -672,14 +621,6 @@ export function Sidebar() {
       {/* Template selector modal */}
       {showTemplateSelector && (
         <TemplateSelector onClose={() => setShowTemplateSelector(false)} />
-      )}
-
-      {/* Import modal */}
-      {showImport && (
-        <ImportModal
-          onClose={() => setShowImport(false)}
-          onImported={handleImported}
-        />
       )}
 
       {/* Full CalendarView modal */}

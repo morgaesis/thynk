@@ -11,6 +11,7 @@ pub mod tree;
 pub mod uploads;
 pub mod ws;
 
+use axum::extract::DefaultBodyLimit;
 use axum::middleware;
 use axum::routing::{get, post};
 use axum::Router;
@@ -54,7 +55,10 @@ pub fn router(state: AppState) -> Router {
         )
         .route("/api/graph", get(links::get_graph))
         .route("/api/ws", get(ws::ws_handler))
-        .route("/api/uploads", post(uploads::upload_file))
+        .route(
+            "/api/uploads",
+            post(uploads::upload_file).layer(DefaultBodyLimit::max(50 * 1024 * 1024)),
+        )
         .route("/api/uploads/{id}", get(uploads::get_upload))
         .route(
             "/api/notes/{id}/lock",

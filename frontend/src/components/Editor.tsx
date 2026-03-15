@@ -208,6 +208,8 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
   const addToast = useUIStore((s) => s.addToast);
   const authUser = useAuthStore((s) => s.user);
   const vimModeEnabled = useSettingsStore((s) => s.vimMode);
+  const fontSize = useSettingsStore((s) => s.fontSize);
+  const lineHeight = useSettingsStore((s) => s.lineHeight);
   const [vimMode, setVimMode] = useState<VimMode>('normal');
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const titleRef = useRef<HTMLInputElement>(null);
@@ -474,88 +476,100 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
   }
 
   return (
-    <div className="flex-1 flex flex-col overflow-y-auto bg-surface dark:bg-surface-dark">
-      {/* Table controls toolbar — shown when cursor is inside a table */}
-      {editor && <TableControls editor={editor} key={editorVersion} />}
+    <div
+      className="flex-1 flex flex-col bg-surface dark:bg-surface-dark min-h-0"
+      style={
+        {
+          '--editor-font-size': `${fontSize}px`,
+          '--editor-line-height': String(lineHeight),
+        } as React.CSSProperties
+      }
+    >
+      <div className="flex-1 overflow-y-auto flex flex-col">
+        {/* Table controls toolbar — shown when cursor is inside a table */}
+        {editor && <TableControls editor={editor} key={editorVersion} />}
 
-      <div className="max-w-3xl mx-auto w-full px-8 py-10 flex-1">
-        {/* Title */}
-        <input
-          ref={titleRef}
-          key={activeNote.id}
-          defaultValue={activeNote.title}
-          onBlur={handleTitleBlur}
-          onKeyDown={handleTitleKeyDown}
-          className="w-full text-3xl font-bold bg-transparent border-none outline-none
+        <div className="max-w-3xl mx-auto w-full px-8 py-10 flex-1">
+          {/* Title */}
+          <input
+            ref={titleRef}
+            key={activeNote.id}
+            defaultValue={activeNote.title}
+            onBlur={handleTitleBlur}
+            onKeyDown={handleTitleKeyDown}
+            className="w-full text-3xl font-bold bg-transparent border-none outline-none
                      text-text dark:text-text-dark placeholder:text-text-muted
                      dark:placeholder:text-text-muted-dark mb-6"
-          placeholder="Untitled"
-        />
-
-        {/* Status bar */}
-        <div className="flex items-center gap-3 mb-4 text-xs text-text-muted dark:text-text-muted-dark">
-          {saving ? <span>Saving…</span> : <span>Saved</span>}
-          <span>·</span>
-          <span className="tabular-nums">
-            {new Date(activeNote.updated_at).toLocaleString()}
-          </span>
-          {activeNote.last_updated_by && (
-            <>
-              <span>·</span>
-              <span>Last edited by {activeNote.last_updated_by}</span>
-            </>
-          )}
-          <button
-            onClick={() =>
-              editor
-                ?.chain()
-                .focus()
-                .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
-                .run()
-            }
-            className="ml-auto px-2 py-0.5 rounded text-xs border border-border dark:border-border-dark
-                       hover:bg-border dark:hover:bg-border-dark transition-colors"
-            title="Insert table"
-          >
-            Insert Table
-          </button>
-          <span className="flex items-center gap-2">
-            <LockIndicator
-              locked={locked}
-              lockedByMe={lockedByMe}
-              lockedBy={lockedBy}
-              onAcquire={doAcquireLock}
-              onRelease={doReleaseLock}
-            />
-            <DictationButton editor={editor} />
-          </span>
-        </div>
-        {locked && !lockedByMe && (
-          <div className="mb-3 px-3 py-2 rounded-md bg-red-500/10 border border-red-500/20 text-xs text-red-600 dark:text-red-400">
-            This note is locked by <strong>{lockedBy}</strong> and is read-only.
-          </div>
-        )}
-
-        {/* Editor */}
-        <div
-          className={
-            vimModeEnabled && vimMode === 'normal' ? 'vim-normal-mode' : ''
-          }
-        >
-          <EditorContent
-            editor={editor}
-            className="text-text dark:text-text-dark"
+            placeholder="Untitled"
           />
+
+          {/* Status bar */}
+          <div className="flex items-center gap-3 mb-4 text-xs text-text-muted dark:text-text-muted-dark">
+            {saving ? <span>Saving…</span> : <span>Saved</span>}
+            <span>·</span>
+            <span className="tabular-nums">
+              {new Date(activeNote.updated_at).toLocaleString()}
+            </span>
+            {activeNote.last_updated_by && (
+              <>
+                <span>·</span>
+                <span>Last edited by {activeNote.last_updated_by}</span>
+              </>
+            )}
+            <button
+              onClick={() =>
+                editor
+                  ?.chain()
+                  .focus()
+                  .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
+                  .run()
+              }
+              className="ml-auto px-2 py-0.5 rounded text-xs border border-border dark:border-border-dark
+                       hover:bg-border dark:hover:bg-border-dark transition-colors"
+              title="Insert table"
+            >
+              Insert Table
+            </button>
+            <span className="flex items-center gap-2">
+              <LockIndicator
+                locked={locked}
+                lockedByMe={lockedByMe}
+                lockedBy={lockedBy}
+                onAcquire={doAcquireLock}
+                onRelease={doReleaseLock}
+              />
+              <DictationButton editor={editor} />
+            </span>
+          </div>
+          {locked && !lockedByMe && (
+            <div className="mb-3 px-3 py-2 rounded-md bg-red-500/10 border border-red-500/20 text-xs text-red-600 dark:text-red-400">
+              This note is locked by <strong>{lockedBy}</strong> and is
+              read-only.
+            </div>
+          )}
+
+          {/* Editor */}
+          <div
+            className={
+              vimModeEnabled && vimMode === 'normal' ? 'vim-normal-mode' : ''
+            }
+          >
+            <EditorContent
+              editor={editor}
+              className="text-text dark:text-text-dark"
+            />
+          </div>
+        </div>
+
+        {/* Backlinks panel – rendered below the writing area */}
+        <div className="max-w-3xl mx-auto w-full">
+          <BacklinksPanel noteId={activeNote.id} noteTitle={activeNote.title} />
         </div>
       </div>
+      {/* end scrollable area */}
 
-      {/* Vim mode status bar */}
+      {/* Vim mode status bar — outside scroll container so it stays at bottom */}
       {vimModeEnabled && <VimStatusBar mode={vimMode} />}
-
-      {/* Backlinks panel – rendered below the writing area */}
-      <div className="max-w-3xl mx-auto w-full">
-        <BacklinksPanel noteId={activeNote.id} noteTitle={activeNote.title} />
-      </div>
 
       {/* Wiki-link autocomplete dropdown */}
       {wikiSuggest &&

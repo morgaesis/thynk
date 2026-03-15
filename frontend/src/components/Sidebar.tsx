@@ -525,6 +525,9 @@ export function Sidebar() {
           {/* Recent Notes */}
           <RecentNotesSection />
 
+          {/* Separator */}
+          <hr className="mx-3 border-border dark:border-border-dark opacity-60" />
+
           {/* Automation log */}
           <AutomationLog events={automationEvents} />
 

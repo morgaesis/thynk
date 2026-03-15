@@ -61,6 +61,10 @@
 | Keyboard shortcuts      | Done        | Phase 1 |
 | Dark/light theme        | Done        | Phase 1 |
 | THYNK_DATA_DIR env var  | Done        | Phase 1 |
+| Image uploads (inline)  | Done        | Phase 1 |
+| Local file uploads      | Done        | Phase 1 |
+| WS heartbeat            | Done        | Phase 1 |
+| last_updated_by         | Done        | Phase 1 |
 | Linking System          | Not Started | Phase 2 |
 | Graph View              | Not Started | Phase 2 |
 | Tags                    | Not Started | Phase 2 |
@@ -114,4 +118,4 @@
 
 ---
 
-Last Updated: 2026-03-14
+Last Updated: 2026-03-15

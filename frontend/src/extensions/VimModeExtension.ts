@@ -191,16 +191,39 @@ function moveCursorHorizontal(view: EditorView, delta: number) {
 function moveCursorVertical(view: EditorView, delta: number) {
   const { state } = view;
   const { selection } = state;
+
+  // Try coordinate-based movement first
   const coords = view.coordsAtPos(selection.from);
   const lineHeight = 24; // approximate
   const targetCoords = {
     left: coords.left,
     top: coords.top + delta * lineHeight,
   };
-  const pos = view.posAtCoords(targetCoords);
-  if (pos) {
+  const posResult = view.posAtCoords(targetCoords);
+
+  if (posResult != null) {
     try {
-      const sel = Selection.near(state.doc.resolve(pos.pos));
+      const sel = Selection.near(state.doc.resolve(posResult.pos));
+      view.dispatch(state.tr.setSelection(sel));
+      return;
+    } catch {
+      // fall through to fallback
+    }
+  }
+
+  // Fallback: coordinate lookup returned null (target outside visible area).
+  // For 'k' going past the top, move to doc start; for 'j' past the bottom,
+  // move to doc end.
+  if (delta < 0) {
+    try {
+      const sel = Selection.near(state.doc.resolve(1));
+      view.dispatch(state.tr.setSelection(sel));
+    } catch {
+      // ignore
+    }
+  } else {
+    try {
+      const sel = Selection.near(state.doc.resolve(state.doc.content.size - 1));
       view.dispatch(state.tr.setSelection(sel));
     } catch {
       // ignore

@@ -100,6 +100,18 @@ export const FileUploadExtension = Extension.create<FileUploadOptions>({
         .run();
     }
 
+    function getFileIcon(ext: string): string {
+      if (['pdf'].includes(ext)) return '📄';
+      if (['doc', 'docx'].includes(ext)) return '📝';
+      if (['xls', 'xlsx', 'csv'].includes(ext)) return '📊';
+      if (['ppt', 'pptx'].includes(ext)) return '📊';
+      if (['zip', 'tar', 'gz', '7z'].includes(ext)) return '🗜️';
+      if (['mp3', 'wav', 'ogg', 'flac'].includes(ext)) return '🎵';
+      if (['mp4', 'mov', 'avi', 'mkv', 'webm'].includes(ext)) return '🎬';
+      if (['txt', 'md'].includes(ext)) return '📃';
+      return '📎';
+    }
+
     function handleFile(file: File) {
       const contentType = file.type || 'application/octet-stream';
       const isImage = contentType.startsWith('image/');
@@ -116,7 +128,12 @@ export const FileUploadExtension = Extension.create<FileUploadOptions>({
         if (isImage) {
           replaceWithImage(placeholder, result.url, result.filename);
         } else {
-          replaceWithText(placeholder, `[${result.filename}](${result.url})`);
+          const ext = result.filename.split('.').pop()?.toLowerCase() ?? '';
+          const icon = getFileIcon(ext);
+          replaceWithText(
+            placeholder,
+            `[${icon} ${result.filename}](${result.url})`,
+          );
         }
       });
     }

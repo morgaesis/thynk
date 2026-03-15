@@ -4,6 +4,7 @@ pub mod favorites;
 pub mod links;
 pub mod locks;
 pub mod notes;
+pub mod profiles;
 pub mod search;
 pub mod tags;
 pub mod templates;
@@ -83,6 +84,14 @@ pub fn router(state: AppState) -> Router {
         .route("/api/export", get(export::export_workspace))
         .route("/api/import/markdown", post(export::import_markdown))
         .route("/api/import/obsidian", post(export::import_obsidian))
+        .route(
+            "/api/users/:id/profile",
+            get(profiles::get_user_profile),
+        )
+        .route(
+            "/api/users/by-username/:username/profile",
+            get(profiles::get_user_profile_by_username),
+        )
         .route_layer(middleware::from_fn_with_state(
             state.clone(),
             auth::require_auth,

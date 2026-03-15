@@ -113,7 +113,7 @@ export function DictationButton({ editor }: Props) {
   return (
     <button
       onClick={handleClick}
-      title={isRecording ? 'Stop dictation (Esc)' : 'Start dictation'}
+      title={isRecording ? 'Stop dictation (Esc)' : 'Dictation: browser local'}
       aria-label={isRecording ? 'Stop dictation' : 'Start dictation'}
       aria-pressed={isRecording}
       className={`p-1.5 rounded transition-colors ${

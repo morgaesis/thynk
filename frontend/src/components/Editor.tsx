@@ -26,6 +26,7 @@ import { useUIStore } from '../stores/uiStore';
 import { useAuthStore } from '../stores/authStore';
 import { useSettingsStore } from '../stores/settingsStore';
 import { DictationButton } from './DictationButton';
+import { ReadAloudButton } from './ReadAloudButton';
 import { UserProfile } from './UserProfile';
 import { FileUploadExtension } from '../extensions/FileUploadExtension';
 import { useFileUpload } from '../hooks/useFileUpload';
@@ -536,6 +537,7 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
                 onRelease={doReleaseLock}
               />
               <DictationButton editor={editor} />
+              <ReadAloudButton editor={editor} />
             </span>
           </div>
           {locked && !lockedByMe && (
@@ -571,6 +573,16 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
             onSelect={handleWikiSelect}
             onClose={() => setWikiSuggest(null)}
             anchorRect={wikiSuggest.anchorRect}
+          />,
+          document.body,
+        )}
+
+      {/* User profile panel */}
+      {profileUsername &&
+        createPortal(
+          <UserProfile
+            username={profileUsername}
+            onClose={() => setProfileUsername(null)}
           />,
           document.body,
         )}

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNoteStore } from '../stores/noteStore';
 
 interface Props {
@@ -26,10 +26,8 @@ export function WikiLinkSuggestions({
     .filter((n) => n.title.toLowerCase().includes(query.toLowerCase()))
     .slice(0, 10);
 
-  // Reset selection when query changes
-  useEffect(() => {
-    setSelectedIndex(0);
-  }, [query]);
+  // Keep selection in bounds; safe to compute during render since it's a clamp
+  const safeIndex = Math.min(selectedIndex, Math.max(0, filtered.length - 1));
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -44,8 +42,8 @@ export function WikiLinkSuggestions({
           break;
         case 'Enter':
           e.preventDefault();
-          if (filtered[selectedIndex]) {
-            onSelect(filtered[selectedIndex].title);
+          if (filtered[safeIndex]) {
+            onSelect(filtered[safeIndex].title);
           }
           break;
         case 'Escape':
@@ -56,7 +54,7 @@ export function WikiLinkSuggestions({
           break;
       }
     },
-    [filtered, selectedIndex, onSelect, onClose],
+    [filtered, safeIndex, onSelect, onClose],
   );
 
   useEffect(() => {
@@ -85,12 +83,12 @@ export function WikiLinkSuggestions({
           <li
             key={note.id}
             role="option"
-            aria-selected={i === selectedIndex}
+            aria-selected={i === safeIndex}
             onMouseEnter={() => setSelectedIndex(i)}
             onClick={() => onSelect(note.title)}
             className={`px-3 py-2 text-sm cursor-pointer select-none
               ${
-                i === selectedIndex
+                i === safeIndex
                   ? 'bg-accent/10 text-accent'
                   : 'text-text dark:text-text-dark hover:bg-border dark:hover:bg-border-dark'
               }`}

@@ -26,11 +26,25 @@ export function GraphView() {
 
   // Load graph data
   useEffect(() => {
-    setLoading(true);
-    getGraph()
-      .then(setGraphData)
-      .catch((e: Error) => setError(e.message))
-      .finally(() => setLoading(false));
+    let cancelled = false;
+    async function load() {
+      try {
+        const data = await getGraph();
+        if (!cancelled) {
+          setGraphData(data);
+          setLoading(false);
+        }
+      } catch (e) {
+        if (!cancelled) {
+          setError((e as Error).message);
+          setLoading(false);
+        }
+      }
+    }
+    void load();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const handleBack = useCallback(() => {

@@ -146,6 +146,12 @@ function App() {
           event.status
         ) {
           addToast('info', `Note '${event.title}' marked as ${event.status}`);
+          // Dispatch custom event for AutomationLog to pick up
+          window.dispatchEvent(
+            new CustomEvent('thynk:automation', {
+              detail: { title: event.title, status: event.status },
+            }),
+          );
         }
       } catch {
         // ignore malformed messages

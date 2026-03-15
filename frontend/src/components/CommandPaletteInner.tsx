@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { VscSearch, VscLoading } from 'react-icons/vsc';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { VscSearch, VscLoading, VscSettingsGear } from 'react-icons/vsc';
 import type { NoteMetadata, SearchResult } from '../types';
 import * as api from '../api';
 
@@ -8,6 +8,17 @@ interface Props {
   onSelect: (id: string) => void;
   onClose: () => void;
 }
+
+const SETTINGS_ITEMS = [
+  { id: 'settings:theme', label: 'Settings: Color theme', subtitle: 'Change light/dark theme' },
+  { id: 'settings:font-size', label: 'Settings: Font size', subtitle: 'Editor font size in pixels' },
+  { id: 'settings:vim-mode', label: 'Settings: Vim mode', subtitle: 'Toggle vim keybindings' },
+  { id: 'settings:spell-check', label: 'Settings: Spell check', subtitle: 'Toggle spell check' },
+  { id: 'settings:line-height', label: 'Settings: Line height', subtitle: 'Editor line height' },
+  { id: 'settings:export', label: 'Settings: Export workspace', subtitle: 'Export all notes as ZIP' },
+  { id: 'settings:import', label: 'Settings: Import notes', subtitle: 'Import markdown or Obsidian vault' },
+  { id: 'settings:account', label: 'Settings: Account', subtitle: 'Username, display name, storage' },
+];
 
 /**
  * Inner component for the command palette. Mounts fresh each time the palette
@@ -53,19 +64,44 @@ export function CommandPaletteInner({ notes, onSelect, onClose }: Props) {
     };
   }, [query]);
 
-  // Items to display: search results when querying, all notes otherwise
-  const items: Array<{ id: string; title: string; subtitle: string }> =
-    query.trim()
-      ? searchResults.map((r) => ({
-          id: r.note_id,
-          title: r.title,
-          subtitle: r.snippet.replace(/<\/?mark>/g, ''),
-        }))
-      : notes.map((n) => ({
-          id: n.id,
-          title: n.title,
-          subtitle: typeof n.path === 'string' ? n.path : String(n.path),
-        }));
+  // Note items to display: search results when querying, all notes otherwise
+  const noteItems = useMemo<Array<{ id: string; title: string; subtitle: string }>>(
+    () =>
+      query.trim()
+        ? searchResults.map((r) => ({
+            id: r.note_id,
+            title: r.title,
+            subtitle: r.snippet.replace(/<\/?mark>/g, ''),
+          }))
+        : notes.map((n) => ({
+            id: n.id,
+            title: n.title,
+            subtitle: typeof n.path === 'string' ? n.path : String(n.path),
+          })),
+    [query, searchResults, notes],
+  );
+
+  // Settings items shown when there's a query that matches
+  const filteredSettingsItems = useMemo(
+    () =>
+      query.trim()
+        ? SETTINGS_ITEMS.filter((item) => {
+            const q = query.toLowerCase();
+            return item.label.toLowerCase().includes(q) || item.subtitle.toLowerCase().includes(q);
+          })
+        : [],
+    [query],
+  );
+
+  const allItems = useMemo(() => [
+    ...noteItems.map((item) => ({ ...item, isSettings: false })),
+    ...filteredSettingsItems.map((item) => ({
+      id: item.id,
+      title: item.label,
+      subtitle: item.subtitle,
+      isSettings: true,
+    })),
+  ], [noteItems, filteredSettingsItems]);
 
   useEffect(() => {
     setSelectedIndex(0);
@@ -78,12 +114,25 @@ export function CommandPaletteInner({ notes, onSelect, onClose }: Props) {
     [],
   );
 
+  const handleSelect = useCallback(
+    (id: string, isSettings: boolean) => {
+      if (isSettings) {
+        window.history.pushState({}, '', '/settings');
+        window.dispatchEvent(new PopStateEvent('popstate'));
+        onClose();
+      } else {
+        onSelect(id);
+      }
+    },
+    [onSelect, onClose],
+  );
+
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       switch (e.key) {
         case 'ArrowDown':
           e.preventDefault();
-          setSelectedIndex((i) => Math.min(i + 1, items.length - 1));
+          setSelectedIndex((i) => Math.min(i + 1, allItems.length - 1));
           break;
         case 'ArrowUp':
           e.preventDefault();
@@ -91,8 +140,8 @@ export function CommandPaletteInner({ notes, onSelect, onClose }: Props) {
           break;
         case 'Enter':
           e.preventDefault();
-          if (items[selectedIndex]) {
-            onSelect(items[selectedIndex].id);
+          if (allItems[selectedIndex]) {
+            handleSelect(allItems[selectedIndex].id, allItems[selectedIndex].isSettings);
           }
           break;
         case 'Escape':
@@ -101,7 +150,7 @@ export function CommandPaletteInner({ notes, onSelect, onClose }: Props) {
           break;
       }
     },
-    [items, selectedIndex, onSelect, onClose],
+    [allItems, selectedIndex, handleSelect, onClose],
   );
 
   return (
@@ -153,33 +202,79 @@ export function CommandPaletteInner({ notes, onSelect, onClose }: Props) {
         </div>
 
         {/* Results */}
-        <ul className="max-h-64 overflow-y-auto py-2">
-          {items.length === 0 && !searching && (
-            <li className="px-4 py-3 text-sm text-text-muted dark:text-text-muted-dark">
+        <div className="max-h-64 overflow-y-auto py-2">
+          {allItems.length === 0 && !searching && (
+            <div className="px-4 py-3 text-sm text-text-muted dark:text-text-muted-dark">
               {query ? 'No matching notes found.' : 'No notes available.'}
-            </li>
+            </div>
           )}
-          {items.map((item, i) => (
-            <li key={item.id}>
-              <button
-                onClick={() => onSelect(item.id)}
-                className={`w-full text-left px-4 py-2 text-sm transition-colors
-                  ${
-                    i === selectedIndex
-                      ? 'bg-accent/10 text-accent'
-                      : 'text-text dark:text-text-dark hover:bg-border dark:hover:bg-border-dark'
-                  }`}
-              >
-                <span className="block truncate font-medium">{item.title}</span>
-                {item.subtitle && (
-                  <span className="block text-xs text-text-muted dark:text-text-muted-dark truncate mt-0.5">
-                    {item.subtitle}
-                  </span>
-                )}
-              </button>
-            </li>
-          ))}
-        </ul>
+          {/* Note items */}
+          {noteItems.length > 0 && (
+            <ul>
+              {noteItems.map((item, i) => (
+                <li key={item.id}>
+                  <button
+                    onClick={() => handleSelect(item.id, false)}
+                    className={`w-full text-left px-4 py-2 text-sm transition-colors
+                      ${
+                        i === selectedIndex
+                          ? 'bg-accent/10 text-accent'
+                          : 'text-text dark:text-text-dark hover:bg-border dark:hover:bg-border-dark'
+                      }`}
+                  >
+                    <span className="block truncate font-medium">{item.title}</span>
+                    {item.subtitle && (
+                      <span className="block text-xs text-text-muted dark:text-text-muted-dark truncate mt-0.5">
+                        {item.subtitle}
+                      </span>
+                    )}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          {/* Settings items */}
+          {filteredSettingsItems.length > 0 && (
+            <>
+              {noteItems.length > 0 && (
+                <div className="px-4 py-1 mt-1 text-xs font-semibold uppercase tracking-wider text-text-muted dark:text-text-muted-dark border-t border-border dark:border-border-dark">
+                  Settings
+                </div>
+              )}
+              {noteItems.length === 0 && (
+                <div className="px-4 py-1 text-xs font-semibold uppercase tracking-wider text-text-muted dark:text-text-muted-dark">
+                  Settings
+                </div>
+              )}
+              <ul>
+                {filteredSettingsItems.map((item, si) => {
+                  const globalIndex = noteItems.length + si;
+                  return (
+                    <li key={item.id}>
+                      <button
+                        onClick={() => handleSelect(item.id, true)}
+                        className={`w-full text-left px-4 py-2 text-sm transition-colors flex items-center gap-2
+                          ${
+                            globalIndex === selectedIndex
+                              ? 'bg-accent/10 text-accent'
+                              : 'text-text dark:text-text-dark hover:bg-border dark:hover:bg-border-dark'
+                          }`}
+                      >
+                        <VscSettingsGear size={13} className="shrink-0 text-text-muted dark:text-text-muted-dark" />
+                        <span className="flex-1 min-w-0">
+                          <span className="block truncate font-medium">{item.label}</span>
+                          <span className="block text-xs text-text-muted dark:text-text-muted-dark truncate mt-0.5">
+                            {item.subtitle}
+                          </span>
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </>
+          )}
+        </div>
 
         {/* Footer hint */}
         <div className="px-4 py-2 border-t border-border dark:border-border-dark flex items-center gap-3 text-xs text-text-muted dark:text-text-muted-dark">

@@ -79,7 +79,11 @@ function Toggle({
   );
 }
 
-export function SettingsPage() {
+interface SettingsPageProps {
+  onClose?: () => void;
+}
+
+export function SettingsPage({ onClose }: SettingsPageProps) {
   const theme = useUIStore((s) => s.theme);
   const setTheme = useUIStore((s) => s.setTheme);
   const {
@@ -95,7 +99,8 @@ export function SettingsPage() {
   const authUser = useAuthStore((s) => s.user);
 
   const handleBack = () => {
-    window.history.back();
+    if (onClose) onClose();
+    else window.history.back();
   };
 
   return (

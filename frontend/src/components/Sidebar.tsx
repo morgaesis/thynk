@@ -628,7 +628,8 @@ export function Sidebar() {
               <div className="flex items-center gap-0.5">
                 <button
                   onClick={() => {
-                    window.history.pushState({}, '', '/settings');
+                    const url = `${window.location.pathname}?settings=open`;
+                    window.history.pushState({}, '', url);
                     window.dispatchEvent(new PopStateEvent('popstate'));
                   }}
                   title="Settings"

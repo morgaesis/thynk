@@ -30,7 +30,7 @@ RUN cargo build --release
 COPY crates ./crates
 
 # Build the server binary
-RUN cargo build --release --bin thynk-server --locked
+RUN cargo build --release --bin thynk-server
 
 # Build stage for frontend
 FROM oven/bun:1 AS frontend-builder

@@ -35,6 +35,7 @@ import { useFileUpload } from '../hooks/useFileUpload';
 import { useLock } from '../hooks/useLock';
 import { useCollaboration } from '../hooks/useCollaboration';
 import { LockIndicator } from './LockIndicator';
+import { PresenceIndicator } from './PresenceIndicator';
 import { WikiLinkExtension } from '../extensions/WikiLinkExtension';
 import { WikiLinkSuggestions } from './WikiLinkSuggestions';
 import {
@@ -264,7 +265,7 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
     releaseLock: doReleaseLock,
   } = useLock(activeNote?.id, currentUsername);
 
-  const { ydoc, provider } = useCollaboration(activeNote?.id);
+  const { ydoc, provider, users: collabUsers } = useCollaboration(activeNote?.id);
 
   useEffect(() => {
     activeNoteRef.current = activeNote;
@@ -573,6 +574,7 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
               </>
             )}
             <span className="ml-auto flex items-center gap-2">
+              <PresenceIndicator users={collabUsers} />
               <LockIndicator
                 locked={locked}
                 lockedByMe={lockedByMe}

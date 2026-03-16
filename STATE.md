@@ -1,9 +1,9 @@
 # STATE.md - Thynk Current Status
 
-## Project Status: PHASE 3 COMPLETE (sync engine added)
+## Project Status: PHASE 4 STARTED (Desktop Apps)
 
-**Current Phase:** Phase 3 -- AI & Sync (done)
-**Overall Progress:** Phases 1, 2, and 3 complete; Cloud Deployment remaining in Phase 3
+**Current Phase:** Phase 4 -- Collaboration & Platform (in progress)
+**Overall Progress:** Phases 1, 2, and 3 complete; Phase 4 starting
 
 ---
 
@@ -86,7 +86,7 @@
 | Unlinked Mentions       | Done        | Phase 3 |
 | Cloud Deployment        | Not Started | Phase 3 |
 | P2P Collaboration       | Not Started | Phase 4 |
-| Desktop Apps            | Not Started | Phase 4 |
+| Desktop Apps            | In Progress | Phase 4 |
 
 ### Phase 1 Exit Criteria (all met)
 
@@ -150,8 +150,22 @@
 1. ~~AI Integration -- BYOK, inline completions, smart search~~ (done: settings UI, API routes, inline completions)
 2. ~~Unlinked mentions~~ (done: backend endpoint + UI in backlinks panel)
 3. ~~Sync Engine -- differential sync between devices and cloud~~ (done: sync crate, API endpoints, audit trail)
-4. **Cloud Deployment** -- scale-to-zero instances, wake on first request
+4. ~~Cloud Deployment~~ (moved to future phase)
+5. ~~Desktop Apps~~ (done: Tauri 2.0 structure created, embedded server + UI)
+
+## Phase 4 Next Steps (Collaboration & Platform)
+
+1. **Desktop Apps** -- Tauri 2.0 app with embedded server (in progress)
+2. P2P Real-Time Editing -- Yjs + y-webrtc integration
+3. Cursor Presence -- Show other users' cursors in editor
+4. User Awareness -- Who's online, viewing what
+5. @Mentions -- Mention users for assignment
+6. Notifications -- In-app notification system
+7. Permissions -- View/edit/admin roles
+8. Shared Workspaces -- Invite users to workspace
+9. Signaling Server -- WebRTC signaling in Rust
+10. Mobile Apps -- Tauri for iOS/Android
 
 ---
 
-Last Updated: 2026-03-15 (Phase 3: AI integration + unlinked mentions done)
+Last Updated: 2026-03-16 (Phase 4: Desktop Apps structure created)

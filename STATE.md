@@ -159,8 +159,8 @@
 2. **P2P Real-Time Editing** -- Yjs + y-webrtc integration (hook + TipTap extensions added, tests added, 2026-03-16)
 3. **Cursor Presence** -- Show other users' cursors in editor (fixed: use dynamic user color from provider, 2026-03-16)
 4. **User Awareness** -- Who's online, viewing what (PresenceIndicator component added, 2026-03-16)
-5. @Mentions -- Mention users for assignment
-6. Notifications -- In-app notification system
+5. **@Mentions** -- Mention users for assignment (MentionSuggestions component with @username autocomplete, 2026-03-16)
+6. **Notifications** -- In-app notification system (NotificationsPanel, unread count, mark read API, 2026-03-16)
 7. Permissions -- View/edit/admin roles
 8. Shared Workspaces -- Invite users to workspace
 9. Signaling Server -- WebRTC signaling in Rust
@@ -168,4 +168,4 @@
 
 ---
 
-Last Updated: 2026-03-16 (Phase 4: Cursor presence - fixed to use dynamic user colors from collaboration provider)
+Last Updated: 2026-03-16 (Phase 4: @mentions and notifications implemented - MentionSuggestions component, NotificationsPanel, backend APIs)

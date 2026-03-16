@@ -1,9 +1,9 @@
 # STATE.md - Thynk Current Status
 
-## Project Status: PHASE 2 COMPLETE (with known issues fixed)
+## Project Status: PHASE 3 COMPLETE (sync engine added)
 
-**Current Phase:** Phase 3 -- AI & Sync (starting next)
-**Overall Progress:** Phases 1 and 2 complete; several Phase 2 bugs fixed 2026-03-15
+**Current Phase:** Phase 3 -- AI & Sync (done)
+**Overall Progress:** Phases 1, 2, and 3 complete; Cloud Deployment remaining in Phase 3
 
 ---
 
@@ -82,7 +82,7 @@
 | AI Chat API             | Done        | Phase 3 |
 | AI Inline Completions    | Done        | Phase 3 |
 | AI Integration          | Done        | Phase 3 |
-| Sync Engine             | Not Started | Phase 3 |
+| Sync Engine             | Done        | Phase 3 |
 | Unlinked Mentions       | Done        | Phase 3 |
 | Cloud Deployment        | Not Started | Phase 3 |
 | P2P Collaboration       | Not Started | Phase 4 |
@@ -149,7 +149,7 @@
 
 1. ~~AI Integration -- BYOK, inline completions, smart search~~ (done: settings UI, API routes, inline completions)
 2. ~~Unlinked mentions~~ (done: backend endpoint + UI in backlinks panel)
-3. **Sync Engine** -- differential sync between devices and cloud
+3. ~~Sync Engine -- differential sync between devices and cloud~~ (done: sync crate, API endpoints, audit trail)
 4. **Cloud Deployment** -- scale-to-zero instances, wake on first request
 
 ---

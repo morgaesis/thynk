@@ -29,3 +29,4 @@ zip = "2"
 # Internal crates
 thynk-core = { path = "crates/thynk-core" }
 thynk-search = { path = "crates/thynk-search" }
+thynk-sync = { path = "crates/thynk-sync" }

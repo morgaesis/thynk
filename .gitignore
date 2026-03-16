@@ -25,3 +25,5 @@ TODO.md
 tmp/
 .cache/
 data/
+.gsd/
+gsd-logs/

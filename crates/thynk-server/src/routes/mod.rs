@@ -7,6 +7,7 @@ pub mod locks;
 pub mod notes;
 pub mod profiles;
 pub mod search;
+pub mod sync;
 pub mod tags;
 pub mod templates;
 pub mod tree;
@@ -96,6 +97,9 @@ pub fn router(state: AppState) -> Router {
             "/api/users/by-username/{username}/profile",
             get(profiles::get_user_profile_by_username),
         )
+        .route("/api/sync/status", get(sync::get_sync_status))
+        .route("/api/sync", post(sync::sync))
+        .route("/api/sync/audit", get(sync::get_audit_log))
         .route_layer(middleware::from_fn_with_state(
             state.clone(),
             auth::require_auth,

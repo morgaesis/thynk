@@ -18,6 +18,7 @@ const SESSION_COOKIE: &str = "thynk_session";
 /// Authenticated user info, injected by the require_auth middleware as a request extension.
 #[derive(Clone)]
 pub struct AuthUser {
+    pub id: String,
     pub username: String,
     pub display_name: Option<String>,
 }
@@ -357,6 +358,7 @@ pub async fn require_auth(
         Ok(user) => {
             drop(db);
             request.extensions_mut().insert(AuthUser {
+                id: user.id,
                 username: user.username,
                 display_name: user.display_name,
             });

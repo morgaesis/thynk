@@ -20,6 +20,7 @@ s3 = { workspace = true }
 sha2.workspace = true
 thynk-core.workspace = true
 thynk-search.workspace = true
+thynk-sync.workspace = true
 tokio.workspace = true
 tower-http.workspace = true
 tracing.workspace = true

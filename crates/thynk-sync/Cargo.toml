@@ -1,0 +1,19 @@
+[package]
+name = "thynk-sync"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1"
+chrono = { version = "0.4", features = ["serde"] }
+rusqlite = { version = "0.33", features = ["bundled"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+thiserror = "2"
+
+[dependencies.thynk-core]
+path = "../thynk-core"
+
+[dev-dependencies]
+tempfile = "3"

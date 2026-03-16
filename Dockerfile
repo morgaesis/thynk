@@ -1,28 +1,36 @@
-# Build stage for Rust backend
+# Build stage for Rust backend (server-only, no Tauri)
 FROM rust:1.85-bookworm AS rust-builder
 
 WORKDIR /app
 
-# Install dependencies for faster builds
+# Install dependencies
 RUN apt-get update && apt-get install -y pkg-config libssl-dev && rm -rf /var/lib/apt/lists/*
 
-# Cache dependencies
+# First, copy workspace manifests for dependency caching
 COPY Cargo.toml Cargo.lock ./
 COPY crates/thynk-core/Cargo.toml ./crates/thynk-core/
 COPY crates/thynk-search/Cargo.toml ./crates/thynk-search/
 COPY crates/thynk-sync/Cargo.toml ./crates/thynk-sync/
 COPY crates/thynk-server/Cargo.toml ./crates/thynk-server/
+
+# Create a stub Cargo.toml that excludes src-tauri for Docker builds
+RUN sed -i 's/"src-tauri",//' Cargo.toml || true
+
+# Create placeholder source files
 RUN mkdir -p crates/thynk-core/src crates/thynk-search/src crates/thynk-sync/src crates/thynk-server/src && \
-    echo "fn main() {}" > crates/thynk-core/src/lib.rs && \
-    echo "fn main() {}" > crates/thynk-search/src/lib.rs && \
-    echo "fn main() {}" > crates/thynk-sync/src/lib.rs && \
+    echo "pub fn placeholder() {}" > crates/thynk-core/src/lib.rs && \
+    echo "pub fn placeholder() {}" > crates/thynk-search/src/lib.rs && \
+    echo "pub fn placeholder() {}" > crates/thynk-sync/src/lib.rs && \
     echo "fn main() {}" > crates/thynk-server/src/main.rs
 
-RUN cargo build --release && rm -rf target/release/deps/thynk*
+# Cache dependencies
+RUN cargo build --release --locked
 
-# Build actual code
+# Now copy actual source
 COPY crates ./crates
-RUN cargo build --release --bin thynk-server
+
+# Build the server binary
+RUN cargo build --release --bin thynk-server --locked
 
 # Build stage for frontend
 FROM oven/bun:1 AS frontend-builder
@@ -38,7 +46,7 @@ RUN bun run build
 # Runtime stage
 FROM debian:bookworm-slim
 
-RUN apt-get update && apt-get install -y ca-certificates libssl3 && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y ca-certificates libssl3 curl && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, useState } from 'react';
+import { useEffect, useRef, useCallback, useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import {
   useEditor,
@@ -267,6 +267,12 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
 
   const { ydoc, provider, users: collabUsers } = useCollaboration(activeNote?.id);
 
+  const localUserColor = useMemo(() => {
+    if (!provider) return '#958DF1';
+    const localState = provider.awareness.getLocalState();
+    return localState?.user?.color ?? '#958DF1';
+  }, [provider]);
+
   useEffect(() => {
     activeNoteRef.current = activeNote;
   }, [activeNote]);
@@ -332,7 +338,7 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
               provider,
               user: {
                 name: authUser?.username ?? 'Anonymous',
-                color: '#958DF1',
+                color: localUserColor,
               },
             }),
           ]

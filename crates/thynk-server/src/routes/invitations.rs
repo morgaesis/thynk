@@ -1,15 +1,15 @@
-use axum::extract::{State, Extension};
+use argon2::password_hash::PasswordHasher;
+use axum::extract::{Extension, State};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::Json;
-use argon2::password_hash::PasswordHasher;
 use rand::rngs::OsRng;
 use rand::RngCore;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::state::AppState;
 use crate::routes::auth::{err_json, AuthUser};
+use crate::state::AppState;
 use thynk_core::db::UserRole;
 
 const INVITATION_EXPIRY_DAYS: i64 = 7;
@@ -216,11 +216,7 @@ pub async fn accept_invitation(
     };
 
     if now > expires {
-        return err_json(
-            StatusCode::GONE,
-            "expired",
-            "Invitation has expired",
-        );
+        return err_json(StatusCode::GONE, "expired", "Invitation has expired");
     }
 
     if let Ok(Some(_)) = db.get_user_by_username(&body.username) {
@@ -550,7 +546,11 @@ mod tests {
         drop(storage);
         let db = state.db.lock().await;
         db.index_note(&note).unwrap();
-        let inv = db.get_invitation_by_email("newuser@example.com").ok().flatten().unwrap();
+        let inv = db
+            .get_invitation_by_email("newuser@example.com")
+            .ok()
+            .flatten()
+            .unwrap();
         drop(db);
 
         let app = routes::router(state.clone());
@@ -667,7 +667,8 @@ mod tests {
                 .header("content-type", "application/json")
                 .header("cookie", &owner_cookie)
                 .body(Body::from(
-                    serde_json::json!({ "email": "user2@example.com", "role": "admin" }).to_string(),
+                    serde_json::json!({ "email": "user2@example.com", "role": "admin" })
+                        .to_string(),
                 ))
                 .unwrap(),
         )

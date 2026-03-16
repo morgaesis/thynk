@@ -354,7 +354,11 @@ pub async fn update_user(
         let db = state.db.lock().await;
 
         if let Err(e) = db.update_user_role(&user_id, role) {
-            return err_json(StatusCode::INTERNAL_SERVER_ERROR, "db_error", &e.to_string());
+            return err_json(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "db_error",
+                &e.to_string(),
+            );
         }
 
         if let Ok(Some(updated)) = db.get_user_by_id(&user_id) {
@@ -371,8 +375,12 @@ pub async fn update_user(
         }
     }
 
-    err_json(StatusCode::BAD_REQUEST, "bad_request", "No valid fields to update")
-        .into_response()
+    err_json(
+        StatusCode::BAD_REQUEST,
+        "bad_request",
+        "No valid fields to update",
+    )
+    .into_response()
 }
 
 // ── PATCH /api/auth/me ────────────────────────────────────────────────────────
@@ -889,7 +897,8 @@ mod tests {
                     .header("content-type", "application/json")
                     .header("cookie", &cookie_value)
                     .body(Body::from(
-                        serde_json::json!({ "username": "viewer1", "password": "pass" }).to_string(),
+                        serde_json::json!({ "username": "viewer1", "password": "pass" })
+                            .to_string(),
                     ))
                     .unwrap(),
             )
@@ -906,7 +915,8 @@ mod tests {
                     .uri("/api/auth/login")
                     .header("content-type", "application/json")
                     .body(Body::from(
-                        serde_json::json!({ "username": "viewer1", "password": "pass" }).to_string(),
+                        serde_json::json!({ "username": "viewer1", "password": "pass" })
+                            .to_string(),
                     ))
                     .unwrap(),
             )
@@ -1191,7 +1201,11 @@ mod tests {
             )
             .await
             .unwrap();
-        assert_eq!(res.status(), StatusCode::OK, "owner should be able to set page permissions");
+        assert_eq!(
+            res.status(),
+            StatusCode::OK,
+            "owner should be able to set page permissions"
+        );
     }
 
     #[tokio::test]
@@ -1329,7 +1343,11 @@ mod tests {
             )
             .await
             .unwrap();
-        assert_eq!(res.status(), StatusCode::FORBIDDEN, "viewer should not be able to set permissions");
+        assert_eq!(
+            res.status(),
+            StatusCode::FORBIDDEN,
+            "viewer should not be able to set permissions"
+        );
     }
 
     #[tokio::test]
@@ -1438,7 +1456,11 @@ mod tests {
             )
             .await
             .unwrap();
-        assert_eq!(res.status(), StatusCode::OK, "should be able to get page permissions");
+        assert_eq!(
+            res.status(),
+            StatusCode::OK,
+            "should be able to get page permissions"
+        );
         let body = axum::body::to_bytes(res.into_body(), usize::MAX)
             .await
             .unwrap();

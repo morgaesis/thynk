@@ -38,7 +38,10 @@ pub fn router(state: AppState) -> Router {
         .route("/api/auth/register", post(auth::register))
         .route("/api/auth/logout", post(auth::logout))
         .route("/api/auth/me", get(auth::me))
-        .route("/api/invitations/accept", post(invitations::accept_invitation))
+        .route(
+            "/api/invitations/accept",
+            post(invitations::accept_invitation),
+        )
         .with_state(state.clone());
 
     let protected_routes = Router::new()
@@ -86,7 +89,10 @@ pub fn router(state: AppState) -> Router {
             "/api/notes/{id}/lock/heartbeat",
             post(locks::heartbeat_lock),
         )
-        .route("/api/notes/{id}/permissions", get(notes::get_page_permissions))
+        .route(
+            "/api/notes/{id}/permissions",
+            get(notes::get_page_permissions),
+        )
         .route(
             "/api/notes/{id}/permissions",
             post(notes::set_page_permission),

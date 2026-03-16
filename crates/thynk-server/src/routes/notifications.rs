@@ -1,10 +1,10 @@
+use axum::http::StatusCode;
 use axum::{
     extract::State,
     response::IntoResponse,
     routing::{get, patch},
     Json, Router,
 };
-use axum::http::StatusCode;
 
 use crate::routes::auth::AuthUser;
 use crate::state::AppState;
@@ -28,11 +28,9 @@ pub async fn get_notifications(
 ) -> impl IntoResponse {
     let db = state.db.lock().await;
     match db.get_notifications_for_user(&auth_user.id) {
-        Ok(notifications) => (
-            StatusCode::OK,
-            Json(NotificationResponse { notifications }),
-        )
-            .into_response(),
+        Ok(notifications) => {
+            (StatusCode::OK, Json(NotificationResponse { notifications })).into_response()
+        }
         Err(e) => err_json(
             StatusCode::INTERNAL_SERVER_ERROR,
             "db_error",
@@ -81,5 +79,8 @@ pub async fn mark_read(
 }
 
 fn err_json(status: StatusCode, code: &str, message: &str) -> impl IntoResponse {
-    (status, Json(serde_json::json!({ "error": code, "message": message })))
+    (
+        status,
+        Json(serde_json::json!({ "error": code, "message": message })),
+    )
 }

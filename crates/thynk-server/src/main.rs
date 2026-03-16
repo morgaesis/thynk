@@ -990,8 +990,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_static_file_serving_serves_index_html() {
-        use tower_http::services::ServeDir;
         use std::path::PathBuf;
+        use tower_http::services::ServeDir;
 
         let state = test_state();
         let api_router = routes::router(state);
@@ -1008,12 +1008,7 @@ mod tests {
 
         // Test that root path serves index.html
         let response = app
-            .oneshot(
-                Request::builder()
-                    .uri("/")
-                    .body(Body::empty())
-                    .unwrap(),
-            )
+            .oneshot(Request::builder().uri("/").body(Body::empty()).unwrap())
             .await
             .unwrap();
 

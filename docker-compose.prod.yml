@@ -1,0 +1,29 @@
+# Production configuration
+# Use with: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+services:
+  thynk:
+    image: ghcr.io/morgaesis/thynk:latest
+    restart: always
+    environment:
+      - THYNK_DATA_DIR=/data
+      - RUST_LOG=info
+    volumes:
+      - thynk-data:/data
+    labels:
+      - 'com.centurylinklabs.watchtower.enable=true'
+
+  watchtower:
+    image: containrrr/watchtower
+    container_name: watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - WATCHTOWER_POLL_INTERVAL=300
+      - WATCHTOWER_LABEL_ENABLE=true
+      - WATCHTOWER_INCLUDE_STOPPED=true
+      - WATCHTOWER_REVIVE_STOPPED=true
+    restart: always
+
+volumes:
+  thynk-data:

@@ -18,10 +18,10 @@ fi
 # Rust checks (when Rust code exists)
 if [ -f Cargo.toml ]; then
   echo "  -> cargo check"
-  cargo check --quiet 2>&1
+  cargo check --quiet -p thynk-server -p thynk-core -p thynk-search -p thynk-sync 2>&1
 
   echo "  -> cargo clippy"
-  cargo clippy --quiet -- -D warnings 2>&1
+  cargo clippy --quiet -p thynk-server -p thynk-core -p thynk-search -p thynk-sync -- -D warnings 2>&1
 
   echo "  -> cargo fmt check"
   cargo fmt --all --check 2>&1

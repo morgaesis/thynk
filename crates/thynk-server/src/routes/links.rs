@@ -88,9 +88,18 @@ pub fn extract_mentions(content: &str) -> Vec<String> {
             let mut end = i;
             while end > start {
                 let last_byte = bytes[end - 1];
-                if last_byte == b'.' || last_byte == b',' || last_byte == b'!' || last_byte == b'?' 
-                    || last_byte == b':' || last_byte == b';' || last_byte == b'-' || last_byte == b'_' 
-                    || last_byte == b' ' || last_byte == b'\n' || last_byte == b'\t' {
+                if last_byte == b'.'
+                    || last_byte == b','
+                    || last_byte == b'!'
+                    || last_byte == b'?'
+                    || last_byte == b':'
+                    || last_byte == b';'
+                    || last_byte == b'-'
+                    || last_byte == b'_'
+                    || last_byte == b' '
+                    || last_byte == b'\n'
+                    || last_byte == b'\t'
+                {
                     end -= 1;
                 } else {
                     break;
@@ -98,7 +107,10 @@ pub fn extract_mentions(content: &str) -> Vec<String> {
             }
             if end > start {
                 let username = content[start..end].to_string();
-                if !username.is_empty() && is_valid_username(&username) && !mentions.contains(&username) {
+                if !username.is_empty()
+                    && is_valid_username(&username)
+                    && !mentions.contains(&username)
+                {
                     mentions.push(username);
                 }
             }

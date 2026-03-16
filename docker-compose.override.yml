@@ -1,0 +1,23 @@
+# Local development overrides
+# Automatically loaded by docker compose (no need to specify -f)
+
+services:
+  thynk:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: rust-builder
+    volumes:
+      - .:/app
+      - cargo-cache:/usr/local/cargo/registry
+      - target-cache:/app/target
+    environment:
+      - THYNK_DATA_DIR=/data
+      - RUST_LOG=debug
+    command: ['cargo', 'run', '--release', '--bin', 'thynk-server']
+    ports:
+      - '3000:3000'
+
+volumes:
+  cargo-cache:
+  target-cache:

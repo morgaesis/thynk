@@ -141,10 +141,14 @@ pub fn run() {
     let app = if dist_path.exists() {
         info!("Serving static files from {}", dist_path.display());
         api_router.fallback_service(
-            ServeDir::new(&dist_path).not_found_service(ServeFile::new(dist_path.join("index.html"))),
+            ServeDir::new(&dist_path)
+                .not_found_service(ServeFile::new(dist_path.join("index.html"))),
         )
     } else {
-        info!("Frontend dist not found at {}, serving API only", dist_path.display());
+        info!(
+            "Frontend dist not found at {}, serving API only",
+            dist_path.display()
+        );
         api_router
     };
 

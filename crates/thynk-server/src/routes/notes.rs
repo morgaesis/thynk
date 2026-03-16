@@ -6,8 +6,8 @@ use axum::response::IntoResponse;
 use axum::{Extension, Json};
 use serde::{Deserialize, Serialize};
 
-use thynk_core::{Note, NoteStorage};
 use thynk_core::db::UserRole;
+use thynk_core::{Note, NoteStorage};
 
 use crate::routes::auth::AuthUser;
 use crate::routes::links::{extract_mentions, extract_wiki_link_titles};
@@ -172,12 +172,12 @@ pub async fn get_note(
     Path(id): Path<String>,
 ) -> impl IntoResponse {
     let db = state.db.lock().await;
-    
+
     // Check view permission.
     if let Err(resp) = check_note_permission(&db, &id, &auth_user, "view") {
         return resp.into_response();
     }
-    
+
     let meta = match db.get_note_metadata(&id) {
         Ok(m) => m,
         Err(_) => {
@@ -311,7 +311,7 @@ pub async fn update_note(
     if let Err(resp) = check_note_permission(&db, &id, &auth_user, "edit") {
         return resp.into_response();
     }
-    
+
     let meta = match db.get_note_metadata(&id) {
         Ok(m) => m,
         Err(_) => {
@@ -445,19 +445,11 @@ pub async fn update_note(
             // Don't notify the user if they're mentioning themselves.
             if target_user.id != auth_user.id {
                 let exists = db
-                    .mention_notification_exists(
-                        &target_user.id,
-                        &note.id,
-                        &auth_user.username,
-                    )
+                    .mention_notification_exists(&target_user.id, &note.id, &auth_user.username)
                     .unwrap_or(false);
                 if !exists {
                     let notification_id = uuid::Uuid::new_v4().to_string();
-                    let message = format!(
-                        "{} mentioned you in \"{}\"",
-                        editor_name,
-                        note.title
-                    );
+                    let message = format!("{} mentioned you in \"{}\"", editor_name, note.title);
                     let _ = db.create_notification(
                         &notification_id,
                         &target_user.id,
@@ -613,7 +605,10 @@ pub async fn get_page_permissions(
     }
 
     match db.get_page_permissions(&note_id) {
-        Ok(permissions) => (StatusCode::OK, Json(serde_json::to_value(permissions).unwrap()))
+        Ok(permissions) => (
+            StatusCode::OK,
+            Json(serde_json::to_value(permissions).unwrap()),
+        )
             .into_response(),
         Err(e) => err(
             StatusCode::INTERNAL_SERVER_ERROR,

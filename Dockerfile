@@ -1,5 +1,5 @@
 # Build stage for Rust backend (server-only, no Tauri)
-FROM rust:1.85-bookworm AS rust-builder
+FROM rust:bookworm AS rust-builder
 
 WORKDIR /app
 

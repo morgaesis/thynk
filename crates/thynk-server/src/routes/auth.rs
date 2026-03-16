@@ -9,9 +9,11 @@ use axum_extra::extract::cookie::Cookie;
 use axum_extra::extract::CookieJar;
 use rand::rngs::OsRng;
 use serde::{Deserialize, Serialize};
+use std::str::FromStr;
 use uuid::Uuid;
 
 use crate::state::AppState;
+use thynk_core::db::UserRole;
 
 const SESSION_COOKIE: &str = "thynk_session";
 
@@ -21,6 +23,7 @@ pub struct AuthUser {
     pub id: String,
     pub username: String,
     pub display_name: Option<String>,
+    pub role: UserRole,
 }
 /// 30 days in seconds.
 const SESSION_MAX_AGE_SECS: i64 = 2_592_000;
@@ -49,6 +52,7 @@ pub struct RegisterResponse {
     pub id: String,
     pub username: String,
     pub display_name: Option<String>,
+    pub role: String,
 }
 
 pub async fn register(
@@ -119,12 +123,16 @@ pub async fn register(
         return err_json(StatusCode::INTERNAL_SERVER_ERROR, "db_error", &msg);
     }
 
+    let user = db.get_user_by_id(&id).ok().flatten();
+    let role = user.map(|u| u.role).unwrap_or(UserRole::Viewer);
+
     (
         StatusCode::CREATED,
         Json(RegisterResponse {
             id,
             username: body.username,
             display_name: body.display_name,
+            role: role.to_string(),
         }),
     )
         .into_response()
@@ -145,6 +153,7 @@ pub struct LoginResponse {
     pub display_name: Option<String>,
     pub storage_used: i64,
     pub storage_limit: i64,
+    pub role: String,
 }
 
 pub async fn login(
@@ -238,6 +247,7 @@ pub async fn login(
             display_name: user.display_name,
             storage_used: user.storage_used,
             storage_limit: user.storage_limit,
+            role: user.role.to_string(),
         }),
     )
         .into_response()
@@ -269,6 +279,7 @@ pub struct MeResponse {
     pub display_name: Option<String>,
     pub storage_used: i64,
     pub storage_limit: i64,
+    pub role: String,
 }
 
 pub async fn me(jar: CookieJar, State(state): State<AppState>) -> Response {
@@ -285,6 +296,7 @@ pub async fn me(jar: CookieJar, State(state): State<AppState>) -> Response {
                 display_name: user.display_name,
                 storage_used: user.storage_used,
                 storage_limit: user.storage_limit,
+                role: user.role.to_string(),
             }),
         )
             .into_response(),
@@ -294,7 +306,10 @@ pub async fn me(jar: CookieJar, State(state): State<AppState>) -> Response {
 
 // ── GET /api/users ─────────────────────────────────────────────────────────────
 
-pub async fn list_users(State(state): State<AppState>) -> impl IntoResponse {
+pub async fn list_users(
+    axum::extract::Extension(_auth_user): axum::extract::Extension<AuthUser>,
+    State(state): State<AppState>,
+) -> impl IntoResponse {
     let db = state.db.lock().await;
     match db.list_users() {
         Ok(users) => (StatusCode::OK, Json(serde_json::to_value(users).unwrap())).into_response(),
@@ -305,6 +320,59 @@ pub async fn list_users(State(state): State<AppState>) -> impl IntoResponse {
         )
         .into_response(),
     }
+}
+
+// ── PATCH /api/users/:id ───────────────────────────────────────────────────────
+
+#[derive(Deserialize)]
+pub struct UpdateUserRequest {
+    pub role: Option<String>,
+}
+
+pub async fn update_user(
+    axum::extract::Extension(auth_user): axum::extract::Extension<AuthUser>,
+    State(state): State<AppState>,
+    axum::extract::Path(user_id): axum::extract::Path<String>,
+    Json(body): Json<UpdateUserRequest>,
+) -> Response {
+    if auth_user.role != UserRole::Owner && auth_user.role != UserRole::Admin {
+        return err_json(
+            StatusCode::FORBIDDEN,
+            "forbidden",
+            "Only owners and admins can update user roles",
+        );
+    }
+
+    if let Some(role_str) = &body.role {
+        let role: UserRole = match UserRole::from_str(role_str) {
+            Ok(r) => r,
+            Err(e) => {
+                return err_json(StatusCode::BAD_REQUEST, "invalid_role", &e);
+            }
+        };
+
+        let db = state.db.lock().await;
+
+        if let Err(e) = db.update_user_role(&user_id, role) {
+            return err_json(StatusCode::INTERNAL_SERVER_ERROR, "db_error", &e.to_string());
+        }
+
+        if let Ok(Some(updated)) = db.get_user_by_id(&user_id) {
+            return (
+                StatusCode::OK,
+                Json(serde_json::json!({
+                    "id": updated.id,
+                    "username": updated.username,
+                    "display_name": updated.display_name,
+                    "role": updated.role.to_string(),
+                })),
+            )
+                .into_response();
+        }
+    }
+
+    err_json(StatusCode::BAD_REQUEST, "bad_request", "No valid fields to update")
+        .into_response()
 }
 
 // ── PATCH /api/auth/me ────────────────────────────────────────────────────────
@@ -352,6 +420,7 @@ pub async fn update_me(
             display_name: updated_display_name,
             storage_used: user.storage_used,
             storage_limit: user.storage_limit,
+            role: user.role.to_string(),
         }),
     )
         .into_response()
@@ -376,6 +445,7 @@ pub async fn require_auth(
                 id: user.id,
                 username: user.username,
                 display_name: user.display_name,
+                role: user.role,
             });
             next.run(request).await
         }
@@ -455,7 +525,7 @@ mod tests {
     use tokio::sync::{broadcast, Mutex};
     use tower::ServiceExt;
 
-    use thynk_core::{Config, Database, FilesystemStorage};
+    use thynk_core::{Config, Database, FilesystemStorage, NoteStorage};
 
     use crate::routes;
     use crate::state::AppState;
@@ -699,5 +769,680 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(res.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn test_first_user_becomes_owner() {
+        let state = test_state();
+
+        // Register first user - should become owner.
+        let app = routes::router(state.clone());
+        let res = app
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/auth/register")
+                    .header("content-type", "application/json")
+                    .body(Body::from(
+                        serde_json::json!({ "username": "owner1", "password": "pass" }).to_string(),
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(res.status(), StatusCode::CREATED);
+
+        // Login and check role.
+        let app = routes::router(state.clone());
+        let res = app
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/auth/login")
+                    .header("content-type", "application/json")
+                    .body(Body::from(
+                        serde_json::json!({ "username": "owner1", "password": "pass" }).to_string(),
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let cookie_header = res
+            .headers()
+            .get("set-cookie")
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .to_string();
+        let cookie_value = cookie_header.split(';').next().unwrap().to_string();
+
+        // Get user info - should include role.
+        let app = routes::router(state);
+        let res = app
+            .oneshot(
+                Request::builder()
+                    .uri("/api/auth/me")
+                    .header("cookie", &cookie_value)
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(res.status(), StatusCode::OK);
+        let body = axum::body::to_bytes(res.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(json["role"], "owner");
+    }
+
+    #[tokio::test]
+    async fn test_subsequent_user_becomes_viewer() {
+        let state = test_state();
+
+        // Register first user (owner).
+        let app = routes::router(state.clone());
+        app.oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/auth/register")
+                .header("content-type", "application/json")
+                .body(Body::from(
+                    serde_json::json!({ "username": "owner", "password": "pass" }).to_string(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+        // Register second user (requires auth) - with invitation.
+        let app = routes::router(state.clone());
+        let login_res = app
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/auth/login")
+                    .header("content-type", "application/json")
+                    .body(Body::from(
+                        serde_json::json!({ "username": "owner", "password": "pass" }).to_string(),
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let cookie_header = login_res
+            .headers()
+            .get("set-cookie")
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .to_string();
+        let cookie_value = cookie_header.split(';').next().unwrap().to_string();
+
+        // Register second user with auth.
+        let app = routes::router(state.clone());
+        let res = app
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/auth/register")
+                    .header("content-type", "application/json")
+                    .header("cookie", &cookie_value)
+                    .body(Body::from(
+                        serde_json::json!({ "username": "viewer1", "password": "pass" }).to_string(),
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(res.status(), StatusCode::CREATED);
+
+        // Login as second user.
+        let app = routes::router(state.clone());
+        let res = app
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/auth/login")
+                    .header("content-type", "application/json")
+                    .body(Body::from(
+                        serde_json::json!({ "username": "viewer1", "password": "pass" }).to_string(),
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let cookie_header = res
+            .headers()
+            .get("set-cookie")
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .to_string();
+        let viewer_cookie = cookie_header.split(';').next().unwrap().to_string();
+
+        // Get viewer role.
+        let app = routes::router(state);
+        let res = app
+            .oneshot(
+                Request::builder()
+                    .uri("/api/auth/me")
+                    .header("cookie", &viewer_cookie)
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let body = axum::body::to_bytes(res.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(json["role"], "viewer");
+    }
+
+    #[tokio::test]
+    async fn test_update_user_role_as_owner() {
+        let state = test_state();
+
+        // Register owner.
+        let app = routes::router(state.clone());
+        app.oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/auth/register")
+                .header("content-type", "application/json")
+                .body(Body::from(
+                    serde_json::json!({ "username": "owner", "password": "pass" }).to_string(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+        // Register another user (requires auth since users already exist).
+        // First login as owner, then register user2.
+        let app = routes::router(state.clone());
+        let login_res = app
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/auth/login")
+                    .header("content-type", "application/json")
+                    .body(Body::from(
+                        serde_json::json!({ "username": "owner", "password": "pass" }).to_string(),
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let cookie_header = login_res
+            .headers()
+            .get("set-cookie")
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .to_string();
+        let owner_cookie = cookie_header.split(';').next().unwrap().to_string();
+
+        // Register user2 with owner auth.
+        let app = routes::router(state.clone());
+        app.oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/auth/register")
+                .header("content-type", "application/json")
+                .header("cookie", &owner_cookie)
+                .body(Body::from(
+                    serde_json::json!({ "username": "user2", "password": "pass" }).to_string(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+        // Login as owner.
+        let app = routes::router(state.clone());
+        let res = app
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/auth/login")
+                    .header("content-type", "application/json")
+                    .body(Body::from(
+                        serde_json::json!({ "username": "owner", "password": "pass" }).to_string(),
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let cookie_header = res
+            .headers()
+            .get("set-cookie")
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .to_string();
+        let owner_cookie = cookie_header.split(';').next().unwrap().to_string();
+
+        // Get user list to find user2's ID.
+        let app = routes::router(state.clone());
+        let res = app
+            .oneshot(
+                Request::builder()
+                    .uri("/api/users")
+                    .header("cookie", &owner_cookie)
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let body = axum::body::to_bytes(res.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        let user2_id = json
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|u| u["username"] == "user2")
+            .unwrap()["id"]
+            .as_str()
+            .unwrap();
+
+        // Update user2's role to editor.
+        let app = routes::router(state.clone());
+        let res = app
+            .oneshot(
+                Request::builder()
+                    .method("PATCH")
+                    .uri(&format!("/api/users/{}", user2_id))
+                    .header("content-type", "application/json")
+                    .header("cookie", &owner_cookie)
+                    .body(Body::from(
+                        serde_json::json!({ "role": "editor" }).to_string(),
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(res.status(), StatusCode::OK);
+
+        // Verify the role was updated.
+        let app = routes::router(state.clone());
+        let res = app
+            .oneshot(
+                Request::builder()
+                    .uri("/api/users")
+                    .header("cookie", &owner_cookie)
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let body = axum::body::to_bytes(res.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        let user2_role = json
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|u| u["username"] == "user2")
+            .unwrap()["role"]
+            .as_str()
+            .unwrap();
+        assert_eq!(user2_role, "editor");
+    }
+
+    // ── Page Permissions Tests ─────────────────────────────────────────────────
+
+    #[tokio::test]
+    async fn test_set_page_permission_as_owner() {
+        let state = test_state();
+
+        // Register owner.
+        let app = routes::router(state.clone());
+        app.oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/auth/register")
+                .header("content-type", "application/json")
+                .body(Body::from(
+                    serde_json::json!({ "username": "owner", "password": "pass" }).to_string(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+        // Login as owner.
+        let app = routes::router(state.clone());
+        let res = app
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/auth/login")
+                    .header("content-type", "application/json")
+                    .body(Body::from(
+                        serde_json::json!({ "username": "owner", "password": "pass" }).to_string(),
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let cookie_header = res
+            .headers()
+            .get("set-cookie")
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .to_string();
+        let owner_cookie = cookie_header.split(';').next().unwrap().to_string();
+
+        // Get owner user ID.
+        let app = routes::router(state.clone());
+        let res = app
+            .oneshot(
+                Request::builder()
+                    .uri("/api/auth/me")
+                    .header("cookie", &owner_cookie)
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let body = axum::body::to_bytes(res.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        let owner_id = json["id"].as_str().unwrap();
+
+        // Create a test note.
+        let storage = state.storage.lock().await;
+        let note = thynk_core::Note::new(
+            "Test Note".into(),
+            "Content".into(),
+            std::path::PathBuf::from("test-note.md"),
+        );
+        storage.write_note(&note).unwrap();
+        drop(storage);
+        let db = state.db.lock().await;
+        db.index_note(&note).unwrap();
+        let note_id = note.id.clone();
+        drop(db);
+
+        // Set page permission (owner can edit their own page).
+        let app = routes::router(state.clone());
+        let res = app
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri(&format!("/api/notes/{}/permissions", note_id))
+                    .header("content-type", "application/json")
+                    .header("cookie", &owner_cookie)
+                    .body(Body::from(
+                        serde_json::json!({
+                            "user_id": owner_id,
+                            "permission": "edit"
+                        })
+                        .to_string(),
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(res.status(), StatusCode::OK, "owner should be able to set page permissions");
+    }
+
+    #[tokio::test]
+    async fn test_viewer_cannot_set_page_permission() {
+        let state = test_state();
+
+        // Register owner.
+        let app = routes::router(state.clone());
+        app.oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/auth/register")
+                .header("content-type", "application/json")
+                .body(Body::from(
+                    serde_json::json!({ "username": "owner", "password": "pass" }).to_string(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+        // Register viewer.
+        let app = routes::router(state.clone());
+        let login_res = app
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/auth/login")
+                    .header("content-type", "application/json")
+                    .body(Body::from(
+                        serde_json::json!({ "username": "owner", "password": "pass" }).to_string(),
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let cookie_header = login_res
+            .headers()
+            .get("set-cookie")
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .to_string();
+        let owner_cookie = cookie_header.split(';').next().unwrap().to_string();
+
+        // Register viewer user with owner auth.
+        let app = routes::router(state.clone());
+        app.oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/auth/register")
+                .header("content-type", "application/json")
+                .header("cookie", &owner_cookie)
+                .body(Body::from(
+                    serde_json::json!({ "username": "viewer", "password": "pass" }).to_string(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+        // Login as viewer.
+        let app = routes::router(state.clone());
+        let res = app
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/auth/login")
+                    .header("content-type", "application/json")
+                    .body(Body::from(
+                        serde_json::json!({ "username": "viewer", "password": "pass" }).to_string(),
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let cookie_header = res
+            .headers()
+            .get("set-cookie")
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .to_string();
+        let viewer_cookie = cookie_header.split(';').next().unwrap().to_string();
+
+        // Get viewer user ID.
+        let app = routes::router(state.clone());
+        let res = app
+            .oneshot(
+                Request::builder()
+                    .uri("/api/auth/me")
+                    .header("cookie", &viewer_cookie)
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let body = axum::body::to_bytes(res.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        let viewer_id = json["id"].as_str().unwrap();
+
+        // Create a test note owned by someone else.
+        let storage = state.storage.lock().await;
+        let note = thynk_core::Note::new(
+            "Test Note".into(),
+            "Content".into(),
+            std::path::PathBuf::from("test-note.md"),
+        );
+        storage.write_note(&note).unwrap();
+        drop(storage);
+        let db = state.db.lock().await;
+        db.index_note(&note).unwrap();
+        let note_id = note.id.clone();
+        drop(db);
+
+        // Viewer tries to set page permission - should fail.
+        let app = routes::router(state.clone());
+        let res = app
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri(&format!("/api/notes/{}/permissions", note_id))
+                    .header("content-type", "application/json")
+                    .header("cookie", &viewer_cookie)
+                    .body(Body::from(
+                        serde_json::json!({
+                            "user_id": viewer_id,
+                            "permission": "edit"
+                        })
+                        .to_string(),
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(res.status(), StatusCode::FORBIDDEN, "viewer should not be able to set permissions");
+    }
+
+    #[tokio::test]
+    async fn test_get_page_permissions() {
+        let state = test_state();
+
+        // Register and login owner.
+        let app = routes::router(state.clone());
+        app.oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/auth/register")
+                .header("content-type", "application/json")
+                .body(Body::from(
+                    serde_json::json!({ "username": "owner", "password": "pass" }).to_string(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+        let app = routes::router(state.clone());
+        let res = app
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/auth/login")
+                    .header("content-type", "application/json")
+                    .body(Body::from(
+                        serde_json::json!({ "username": "owner", "password": "pass" }).to_string(),
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let cookie_header = res
+            .headers()
+            .get("set-cookie")
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .to_string();
+        let owner_cookie = cookie_header.split(';').next().unwrap().to_string();
+
+        // Get owner user ID.
+        let app = routes::router(state.clone());
+        let res = app
+            .oneshot(
+                Request::builder()
+                    .uri("/api/auth/me")
+                    .header("cookie", &owner_cookie)
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let body = axum::body::to_bytes(res.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        let owner_id = json["id"].as_str().unwrap();
+
+        // Create a test note.
+        let storage = state.storage.lock().await;
+        let note = thynk_core::Note::new(
+            "Test Note".into(),
+            "Content".into(),
+            std::path::PathBuf::from("test-note.md"),
+        );
+        storage.write_note(&note).unwrap();
+        drop(storage);
+        let db = state.db.lock().await;
+        db.index_note(&note).unwrap();
+        let note_id = note.id.clone();
+        drop(db);
+
+        // Set page permission.
+        let app = routes::router(state.clone());
+        app.oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(&format!("/api/notes/{}/permissions", note_id))
+                .header("content-type", "application/json")
+                .header("cookie", &owner_cookie)
+                .body(Body::from(
+                    serde_json::json!({
+                        "user_id": owner_id,
+                        "permission": "edit"
+                    })
+                    .to_string(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+        // Get page permissions.
+        let app = routes::router(state.clone());
+        let res = app
+            .oneshot(
+                Request::builder()
+                    .uri(&format!("/api/notes/{}/permissions", note_id))
+                    .header("cookie", &owner_cookie)
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(res.status(), StatusCode::OK, "should be able to get page permissions");
+        let body = axum::body::to_bytes(res.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert!(json.is_array(), "permissions should be an array");
     }
 }

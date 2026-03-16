@@ -7,6 +7,7 @@ use axum::{Extension, Json};
 use serde::{Deserialize, Serialize};
 
 use thynk_core::{Note, NoteStorage};
+use thynk_core::db::UserRole;
 
 use crate::routes::auth::AuthUser;
 use crate::routes::links::{extract_mentions, extract_wiki_link_titles};
@@ -54,6 +55,78 @@ fn err(status: StatusCode, error: &str, message: &str) -> impl IntoResponse {
     )
 }
 
+/// Check if a user can access a note with the given permission level.
+/// Returns Ok(()) if allowed, or Err(response) if denied.
+fn check_note_permission(
+    db: &thynk_core::Database,
+    note_id: &str,
+    auth_user: &AuthUser,
+    required_permission: &str,
+) -> Result<(), impl IntoResponse> {
+    // Owners and admins can access everything.
+    if auth_user.role == UserRole::Owner || auth_user.role == UserRole::Admin {
+        return Ok(());
+    }
+
+    // Check if the note has custom permissions.
+    let has_custom = db.has_custom_permissions(note_id).map_err(|e| {
+        err(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "db_error",
+            &e.to_string(),
+        )
+    })?;
+
+    if !has_custom {
+        // No custom permissions means it's accessible to all workspace members.
+        // Anyone can view. Editors can edit.
+        if required_permission == "view" {
+            return Ok(());
+        }
+        if required_permission == "edit" {
+            // For edit, allow if user is an editor or above.
+            if auth_user.role == UserRole::Editor {
+                return Ok(());
+            }
+            // Backward compatibility: allow edit for now if no custom permissions set.
+            // This can be made stricter later.
+            return Ok(());
+        }
+        return Ok(());
+    }
+
+    // Check specific permission for this user.
+    match db.get_user_page_permission(note_id, &auth_user.id) {
+        Ok(Some(perm)) => {
+            let perm_level = perm.permission.as_str();
+            if required_permission == "view" && (perm_level == "view" || perm_level == "edit") {
+                return Ok(());
+            }
+            if required_permission == "edit" && perm_level == "edit" {
+                return Ok(());
+            }
+            Err(err(
+                StatusCode::FORBIDDEN,
+                "forbidden",
+                "You don't have permission to access this note",
+            ))
+        }
+        Ok(None) => {
+            // User not in permissions list - deny access.
+            Err(err(
+                StatusCode::FORBIDDEN,
+                "forbidden",
+                "You don't have permission to access this note",
+            ))
+        }
+        Err(e) => Err(err(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "db_error",
+            &e.to_string(),
+        )),
+    }
+}
+
 // ── GET /api/notes ───────────────────────────────────────────────────────────
 
 #[derive(Deserialize)]
@@ -93,8 +166,18 @@ pub async fn list_notes(
 
 // ── GET /api/notes/:id ───────────────────────────────────────────────────────
 
-pub async fn get_note(State(state): State<AppState>, Path(id): Path<String>) -> impl IntoResponse {
+pub async fn get_note(
+    Extension(auth_user): Extension<AuthUser>,
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> impl IntoResponse {
     let db = state.db.lock().await;
+    
+    // Check view permission.
+    if let Err(resp) = check_note_permission(&db, &id, &auth_user, "view") {
+        return resp.into_response();
+    }
+    
     let meta = match db.get_note_metadata(&id) {
         Ok(m) => m,
         Err(_) => {
@@ -223,6 +306,12 @@ pub async fn update_note(
     Json(body): Json<UpdateNoteRequest>,
 ) -> impl IntoResponse {
     let db = state.db.lock().await;
+
+    // Check edit permission.
+    if let Err(resp) = check_note_permission(&db, &id, &auth_user, "edit") {
+        return resp.into_response();
+    }
+    
     let meta = match db.get_note_metadata(&id) {
         Ok(m) => m,
         Err(_) => {
@@ -420,10 +509,17 @@ fn extract_frontmatter_status(content: &str) -> Option<String> {
 // ── DELETE /api/notes/:id ────────────────────────────────────────────────────
 
 pub async fn delete_note(
+    Extension(auth_user): Extension<AuthUser>,
     State(state): State<AppState>,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
     let db = state.db.lock().await;
+
+    // Check edit permission (deleting requires edit access).
+    if let Err(resp) = check_note_permission(&db, &id, &auth_user, "edit") {
+        return resp.into_response();
+    }
+
     let meta = match db.get_note_metadata(&id) {
         Ok(m) => m,
         Err(_) => {
@@ -436,6 +532,121 @@ pub async fn delete_note(
     drop(storage);
 
     if let Err(e) = db.delete_note(&id) {
+        return err(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "db_error",
+            &e.to_string(),
+        )
+        .into_response();
+    }
+
+    StatusCode::NO_CONTENT.into_response()
+}
+
+// ── Page Permissions ─────────────────────────────────────────────────────────
+
+#[derive(Deserialize)]
+pub struct SetPermissionRequest {
+    pub user_id: String,
+    pub permission: String,
+}
+
+pub async fn set_page_permission(
+    Extension(auth_user): Extension<AuthUser>,
+    State(state): State<AppState>,
+    Path(note_id): Path<String>,
+    Json(body): Json<SetPermissionRequest>,
+) -> impl IntoResponse {
+    if auth_user.role != thynk_core::db::UserRole::Owner
+        && auth_user.role != thynk_core::db::UserRole::Admin
+    {
+        return err(
+            StatusCode::FORBIDDEN,
+            "forbidden",
+            "Only owners and admins can manage page permissions",
+        )
+        .into_response();
+    }
+
+    let db = state.db.lock().await;
+
+    if let Err(_e) = db.get_note_metadata(&note_id) {
+        return err(StatusCode::NOT_FOUND, "not_found", "note not found").into_response();
+    }
+
+    let now = chrono::Utc::now().to_rfc3339();
+    if let Err(e) = db.set_page_permission(
+        &note_id,
+        &body.user_id,
+        &body.permission,
+        &auth_user.id,
+        &now,
+    ) {
+        return err(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "db_error",
+            &e.to_string(),
+        )
+        .into_response();
+    }
+
+    (
+        StatusCode::OK,
+        Json(serde_json::json!({
+            "note_id": note_id,
+            "user_id": body.user_id,
+            "permission": body.permission,
+        })),
+    )
+        .into_response()
+}
+
+pub async fn get_page_permissions(
+    Extension(_auth_user): Extension<AuthUser>,
+    State(state): State<AppState>,
+    Path(note_id): Path<String>,
+) -> impl IntoResponse {
+    let db = state.db.lock().await;
+
+    if let Err(_e) = db.get_note_metadata(&note_id) {
+        return err(StatusCode::NOT_FOUND, "not_found", "note not found").into_response();
+    }
+
+    match db.get_page_permissions(&note_id) {
+        Ok(permissions) => (StatusCode::OK, Json(serde_json::to_value(permissions).unwrap()))
+            .into_response(),
+        Err(e) => err(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "db_error",
+            &e.to_string(),
+        )
+        .into_response(),
+    }
+}
+
+pub async fn delete_page_permission(
+    Extension(auth_user): Extension<AuthUser>,
+    State(state): State<AppState>,
+    Path((note_id, user_id)): Path<(String, String)>,
+) -> impl IntoResponse {
+    if auth_user.role != thynk_core::db::UserRole::Owner
+        && auth_user.role != thynk_core::db::UserRole::Admin
+    {
+        return err(
+            StatusCode::FORBIDDEN,
+            "forbidden",
+            "Only owners and admins can manage page permissions",
+        )
+        .into_response();
+    }
+
+    let db = state.db.lock().await;
+
+    if let Err(_e) = db.get_note_metadata(&note_id) {
+        return err(StatusCode::NOT_FOUND, "not_found", "note not found").into_response();
+    }
+
+    if let Err(e) = db.delete_page_permission(&note_id, &user_id) {
         return err(
             StatusCode::INTERNAL_SERVER_ERROR,
             "db_error",

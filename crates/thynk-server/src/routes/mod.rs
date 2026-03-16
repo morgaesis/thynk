@@ -17,7 +17,7 @@ pub mod ws;
 
 use axum::extract::DefaultBodyLimit;
 use axum::middleware;
-use axum::routing::{get, patch, post};
+use axum::routing::{delete, get, patch, post};
 use axum::Router;
 
 use crate::state::AppState;
@@ -42,6 +42,7 @@ pub fn router(state: AppState) -> Router {
     let protected_routes = Router::new()
         .route("/api/auth/me", patch(auth::update_me))
         .route("/api/users", get(auth::list_users))
+        .route("/api/users/{id}", patch(auth::update_user))
         .route("/api/ai/complete", post(ai::complete))
         .route("/api/ai/chat", post(ai::chat))
         .route(
@@ -82,6 +83,15 @@ pub fn router(state: AppState) -> Router {
         .route(
             "/api/notes/{id}/lock/heartbeat",
             post(locks::heartbeat_lock),
+        )
+        .route("/api/notes/{id}/permissions", get(notes::get_page_permissions))
+        .route(
+            "/api/notes/{id}/permissions",
+            post(notes::set_page_permission),
+        )
+        .route(
+            "/api/notes/{id}/permissions/{user_id}",
+            delete(notes::delete_page_permission),
         )
         .route("/api/tags", get(tags::list_tags))
         .route("/api/tags/{name}/notes", get(tags::get_notes_by_tag))

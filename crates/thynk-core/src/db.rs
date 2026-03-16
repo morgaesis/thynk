@@ -56,6 +56,41 @@ fn extract_tags(note: &Note) -> Vec<String> {
     tags
 }
 
+/// User roles for permissions.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum UserRole {
+    Owner,
+    Admin,
+    Editor,
+    #[default]
+    Viewer,
+}
+
+impl std::fmt::Display for UserRole {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            UserRole::Owner => write!(f, "owner"),
+            UserRole::Admin => write!(f, "admin"),
+            UserRole::Editor => write!(f, "editor"),
+            UserRole::Viewer => write!(f, "viewer"),
+        }
+    }
+}
+
+impl std::str::FromStr for UserRole {
+    type Err = String;
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "owner" => Ok(UserRole::Owner),
+            "admin" => Ok(UserRole::Admin),
+            "editor" => Ok(UserRole::Editor),
+            "viewer" => Ok(UserRole::Viewer),
+            _ => Err(format!("unknown role: {}", s)),
+        }
+    }
+}
+
 /// A user account record.
 pub struct UserRecord {
     pub id: String,
@@ -66,6 +101,7 @@ pub struct UserRecord {
     pub storage_limit: i64,
     pub created_at: String,
     pub last_login: Option<String>,
+    pub role: UserRole,
 }
 
 /// Public user info (without sensitive data).
@@ -74,6 +110,7 @@ pub struct UserInfo {
     pub id: String,
     pub username: String,
     pub display_name: Option<String>,
+    pub role: UserRole,
 }
 
 /// A file upload record.
@@ -112,6 +149,18 @@ pub struct Notification {
     pub read: bool,
     #[serde(rename = "createdAt")]
     pub created_at: String,
+}
+
+/// A page permission record (who can access a specific note).
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct PagePermission {
+    pub note_id: String,
+    pub user_id: String,
+    pub permission: String,
+    #[serde(rename = "createdAt")]
+    pub created_at: String,
+    #[serde(rename = "createdBy")]
+    pub created_by: String,
 }
 
 /// An active session record.
@@ -212,6 +261,7 @@ impl Database {
                 display_name TEXT,
                 storage_used INTEGER NOT NULL DEFAULT 0,
                 storage_limit INTEGER NOT NULL DEFAULT 104857600,
+                role TEXT NOT NULL DEFAULT 'viewer',
                 created_at TEXT NOT NULL,
                 last_login TEXT
             );
@@ -287,6 +337,22 @@ impl Database {
             );
             CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id);
             CREATE INDEX IF NOT EXISTS idx_notifications_read ON notifications(user_id, read);
+            ",
+        )?;
+
+        // Page-level permissions (owner/admin can restrict access to specific notes).
+        self.conn.execute_batch(
+            "
+            CREATE TABLE IF NOT EXISTS page_permissions (
+                note_id     TEXT NOT NULL REFERENCES notes(id) ON DELETE CASCADE,
+                user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                permission  TEXT NOT NULL DEFAULT 'view',
+                created_at  TEXT NOT NULL,
+                created_by  TEXT NOT NULL,
+                PRIMARY KEY (note_id, user_id)
+            );
+            CREATE INDEX IF NOT EXISTS idx_page_permissions_note ON page_permissions(note_id);
+            CREATE INDEX IF NOT EXISTS idx_page_permissions_user ON page_permissions(user_id);
             ",
         )?;
 
@@ -443,32 +509,6 @@ impl Database {
 
     // ── Auth: Users ──────────────────────────────────────────────────────────
 
-    /// Count the total number of registered users.
-    pub fn count_users(&self) -> anyhow::Result<i64> {
-        let count: i64 = self
-            .conn
-            .query_row("SELECT COUNT(*) FROM users", [], |row| row.get(0))?;
-        Ok(count)
-    }
-
-    /// List all users (without password hash) for autocomplete.
-    pub fn list_users(&self) -> anyhow::Result<Vec<UserInfo>> {
-        let mut stmt = self
-            .conn
-            .prepare("SELECT id, username, display_name FROM users ORDER BY username")?;
-        let users = stmt
-            .query_map([], |row| {
-                Ok(UserInfo {
-                    id: row.get(0)?,
-                    username: row.get(1)?,
-                    display_name: row.get(2)?,
-                })
-            })?
-            .filter_map(|r| r.ok())
-            .collect();
-        Ok(users)
-    }
-
     /// Insert a new user record.
     pub fn create_user(
         &self,
@@ -478,19 +518,81 @@ impl Database {
         display_name: Option<&str>,
         created_at: &str,
     ) -> anyhow::Result<()> {
+        let count = self.count_users()?;
+        let role = if count == 0 {
+            UserRole::Owner
+        } else {
+            UserRole::default()
+        };
+        self.create_user_with_role(id, username, password_hash, display_name, created_at, role)
+    }
+
+    /// Insert a new user record with explicit role.
+    pub fn create_user_with_role(
+        &self,
+        id: &str,
+        username: &str,
+        password_hash: &str,
+        display_name: Option<&str>,
+        created_at: &str,
+        role: UserRole,
+    ) -> anyhow::Result<()> {
         self.conn.execute(
-            "INSERT INTO users (id, username, password_hash, display_name, created_at)
-             VALUES (?1, ?2, ?3, ?4, ?5)",
-            params![id, username, password_hash, display_name, created_at],
+            "INSERT INTO users (id, username, password_hash, display_name, created_at, role)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            params![
+                id,
+                username,
+                password_hash,
+                display_name,
+                created_at,
+                role.to_string()
+            ],
         )?;
         Ok(())
+    }
+
+    /// Count total users.
+    pub fn count_users(&self) -> anyhow::Result<i64> {
+        let count: i64 = self
+            .conn
+            .query_row("SELECT COUNT(*) FROM users", [], |row| row.get(0))?;
+        Ok(count)
+    }
+
+    /// Update a user's role.
+    pub fn update_user_role(&self, user_id: &str, role: UserRole) -> anyhow::Result<()> {
+        self.conn.execute(
+            "UPDATE users SET role = ?1 WHERE id = ?2",
+            params![role.to_string(), user_id],
+        )?;
+        Ok(())
+    }
+
+    /// List all users (without password hash) for autocomplete.
+    pub fn list_users(&self) -> anyhow::Result<Vec<UserInfo>> {
+        let mut stmt = self
+            .conn
+            .prepare("SELECT id, username, display_name, role FROM users ORDER BY username")?;
+        let users = stmt
+            .query_map([], |row| {
+                Ok(UserInfo {
+                    id: row.get(0)?,
+                    username: row.get(1)?,
+                    display_name: row.get(2)?,
+                    role: row.get::<_, String>(3)?.parse().unwrap_or_default(),
+                })
+            })?
+            .filter_map(|r| r.ok())
+            .collect();
+        Ok(users)
     }
 
     /// Look up a user by username.
     pub fn get_user_by_username(&self, username: &str) -> anyhow::Result<Option<UserRecord>> {
         let result = self.conn.query_row(
             "SELECT id, username, password_hash, display_name, storage_used, storage_limit,
-                    created_at, last_login
+                    created_at, last_login, role
              FROM users WHERE username = ?1",
             params![username],
             |row| {
@@ -503,6 +605,7 @@ impl Database {
                     storage_limit: row.get(5)?,
                     created_at: row.get(6)?,
                     last_login: row.get(7)?,
+                    role: row.get::<_, String>(8)?.parse().unwrap_or_default(),
                 })
             },
         );
@@ -517,7 +620,7 @@ impl Database {
     pub fn get_user_by_id(&self, id: &str) -> anyhow::Result<Option<UserRecord>> {
         let result = self.conn.query_row(
             "SELECT id, username, password_hash, display_name, storage_used, storage_limit,
-                    created_at, last_login
+                    created_at, last_login, role
              FROM users WHERE id = ?1",
             params![id],
             |row| {
@@ -530,6 +633,7 @@ impl Database {
                     storage_limit: row.get(5)?,
                     created_at: row.get(6)?,
                     last_login: row.get(7)?,
+                    role: row.get::<_, String>(8)?.parse().unwrap_or_default(),
                 })
             },
         );
@@ -695,6 +799,96 @@ impl Database {
             "SELECT COUNT(*) FROM notifications 
              WHERE user_id = ?1 AND note_id = ?2 AND type = 'mention' AND message LIKE ?3",
             params![user_id, note_id, format!("%{}%", mentioned_by)],
+            |row| row.get(0),
+        )?;
+        Ok(count > 0)
+    }
+
+    // ── Page Permissions ─────────────────────────────────────────────────────────
+
+    /// Set or update a page permission (who can view/edit a note).
+    pub fn set_page_permission(
+        &self,
+        note_id: &str,
+        user_id: &str,
+        permission: &str,
+        created_by: &str,
+        created_at: &str,
+    ) -> anyhow::Result<()> {
+        self.conn.execute(
+            "INSERT INTO page_permissions (note_id, user_id, permission, created_at, created_by)
+             VALUES (?1, ?2, ?3, ?4, ?5)
+             ON CONFLICT(note_id, user_id) DO UPDATE SET
+                permission = excluded.permission,
+                created_at = excluded.created_at,
+                created_by = excluded.created_by",
+            params![note_id, user_id, permission, created_at, created_by],
+        )?;
+        Ok(())
+    }
+
+    /// Get all permissions for a note.
+    pub fn get_page_permissions(&self, note_id: &str) -> anyhow::Result<Vec<PagePermission>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT note_id, user_id, permission, created_at, created_by
+             FROM page_permissions WHERE note_id = ?1",
+        )?;
+        let permissions = stmt
+            .query_map(params![note_id], |row| {
+                Ok(PagePermission {
+                    note_id: row.get(0)?,
+                    user_id: row.get(1)?,
+                    permission: row.get(2)?,
+                    created_at: row.get(3)?,
+                    created_by: row.get(4)?,
+                })
+            })?
+            .filter_map(|r| r.ok())
+            .collect();
+        Ok(permissions)
+    }
+
+    /// Get permission for a specific user on a note.
+    pub fn get_user_page_permission(
+        &self,
+        note_id: &str,
+        user_id: &str,
+    ) -> anyhow::Result<Option<PagePermission>> {
+        let result = self.conn.query_row(
+            "SELECT note_id, user_id, permission, created_at, created_by
+             FROM page_permissions WHERE note_id = ?1 AND user_id = ?2",
+            params![note_id, user_id],
+            |row| {
+                Ok(PagePermission {
+                    note_id: row.get(0)?,
+                    user_id: row.get(1)?,
+                    permission: row.get(2)?,
+                    created_at: row.get(3)?,
+                    created_by: row.get(4)?,
+                })
+            },
+        );
+        match result {
+            Ok(p) => Ok(Some(p)),
+            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+            Err(e) => Err(e.into()),
+        }
+    }
+
+    /// Delete a page permission.
+    pub fn delete_page_permission(&self, note_id: &str, user_id: &str) -> anyhow::Result<()> {
+        self.conn.execute(
+            "DELETE FROM page_permissions WHERE note_id = ?1 AND user_id = ?2",
+            params![note_id, user_id],
+        )?;
+        Ok(())
+    }
+
+    /// Check if a note has any custom permissions (if not, it's public to all workspace members).
+    pub fn has_custom_permissions(&self, note_id: &str) -> anyhow::Result<bool> {
+        let count: i64 = self.conn.query_row(
+            "SELECT COUNT(*) FROM page_permissions WHERE note_id = ?1",
+            params![note_id],
             |row| row.get(0),
         )?;
         Ok(count > 0)

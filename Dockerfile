@@ -26,14 +26,11 @@ RUN mkdir -p crates/thynk-core/src crates/thynk-search/src crates/thynk-sync/src
 # Cache dependencies
 RUN cargo build --release
 
-# Clean up placeholder sources and build artifacts for the actual source
-RUN rm -rf crates/*/src target/release/deps/thynk* target/release/*.rlib target/release/*.d
-
-# Now copy actual source code
+# Now copy actual source code (this invalidates the cache for the following build)
 COPY crates ./crates
 
-# Build the server binary
-RUN cargo build --release --bin thynk-server
+# Clean incremental build cache and rebuild with actual source
+RUN cargo clean && cargo build --release --bin thynk-server
 
 # Build stage for frontend
 FROM oven/bun:1 AS frontend-builder

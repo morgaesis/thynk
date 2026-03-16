@@ -23,8 +23,8 @@ RUN mkdir -p crates/thynk-core/src crates/thynk-search/src crates/thynk-sync/src
     echo "pub fn placeholder() {}" > crates/thynk-sync/src/lib.rs && \
     echo "fn main() {}" > crates/thynk-server/src/main.rs
 
-# Cache dependencies
-RUN cargo build --release --locked
+# Cache dependencies (regenerate lock file since we modified members)
+RUN cargo build --release
 
 # Now copy actual source
 COPY crates ./crates

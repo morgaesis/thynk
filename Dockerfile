@@ -65,6 +65,6 @@ ENV THYNK_FRONTEND_DIR=/app/frontend/dist
 EXPOSE 3000
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD curl -s http://localhost:3000/ > /dev/null || exit 1
+    CMD curl -sf http://localhost:3000/ > /dev/null 2>&1 || exit 1
 
 CMD ["thynk-server"]

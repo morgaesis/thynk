@@ -67,6 +67,76 @@ pub fn extract_wiki_link_titles(content: &str) -> Vec<String> {
     titles
 }
 
+// ── @mention extraction ───────────────────────────────────────────────────────
+
+/// Extract all `@username` mentions from content, returning unique sorted usernames.
+/// Valid usernames: alphanumeric, underscores, hyphens, dots. Must start with letter.
+/// Does not include trailing punctuation.
+pub fn extract_mentions(content: &str) -> Vec<String> {
+    let mut mentions: Vec<String> = Vec::new();
+    let bytes = content.as_bytes();
+    let len = bytes.len();
+    let mut i = 0;
+    while i < len {
+        if bytes[i] == b'@' && (i == 0 || !is_word_char(bytes[i - 1])) {
+            i += 1;
+            let start = i;
+            while i < len && is_valid_username_char(bytes[i]) {
+                i += 1;
+            }
+            // Trim trailing punctuation (.,!?:;-) that might have been captured
+            let mut end = i;
+            while end > start {
+                let last_byte = bytes[end - 1];
+                if last_byte == b'.' || last_byte == b',' || last_byte == b'!' || last_byte == b'?' 
+                    || last_byte == b':' || last_byte == b';' || last_byte == b'-' || last_byte == b'_' 
+                    || last_byte == b' ' || last_byte == b'\n' || last_byte == b'\t' {
+                    end -= 1;
+                } else {
+                    break;
+                }
+            }
+            if end > start {
+                let username = content[start..end].to_string();
+                if !username.is_empty() && is_valid_username(&username) && !mentions.contains(&username) {
+                    mentions.push(username);
+                }
+            }
+        } else {
+            i += 1;
+        }
+    }
+    mentions.sort();
+    mentions
+}
+
+fn is_word_char(b: u8) -> bool {
+    b.is_ascii_alphanumeric() || b == b'_' || b == b'-'
+}
+
+fn is_valid_username_char(b: u8) -> bool {
+    b.is_ascii_alphanumeric() || b == b'_' || b == b'-' || b == b'.'
+}
+
+fn is_valid_username(s: &str) -> bool {
+    if s.is_empty() {
+        return false;
+    }
+    let bytes = s.as_bytes();
+    if !bytes[0].is_ascii_alphabetic() {
+        return false;
+    }
+    for (i, &b) in bytes.iter().enumerate() {
+        if i == 0 {
+            continue;
+        }
+        if !b.is_ascii_alphanumeric() && b != b'_' && b != b'-' && b != b'.' {
+            return false;
+        }
+    }
+    !s.ends_with('.') && !s.ends_with('-') && !s.ends_with('_')
+}
+
 // ── GET /api/notes/:id/backlinks ──────────────────────────────────────────────
 
 pub async fn get_backlinks(
@@ -109,6 +179,41 @@ pub async fn get_outgoing_links(
         )
         .into_response(),
     }
+}
+
+// ── GET /api/notes/:id/mentions ────────────────────────────────────────────────
+
+#[derive(Serialize)]
+pub struct MentionResponse {
+    pub mentions: Vec<String>,
+}
+
+pub async fn get_mentions(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> impl IntoResponse {
+    let db = state.db.lock().await;
+    let meta = match db.get_note_metadata(&id) {
+        Ok(m) => m,
+        Err(_) => {
+            return err(StatusCode::NOT_FOUND, "not_found", "note not found").into_response();
+        }
+    };
+    drop(db);
+    let storage = state.storage.lock().await;
+    let note = match storage.read_note(&meta.path) {
+        Ok(n) => n,
+        Err(e) => {
+            return err(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "read_error",
+                &e.to_string(),
+            )
+            .into_response();
+        }
+    };
+    let mentions = extract_mentions(&note.content);
+    (StatusCode::OK, Json(MentionResponse { mentions })).into_response()
 }
 
 // ── GET /api/graph ────────────────────────────────────────────────────────────
@@ -403,5 +508,42 @@ mod tests {
         let content = "Line 1: [[Note A]]\nLine 2: [[Note B]]\nLine 3: [[Note A]]";
         let titles = extract_wiki_link_titles(content);
         assert_eq!(titles, vec!["Note A", "Note B"]);
+    }
+
+    // ── @mention extraction tests ───────────────────────────────────────────────
+
+    #[test]
+    fn test_extract_mentions_basic() {
+        let content = "Hey @alice and @bob, please review this.";
+        let mentions = extract_mentions(content);
+        assert_eq!(mentions, vec!["alice", "bob"]);
+    }
+
+    #[test]
+    fn test_extract_mentions_deduplication() {
+        let content = "Thanks @alice for the help. @alice can you check again?";
+        let mentions = extract_mentions(content);
+        assert_eq!(mentions, vec!["alice"]);
+    }
+
+    #[test]
+    fn test_extract_mentions_empty() {
+        let content = "No mentions here.";
+        let mentions = extract_mentions(content);
+        assert!(mentions.is_empty());
+    }
+
+    #[test]
+    fn test_extract_mentions_special_chars() {
+        let content = "Email @user.name or @user_name anytime.";
+        let mentions = extract_mentions(content);
+        assert_eq!(mentions, vec!["user.name", "user_name"]);
+    }
+
+    #[test]
+    fn test_extract_mentions_underscore_numbers() {
+        let content = "Contact @user123 or @test_123_test.";
+        let mentions = extract_mentions(content);
+        assert_eq!(mentions, vec!["test_123_test", "user123"]);
     }
 }

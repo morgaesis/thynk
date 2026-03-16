@@ -23,6 +23,7 @@ import { TagBrowser, TagFilteredNotes } from './TagBrowser';
 import { DailyNoteCalendar } from './DailyNoteCalendar';
 import { TemplateSelector } from './TemplateSelector';
 import { AutomationLog } from './AutomationLog';
+import { NotificationsPanel } from './NotificationsPanel';
 import { useAutomationEvents } from '../hooks/useAutomationEvents';
 import { BacklinksPanel } from './BacklinksPanel';
 import type { TreeNode, NoteMetadata } from '../types';
@@ -533,6 +534,9 @@ export function Sidebar() {
 
           {/* Automation log */}
           <AutomationLog events={automationEvents} />
+
+          {/* Notifications */}
+          <NotificationsPanel />
 
           {/* Tag Browser */}
           <TagBrowser onTagFilter={handleTagFilter} />

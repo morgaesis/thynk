@@ -292,6 +292,21 @@ pub async fn me(jar: CookieJar, State(state): State<AppState>) -> Response {
     }
 }
 
+// ── GET /api/users ─────────────────────────────────────────────────────────────
+
+pub async fn list_users(State(state): State<AppState>) -> impl IntoResponse {
+    let db = state.db.lock().await;
+    match db.list_users() {
+        Ok(users) => (StatusCode::OK, Json(serde_json::to_value(users).unwrap())).into_response(),
+        Err(e) => err_json(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "db_error",
+            &e.to_string(),
+        )
+        .into_response(),
+    }
+}
+
 // ── PATCH /api/auth/me ────────────────────────────────────────────────────────
 
 #[derive(Deserialize)]

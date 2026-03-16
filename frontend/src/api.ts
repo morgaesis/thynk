@@ -302,3 +302,39 @@ export interface UnlinkedMention {
 export async function getUnlinkedMentions(noteId: string): Promise<UnlinkedMention[]> {
   return request(`/notes/${noteId}/unlinked-mentions`);
 }
+
+// ── Notifications ───────────────────────────────────────────────────────────────
+
+export interface Notification {
+  id: string;
+  userId: string;
+  noteId: string;
+  notePath: string;
+  noteTitle: string;
+  type: string;
+  message: string;
+  read: boolean;
+  createdAt: string;
+}
+
+export interface NotificationsResponse {
+  notifications: Notification[];
+}
+
+export interface UnreadCountResponse {
+  count: number;
+}
+
+export async function getNotifications(): Promise<Notification[]> {
+  const response = await request<NotificationsResponse>('/notifications');
+  return response.notifications;
+}
+
+export async function getUnreadCount(): Promise<number> {
+  const response = await request<UnreadCountResponse>('/notifications/unread-count');
+  return response.count;
+}
+
+export async function markNotificationRead(id: string): Promise<void> {
+  await request(`/notifications/${id}/read`, { method: 'PATCH' });
+}

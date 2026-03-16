@@ -38,6 +38,7 @@ import { LockIndicator } from './LockIndicator';
 import { PresenceIndicator } from './PresenceIndicator';
 import { WikiLinkExtension } from '../extensions/WikiLinkExtension';
 import { WikiLinkSuggestions } from './WikiLinkSuggestions';
+import { MentionSuggestions } from './MentionSuggestions';
 import {
   VimModeExtension,
   getVimMode,
@@ -237,6 +238,12 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
     anchorRect: DOMRect;
   } | null>(null);
 
+  // @mention autocomplete state
+  const [mentionSuggest, setMentionSuggest] = useState<{
+    query: string;
+    anchorRect: DOMRect;
+  } | null>(null);
+
   // Slash command menu state
   const [slashState, setSlashState] = useState<SlashCommandState>({
     active: false,
@@ -384,6 +391,23 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
       } else {
         setWikiSuggest(null);
       }
+
+      // @mention autocomplete: detect @ trigger
+      const mentionMatch = /@([a-zA-Z0-9_.\-]*)$/.exec(textBefore);
+      if (mentionMatch) {
+        const view = e.view;
+        const cursorPos = view.coordsAtPos($from.pos);
+        const anchorRect = new DOMRect(
+          cursorPos.left,
+          cursorPos.top,
+          0,
+          cursorPos.bottom - cursorPos.top,
+        );
+        setMentionSuggest({ query: mentionMatch[1], anchorRect });
+      } else {
+        setMentionSuggest(null);
+      }
+
       setEditorVersion((v) => v + 1);
     },
     onSelectionUpdate: () => {
@@ -507,6 +531,28 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
     [editor, wikiSuggest],
   );
 
+  // @mention suggestion select: replace @<query> with @<username>
+  const handleMentionSelect = useCallback(
+    (username: string) => {
+      if (!editor || !mentionSuggest) return;
+      const { state } = editor;
+      const { $from } = state.selection;
+      const textBefore = $from.parent.textContent.slice(0, $from.parentOffset);
+      const triggerMatch = /@([a-zA-Z0-9_.\-]*)$/.exec(textBefore);
+      if (!triggerMatch) return;
+      const from = $from.pos - triggerMatch[0].length;
+      const to = $from.pos;
+      editor
+        .chain()
+        .focus()
+        .deleteRange({ from, to })
+        .insertContent(`@${username} `)
+        .run();
+      setMentionSuggest(null);
+    },
+    [editor, mentionSuggest],
+  );
+
   if (!activeNote) {
     return (
       <div className="flex-1 flex items-center justify-center bg-surface dark:bg-surface-dark">
@@ -625,6 +671,18 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
             onSelect={handleWikiSelect}
             onClose={() => setWikiSuggest(null)}
             anchorRect={wikiSuggest.anchorRect}
+          />,
+          document.body,
+        )}
+
+      {/* @mention autocomplete dropdown */}
+      {mentionSuggest &&
+        createPortal(
+          <MentionSuggestions
+            query={mentionSuggest.query}
+            onSelect={handleMentionSelect}
+            onClose={() => setMentionSuggest(null)}
+            anchorRect={mentionSuggest.anchorRect}
           />,
           document.body,
         )}

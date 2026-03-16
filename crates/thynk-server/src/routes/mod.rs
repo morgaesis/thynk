@@ -5,6 +5,7 @@ pub mod favorites;
 pub mod links;
 pub mod locks;
 pub mod notes;
+pub mod notifications;
 pub mod profiles;
 pub mod search;
 pub mod sync;
@@ -40,6 +41,7 @@ pub fn router(state: AppState) -> Router {
 
     let protected_routes = Router::new()
         .route("/api/auth/me", patch(auth::update_me))
+        .route("/api/users", get(auth::list_users))
         .route("/api/ai/complete", post(ai::complete))
         .route("/api/ai/chat", post(ai::chat))
         .route(
@@ -63,6 +65,7 @@ pub fn router(state: AppState) -> Router {
             "/api/notes/{id}/links",
             get(links::get_outgoing_links).put(links::update_links),
         )
+        .route("/api/notes/{id}/mentions", get(links::get_mentions))
         .route("/api/graph", get(links::get_graph))
         .route("/api/ws", get(ws::ws_handler))
         .route(
@@ -100,6 +103,15 @@ pub fn router(state: AppState) -> Router {
         .route("/api/sync/status", get(sync::get_sync_status))
         .route("/api/sync", post(sync::sync))
         .route("/api/sync/audit", get(sync::get_audit_log))
+        .route("/api/notifications", get(notifications::get_notifications))
+        .route(
+            "/api/notifications/unread-count",
+            get(notifications::get_unread_count),
+        )
+        .route(
+            "/api/notifications/{id}/read",
+            patch(notifications::mark_read),
+        )
         .route_layer(middleware::from_fn_with_state(
             state.clone(),
             auth::require_auth,

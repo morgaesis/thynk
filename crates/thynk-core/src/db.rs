@@ -68,6 +68,14 @@ pub struct UserRecord {
     pub last_login: Option<String>,
 }
 
+/// Public user info (without sensitive data).
+#[derive(serde::Serialize)]
+pub struct UserInfo {
+    pub id: String,
+    pub username: String,
+    pub display_name: Option<String>,
+}
+
 /// A file upload record.
 pub struct UploadRecord {
     pub id: String,
@@ -86,6 +94,24 @@ pub struct LockRecord {
     pub acquired_at: String,
     pub expires_at: String,
     pub heartbeat_at: String,
+}
+
+/// A notification record for @mentions.
+#[derive(serde::Serialize)]
+pub struct Notification {
+    pub id: String,
+    pub user_id: String,
+    pub note_id: String,
+    #[serde(rename = "notePath")]
+    pub note_path: String,
+    #[serde(rename = "noteTitle")]
+    pub note_title: String,
+    #[serde(rename = "type")]
+    pub notification_type: String,
+    pub message: String,
+    pub read: bool,
+    #[serde(rename = "createdAt")]
+    pub created_at: String,
 }
 
 /// An active session record.
@@ -244,6 +270,23 @@ impl Database {
                 expires_at   TEXT NOT NULL,
                 heartbeat_at TEXT NOT NULL
             );
+            ",
+        )?;
+
+        // Notifications for @mentions.
+        self.conn.execute_batch(
+            "
+            CREATE TABLE IF NOT EXISTS notifications (
+                id          TEXT PRIMARY KEY,
+                user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                note_id     TEXT NOT NULL REFERENCES notes(id) ON DELETE CASCADE,
+                type        TEXT NOT NULL,
+                message     TEXT NOT NULL,
+                read        INTEGER NOT NULL DEFAULT 0,
+                created_at  TEXT NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id);
+            CREATE INDEX IF NOT EXISTS idx_notifications_read ON notifications(user_id, read);
             ",
         )?;
 
@@ -408,6 +451,24 @@ impl Database {
         Ok(count)
     }
 
+    /// List all users (without password hash) for autocomplete.
+    pub fn list_users(&self) -> anyhow::Result<Vec<UserInfo>> {
+        let mut stmt = self
+            .conn
+            .prepare("SELECT id, username, display_name FROM users ORDER BY username")?;
+        let users = stmt
+            .query_map([], |row| {
+                Ok(UserInfo {
+                    id: row.get(0)?,
+                    username: row.get(1)?,
+                    display_name: row.get(2)?,
+                })
+            })?
+            .filter_map(|r| r.ok())
+            .collect();
+        Ok(users)
+    }
+
     /// Insert a new user record.
     pub fn create_user(
         &self,
@@ -552,6 +613,91 @@ impl Database {
         self.conn
             .execute("DELETE FROM sessions WHERE expires_at < ?1", params![now])?;
         Ok(())
+    }
+
+    // ── Notifications ───────────────────────────────────────────────────────────
+
+    /// Create a new notification for a user.
+    pub fn create_notification(
+        &self,
+        id: &str,
+        user_id: &str,
+        note_id: &str,
+        notification_type: &str,
+        message: &str,
+        created_at: &str,
+    ) -> anyhow::Result<()> {
+        self.conn.execute(
+            "INSERT INTO notifications (id, user_id, note_id, type, message, read, created_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, 0, ?6)",
+            params![id, user_id, note_id, notification_type, message, created_at],
+        )?;
+        Ok(())
+    }
+
+    /// Get notifications for a user, ordered by most recent first.
+    pub fn get_notifications_for_user(&self, user_id: &str) -> anyhow::Result<Vec<Notification>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT n.id, n.user_id, n.note_id, n.type, n.message, n.read, n.created_at,
+                    notes.path, notes.title
+             FROM notifications n
+             JOIN notes ON n.note_id = notes.id
+             WHERE n.user_id = ?1
+             ORDER BY n.created_at DESC
+             LIMIT 50",
+        )?;
+        let notifications = stmt
+            .query_map(params![user_id], |row| {
+                Ok(Notification {
+                    id: row.get(0)?,
+                    user_id: row.get(1)?,
+                    note_id: row.get(2)?,
+                    notification_type: row.get(3)?,
+                    message: row.get(4)?,
+                    read: row.get::<_, i32>(5)? != 0,
+                    created_at: row.get(6)?,
+                    note_path: row.get(7)?,
+                    note_title: row.get(8)?,
+                })
+            })?
+            .filter_map(|r| r.ok())
+            .collect();
+        Ok(notifications)
+    }
+
+    /// Mark a notification as read.
+    pub fn mark_notification_read(&self, notification_id: &str) -> anyhow::Result<()> {
+        self.conn.execute(
+            "UPDATE notifications SET read = 1 WHERE id = ?1",
+            params![notification_id],
+        )?;
+        Ok(())
+    }
+
+    /// Get count of unread notifications for a user.
+    pub fn get_unread_notification_count(&self, user_id: &str) -> anyhow::Result<i64> {
+        let count: i64 = self.conn.query_row(
+            "SELECT COUNT(*) FROM notifications WHERE user_id = ?1 AND read = 0",
+            params![user_id],
+            |row| row.get(0),
+        )?;
+        Ok(count)
+    }
+
+    /// Check if a mention notification already exists (to avoid duplicates).
+    pub fn mention_notification_exists(
+        &self,
+        user_id: &str,
+        note_id: &str,
+        mentioned_by: &str,
+    ) -> anyhow::Result<bool> {
+        let count: i64 = self.conn.query_row(
+            "SELECT COUNT(*) FROM notifications 
+             WHERE user_id = ?1 AND note_id = ?2 AND type = 'mention' AND message LIKE ?3",
+            params![user_id, note_id, format!("%{}%", mentioned_by)],
+            |row| row.get(0),
+        )?;
+        Ok(count > 0)
     }
 
     // ── Uploads ───────────────────────────────────────────────────────────────
@@ -936,6 +1082,14 @@ impl Database {
             .execute("DELETE FROM locks WHERE expires_at < ?1", params![now])?;
         Ok(())
     }
+
+    // ── Notifications ───────────────────────────────────────────────────────────
+
+    #[cfg(test)]
+    pub fn create_test_user(&self, id: &str, username: &str) -> anyhow::Result<()> {
+        self.create_user(id, username, "hash", None, "2024-01-01T00:00:00Z")?;
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -1019,5 +1173,79 @@ mod tests {
         let db = Database::open_in_memory().unwrap();
         let result = db.get_note_metadata("nonexistent");
         assert!(matches!(result.unwrap_err(), ThynkError::NotFound(_)));
+    }
+
+    #[test]
+    fn test_notifications_crud() {
+        let db = Database::open_in_memory().unwrap();
+
+        // Create test user and note.
+        db.create_test_user("user1", "alice").unwrap();
+        db.create_test_user("user2", "bob").unwrap();
+        let note = Note::new("Test Note".into(), "Hello".into(), PathBuf::from("test.md"));
+        db.index_note(&note).unwrap();
+
+        // Create a notification.
+        db.create_notification(
+            "notif1",
+            "user2",
+            &note.id,
+            "mention",
+            "alice mentioned you in \"Test Note\"",
+            "2024-01-01T00:00:00Z",
+        )
+        .unwrap();
+
+        // Get notifications for user2.
+        let notifs = db.get_notifications_for_user("user2").unwrap();
+        assert_eq!(notifs.len(), 1);
+        assert_eq!(notifs[0].message, "alice mentioned you in \"Test Note\"");
+        assert!(!notifs[0].read);
+
+        // Get unread count.
+        let count = db.get_unread_notification_count("user2").unwrap();
+        assert_eq!(count, 1);
+
+        // Mark as read.
+        db.mark_notification_read("notif1").unwrap();
+
+        let notifs = db.get_notifications_for_user("user2").unwrap();
+        assert!(notifs[0].read);
+
+        let count = db.get_unread_notification_count("user2").unwrap();
+        assert_eq!(count, 0);
+    }
+
+    #[test]
+    fn test_mention_notification_exists() {
+        let db = Database::open_in_memory().unwrap();
+
+        db.create_test_user("user1", "alice").unwrap();
+        db.create_test_user("user2", "bob").unwrap();
+        let note = Note::new("Test Note".into(), "Hello".into(), PathBuf::from("test.md"));
+        db.index_note(&note).unwrap();
+
+        // Initially no notification exists.
+        let exists = db
+            .mention_notification_exists("user2", &note.id, "alice")
+            .unwrap();
+        assert!(!exists);
+
+        // Create a notification.
+        db.create_notification(
+            "notif1",
+            "user2",
+            &note.id,
+            "mention",
+            "alice mentioned you",
+            "2024-01-01T00:00:00Z",
+        )
+        .unwrap();
+
+        // Now it should exist.
+        let exists = db
+            .mention_notification_exists("user2", &note.id, "alice")
+            .unwrap();
+        assert!(exists);
     }
 }

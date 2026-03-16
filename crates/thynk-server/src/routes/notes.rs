@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use thynk_core::{Note, NoteStorage};
 
 use crate::routes::auth::AuthUser;
-use crate::routes::links::extract_wiki_link_titles;
+use crate::routes::links::{extract_mentions, extract_wiki_link_titles};
 use crate::state::{AppState, WsEvent};
 
 /// Convert a title to a filesystem path, preserving `/` as directory separators.
@@ -272,6 +272,8 @@ pub async fn update_note(
             .into_response();
         }
     };
+    // Store old content for mention comparison before any updates.
+    let old_content = note.content.clone();
     // Fill in metadata from DB (storage only knows content+path).
     note.id = meta.id.clone();
     note.title = meta.title.clone();
@@ -302,8 +304,11 @@ pub async fn update_note(
     }
     note.updated_at = chrono::Utc::now();
 
-    let editor_name = auth_user.display_name.unwrap_or(auth_user.username);
-    note.last_updated_by = Some(editor_name);
+    let editor_name = auth_user
+        .display_name
+        .clone()
+        .unwrap_or_else(|| auth_user.username.clone());
+    note.last_updated_by = Some(editor_name.clone());
 
     if let Err(e) = storage.write_note(&note) {
         return err(
@@ -338,6 +343,44 @@ pub async fn update_note(
         .collect();
     // Ignore errors from link extraction — it's non-critical.
     let _ = db.set_note_links(&note.id, &to_ids);
+
+    // Notifications: create notifications for new @mentions.
+    let old_mentions: std::collections::HashSet<_> =
+        extract_mentions(&old_content).into_iter().collect();
+    let new_mentions: Vec<_> = extract_mentions(&note.content)
+        .into_iter()
+        .filter(|m| !old_mentions.contains(m))
+        .collect();
+    for mentioned_username in new_mentions {
+        if let Ok(Some(target_user)) = db.get_user_by_username(&mentioned_username) {
+            // Don't notify the user if they're mentioning themselves.
+            if target_user.id != auth_user.id {
+                let exists = db
+                    .mention_notification_exists(
+                        &target_user.id,
+                        &note.id,
+                        &auth_user.username,
+                    )
+                    .unwrap_or(false);
+                if !exists {
+                    let notification_id = uuid::Uuid::new_v4().to_string();
+                    let message = format!(
+                        "{} mentioned you in \"{}\"",
+                        editor_name,
+                        note.title
+                    );
+                    let _ = db.create_notification(
+                        &notification_id,
+                        &target_user.id,
+                        &note.id,
+                        "mention",
+                        &message,
+                        &chrono::Utc::now().to_rfc3339(),
+                    );
+                }
+            }
+        }
+    }
 
     // Automation: broadcast StatusChanged when note status becomes "done".
     if let Some(status) = extract_frontmatter_status(&note.content) {

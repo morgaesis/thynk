@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/*"]
+members = ["crates/*", "src-tauri"]
 resolver = "2"
 
 [workspace.dependencies]
@@ -30,3 +30,4 @@ zip = "2"
 thynk-core = { path = "crates/thynk-core" }
 thynk-search = { path = "crates/thynk-search" }
 thynk-sync = { path = "crates/thynk-sync" }
+thynk-server = { path = "crates/thynk-server" }

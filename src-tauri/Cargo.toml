@@ -1,0 +1,50 @@
+[package]
+name = "thynk-desktop"
+version = "0.1.0"
+description = "Thynk Desktop - Knowledge Management App"
+authors = ["Thynk Team"]
+edition = "2021"
+rust-version = "1.77"
+
+[lib]
+name = "thynk_desktop_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[[bin]]
+name = "thynk-desktop"
+path = "src/main.rs"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["devtools"] }
+tauri-plugin-shell = "2"
+tauri-plugin-fs = "2"
+tauri-plugin-dialog = "2"
+tauri-plugin-opener = "2"
+tauri-plugin-process = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["full"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing-appender = "0.2"
+notify = "8"
+axum = { version = "0.8", features = ["ws", "multipart"] }
+tower-http = { version = "0.6", features = ["cors", "fs"] }
+chrono = { version = "0.4", features = ["serde"] }
+
+thynk-core = { path = "../crates/thynk-core" }
+thynk-search = { path = "../crates/thynk-search" }
+thynk-server = { path = "../crates/thynk-server" }
+
+[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+tauri-plugin-single-instance = "2"
+
+[profile.release]
+panic = "abort"
+codegen-units = 1
+lto = true
+opt-level = "s"
+strip = true

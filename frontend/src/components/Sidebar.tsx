@@ -580,7 +580,6 @@ export function Sidebar() {
           {activeNote && (
             <BacklinksPanel
               noteId={activeNote.id}
-              noteTitle={activeNote.title}
             />
           )}
         </nav>

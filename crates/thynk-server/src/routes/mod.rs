@@ -55,6 +55,10 @@ pub fn router(state: AppState) -> Router {
         .route("/api/tree", get(tree::file_tree))
         .route("/api/notes/{id}/backlinks", get(links::get_backlinks))
         .route(
+            "/api/notes/{id}/unlinked-mentions",
+            get(links::get_unlinked_mentions),
+        )
+        .route(
             "/api/notes/{id}/links",
             get(links::get_outgoing_links).put(links::update_links),
         )

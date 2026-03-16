@@ -83,6 +83,7 @@
 | AI Inline Completions    | Done        | Phase 3 |
 | AI Integration          | Done        | Phase 3 |
 | Sync Engine             | Not Started | Phase 3 |
+| Unlinked Mentions       | Done        | Phase 3 |
 | Cloud Deployment        | Not Started | Phase 3 |
 | P2P Collaboration       | Not Started | Phase 4 |
 | Desktop Apps            | Not Started | Phase 4 |
@@ -147,10 +148,10 @@
 ## Phase 3 Next Steps
 
 1. ~~AI Integration -- BYOK, inline completions, smart search~~ (done: settings UI, API routes, inline completions)
-2. **Sync Engine** -- differential sync between devices and cloud
-3. **Cloud Deployment** -- scale-to-zero instances, wake on first request
-4. **Unlinked mentions** -- find notes referenced by title without a wiki-link
+2. ~~Unlinked mentions~~ (done: backend endpoint + UI in backlinks panel)
+3. **Sync Engine** -- differential sync between devices and cloud
+4. **Cloud Deployment** -- scale-to-zero instances, wake on first request
 
 ---
 
-Last Updated: 2026-03-15 (Phase 3 AI integration complete)
+Last Updated: 2026-03-15 (Phase 3: AI integration + unlinked mentions done)

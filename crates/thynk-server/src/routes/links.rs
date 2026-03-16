@@ -3,6 +3,7 @@ use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::Json;
 use serde::{Deserialize, Serialize};
+use thynk_core::NoteStorage;
 
 use crate::state::AppState;
 
@@ -224,6 +225,144 @@ pub async fn update_links(
         )
         .into_response(),
     }
+}
+
+// ── GET /api/notes/:id/unlinked-mentions ─────────────────────────────────────────
+
+#[derive(Serialize)]
+pub struct UnlinkedMention {
+    title: String,
+    path: String,
+    id: String,
+    context: String,
+}
+
+pub async fn get_unlinked_mentions(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> impl IntoResponse {
+    let db = state.db.lock().await;
+
+    // Verify the note exists first.
+    if db.get_note_metadata(&id).is_err() {
+        return err(StatusCode::NOT_FOUND, "not_found", "note not found").into_response();
+    }
+
+    // Get the note's title
+    let note_meta = match db.get_note_metadata(&id) {
+        Ok(n) => n,
+        Err(e) => {
+            return err(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "db_error",
+                &e.to_string(),
+            )
+            .into_response();
+        }
+    };
+    let note_title = &note_meta.title;
+
+    // Get all notes
+    let all_notes = match db.list_notes() {
+        Ok(n) => n,
+        Err(e) => {
+            return err(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "db_error",
+                &e.to_string(),
+            )
+            .into_response();
+        }
+    };
+
+    // Get outgoing links for this note
+    let outgoing_links = match db.get_outgoing_links(&id) {
+        Ok(links) => links,
+        Err(e) => {
+            return err(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "db_error",
+                &e.to_string(),
+            )
+            .into_response();
+        }
+    };
+    let linked_titles: std::collections::HashSet<String> = outgoing_links
+        .iter()
+        .map(|n| n.title.to_lowercase())
+        .collect();
+
+    // Get storage to read note contents
+    let storage = state.storage.lock().await;
+
+    let mut unlinked: Vec<UnlinkedMention> = Vec::new();
+
+    // Check each note for mentions of this note's title (excluding already linked)
+    for note in &all_notes {
+        if note.id == id {
+            continue;
+        }
+
+        // Skip if already linked
+        if linked_titles.contains(&note.title.to_lowercase()) {
+            continue;
+        }
+
+        // Read note content
+        let note = match storage.read_note(&note.path) {
+            Ok(n) => n,
+            Err(_) => continue,
+        };
+        let content: &str = &note.content;
+
+        // Check if note content mentions this note's title (case insensitive)
+        // but not as a wiki-link
+        let title_lower = note_title.to_lowercase();
+
+        // Look for title mentions that aren't wiki-links
+        let has_unlinked_mention = content.lines().any(|line| {
+            let line_lower = line.to_lowercase();
+            // Check if title appears in the line
+            if line_lower.contains(&title_lower) {
+                // Make sure it's not inside [[]]
+                !line.contains("[[") || !line.contains("]]") ||
+                    // Check if the wiki-link version also exists
+                    (line.contains(&format!("[[{}]]", note_title)) || 
+                     line.contains(&format!("[[{}|", note_title)))
+            } else {
+                false
+            }
+        });
+
+        if has_unlinked_mention {
+            // Find a snippet of context
+            let context = content
+                .lines()
+                .find(|line| line.to_lowercase().contains(&title_lower))
+                .map(|s| {
+                    let s = s.trim();
+                    if s.len() > 100 {
+                        format!("{}...", &s[..100])
+                    } else {
+                        s.to_string()
+                    }
+                })
+                .unwrap_or_default();
+
+            unlinked.push(UnlinkedMention {
+                title: note.title.clone(),
+                path: note.path.to_string_lossy().to_string(),
+                id: note.id.clone(),
+                context,
+            });
+        }
+    }
+
+    (
+        StatusCode::OK,
+        Json(serde_json::to_value(unlinked).unwrap()),
+    )
+        .into_response()
 }
 
 #[cfg(test)]

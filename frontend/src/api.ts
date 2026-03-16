@@ -289,3 +289,16 @@ export async function aiChat(req: AiChatRequest): Promise<AiChatResponse> {
     body: JSON.stringify(req),
   });
 }
+
+// ── Unlinked Mentions ───────────────────────────────────────────────────────────
+
+export interface UnlinkedMention {
+  title: string;
+  path: string;
+  id: string;
+  context: string;
+}
+
+export async function getUnlinkedMentions(noteId: string): Promise<UnlinkedMention[]> {
+  return request(`/notes/${noteId}/unlinked-mentions`);
+}

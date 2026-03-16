@@ -6,23 +6,22 @@ import {
   VscChevronRight,
 } from 'react-icons/vsc';
 import { useNoteStore } from '../stores/noteStore';
-import { getBacklinks, searchNotes } from '../api';
-import type { NoteMetadata, SearchResult } from '../types';
+import { getBacklinks, getUnlinkedMentions, type UnlinkedMention } from '../api';
+import type { NoteMetadata } from '../types';
 
 interface Props {
   noteId: string;
-  noteTitle: string;
 }
 
 /**
  * BacklinksPanel – displays:
  * 1. Notes that contain an explicit [[WikiLink]] pointing to the current note.
- * 2. "Unlinked mentions" – search results containing the note title as plain text.
+ * 2. "Unlinked mentions" – notes that mention the current note's title but aren't linked.
  */
-export function BacklinksPanel({ noteId, noteTitle }: Props) {
+export function BacklinksPanel({ noteId }: Props) {
   const openNoteByPath = useNoteStore((s) => s.openNoteByPath);
   const [backlinks, setBacklinks] = useState<NoteMetadata[]>([]);
-  const [unlinked, setUnlinked] = useState<SearchResult[]>([]);
+  const [unlinked, setUnlinked] = useState<UnlinkedMention[]>([]);
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState(true);
   const [unlinkedExpanded, setUnlinkedExpanded] = useState(false);
@@ -31,24 +30,18 @@ export function BacklinksPanel({ noteId, noteTitle }: Props) {
     if (!noteId) return;
     setLoading(true);
     try {
-      const [bls, searchResults] = await Promise.all([
+      const [bls, mentions] = await Promise.all([
         getBacklinks(noteId),
-        searchNotes(noteTitle),
+        getUnlinkedMentions(noteId),
       ]);
       setBacklinks(bls);
-      // Filter out the current note and notes already covered by backlinks
-      const backlinkIds = new Set(bls.map((n) => n.id));
-      setUnlinked(
-        searchResults.filter(
-          (r) => r.note_id !== noteId && !backlinkIds.has(r.note_id),
-        ),
-      );
+      setUnlinked(mentions);
     } catch {
       // Silently ignore – non-critical panel
     } finally {
       setLoading(false);
     }
-  }, [noteId, noteTitle]);
+  }, [noteId]);
 
   useEffect(() => {
     void load();
@@ -128,19 +121,26 @@ export function BacklinksPanel({ noteId, noteTitle }: Props) {
 
           {unlinkedExpanded && (
             <ul className="px-3 pb-2 space-y-0.5">
-              {unlinked.map((result) => (
-                <li key={result.note_id}>
+              {unlinked.map((mention) => (
+                <li key={mention.id}>
                   <button
-                    onClick={() => void openNoteByPath(result.path)}
-                    className="flex items-center gap-2 w-full px-3 py-1 text-sm rounded-md
+                    onClick={() => void openNoteByPath(mention.path)}
+                    className="flex flex-col w-full px-3 py-1.5 text-sm rounded-md
                                text-text dark:text-text-dark hover:bg-border dark:hover:bg-border-dark
                                transition-colors text-left"
                   >
-                    <VscLinkExternal
-                      size={13}
-                      className="shrink-0 text-text-muted dark:text-text-muted-dark"
-                    />
-                    <span className="truncate">{result.title}</span>
+                    <span className="flex items-center gap-2">
+                      <VscLinkExternal
+                        size={13}
+                        className="shrink-0 text-text-muted dark:text-text-muted-dark"
+                      />
+                      <span className="truncate">{mention.title}</span>
+                    </span>
+                    {mention.context && (
+                      <span className="text-xs text-text-muted dark:text-text-muted-dark truncate ml-5">
+                        {mention.context}
+                      </span>
+                    )}
                   </button>
                 </li>
               ))}

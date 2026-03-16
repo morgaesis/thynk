@@ -13,8 +13,8 @@ COPY crates/thynk-search/Cargo.toml ./crates/thynk-search/
 COPY crates/thynk-sync/Cargo.toml ./crates/thynk-sync/
 COPY crates/thynk-server/Cargo.toml ./crates/thynk-server/
 
-# Create a stub Cargo.toml that excludes src-tauri for Docker builds
-RUN sed -i 's/"src-tauri",//' Cargo.toml || true
+# Replace the workspace members to exclude src-tauri (it uses glob pattern)
+RUN sed -i 's/members = \["crates\/\*", "src-tauri"\]/members = ["crates\/\*"]/' Cargo.toml
 
 # Create placeholder source files
 RUN mkdir -p crates/thynk-core/src crates/thynk-search/src crates/thynk-sync/src crates/thynk-server/src && \

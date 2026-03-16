@@ -86,7 +86,7 @@
 | Unlinked Mentions       | Done        | Phase 3 |
 | Cloud Deployment        | Not Started | Phase 3 |
 | P2P Collaboration       | In Progress | Phase 4 |
-| Desktop Apps            | In Progress | Phase 4 |
+| Desktop Apps            | In Progress | Phase 4 (static file serving fixed) |
 
 ### Phase 1 Exit Criteria (all met)
 
@@ -155,7 +155,7 @@
 
 ## Phase 4 Next Steps (Collaboration & Platform)
 
-1. **Desktop Apps** -- Tauri 2.0 app with embedded server (in progress)
+1. **Desktop Apps** -- Tauri 2.0 app with embedded server (static file serving fixed, 2026-03-16)
 2. P2P Real-Time Editing -- Yjs + y-webrtc integration
 3. Cursor Presence -- Show other users' cursors in editor
 4. User Awareness -- Who's online, viewing what
@@ -168,4 +168,4 @@
 
 ---
 
-Last Updated: 2026-03-16 (Phase 4: Desktop Apps structure created)
+Last Updated: 2026-03-16 (Phase 4: Desktop Apps static file serving fixed)

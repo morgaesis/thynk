@@ -987,4 +987,40 @@ mod tests {
         let results: serde_json::Value = serde_json::from_slice(&body).unwrap();
         assert!(results.as_array().unwrap().len() >= 1);
     }
+
+    #[tokio::test]
+    async fn test_static_file_serving_serves_index_html() {
+        use tower_http::services::ServeDir;
+        use std::path::PathBuf;
+
+        let state = test_state();
+        let api_router = routes::router(state);
+
+        // Create a temporary dist directory with an index.html
+        let dist_dir = tempfile::tempdir().unwrap();
+        std::fs::write(dist_dir.path().join("index.html"), "<html>test</html>").unwrap();
+
+        // Build the app with static file serving (like desktop should do)
+        let app = api_router.fallback_service(
+            ServeDir::new(dist_dir.path())
+                .not_found_service(ServeFile::new(dist_dir.path().join("index.html"))),
+        );
+
+        // Test that root path serves index.html
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        assert_eq!(&body[..], b"<html>test</html>");
+    }
 }

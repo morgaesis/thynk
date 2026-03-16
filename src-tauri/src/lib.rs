@@ -1,7 +1,9 @@
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use tokio::sync::{broadcast, Mutex};
 use tower_http::cors::{Any, CorsLayer};
+use tower_http::services::{ServeDir, ServeFile};
 use tracing::{info, warn};
 use tracing_subscriber::EnvFilter;
 
@@ -133,7 +135,18 @@ pub fn run() {
         .allow_methods(Any)
         .allow_headers(Any);
 
-    let app = router(state.clone()).layer(cors);
+    let api_router = router(state.clone()).layer(cors);
+
+    let dist_path = PathBuf::from("../frontend/dist");
+    let app = if dist_path.exists() {
+        info!("Serving static files from {}", dist_path.display());
+        api_router.fallback_service(
+            ServeDir::new(&dist_path).not_found_service(ServeFile::new(dist_path.join("index.html"))),
+        )
+    } else {
+        info!("Frontend dist not found at {}, serving API only", dist_path.display());
+        api_router
+    };
 
     std::thread::spawn(move || {
         let rt = tokio::runtime::Runtime::new().unwrap();

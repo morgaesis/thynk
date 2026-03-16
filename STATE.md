@@ -85,7 +85,7 @@
 | Sync Engine             | Done        | Phase 3 |
 | Unlinked Mentions       | Done        | Phase 3 |
 | Cloud Deployment        | Not Started | Phase 3 |
-| P2P Collaboration       | Not Started | Phase 4 |
+| P2P Collaboration       | In Progress | Phase 4 |
 | Desktop Apps            | In Progress | Phase 4 |
 
 ### Phase 1 Exit Criteria (all met)

@@ -338,3 +338,53 @@ export async function getUnreadCount(): Promise<number> {
 export async function markNotificationRead(id: string): Promise<void> {
   await request(`/notifications/${id}/read`, { method: 'PATCH' });
 }
+
+// ── Workspace Invitations ───────────────────────────────────────────────────────
+
+export interface Invitation {
+  id: string;
+  email: string;
+  role: string;
+  expires_at: string;
+  created_at: string;
+}
+
+export interface AcceptInvitationRequest {
+  token: string;
+  username: string;
+  password: string;
+  display_name?: string;
+}
+
+export interface AcceptInvitationResponse {
+  id: string;
+  username: string;
+  role: string;
+}
+
+export async function listInvitations(): Promise<Invitation[]> {
+  return request('/invitations');
+}
+
+export async function createInvitation(data: {
+  email: string;
+  role?: string;
+}): Promise<Invitation> {
+  return request('/invitations', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function revokeInvitation(id: string): Promise<void> {
+  await request(`/invitations/${id}`, { method: 'DELETE' });
+}
+
+export async function acceptInvitation(
+  data: AcceptInvitationRequest,
+): Promise<AcceptInvitationResponse> {
+  return request('/invitations/accept', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}

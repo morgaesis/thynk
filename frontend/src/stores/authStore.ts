@@ -6,6 +6,7 @@ export interface User {
   display_name: string | null;
   storage_used: number;
   storage_limit: number;
+  role: string;
 }
 
 interface AuthStore {

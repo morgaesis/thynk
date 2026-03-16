@@ -30,7 +30,7 @@ const SESSION_MAX_AGE_SECS: i64 = 2_592_000;
 
 // ── Error helper ──────────────────────────────────────────────────────────────
 
-fn err_json(status: StatusCode, error: &str, message: &str) -> Response {
+pub fn err_json(status: StatusCode, error: &str, message: &str) -> Response {
     (
         status,
         Json(serde_json::json!({ "error": error, "message": message })),

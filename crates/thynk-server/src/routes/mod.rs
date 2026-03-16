@@ -2,6 +2,7 @@ pub mod ai;
 pub mod auth;
 pub mod export;
 pub mod favorites;
+pub mod invitations;
 pub mod links;
 pub mod locks;
 pub mod notes;
@@ -37,6 +38,7 @@ pub fn router(state: AppState) -> Router {
         .route("/api/auth/register", post(auth::register))
         .route("/api/auth/logout", post(auth::logout))
         .route("/api/auth/me", get(auth::me))
+        .route("/api/invitations/accept", post(invitations::accept_invitation))
         .with_state(state.clone());
 
     let protected_routes = Router::new()
@@ -121,6 +123,12 @@ pub fn router(state: AppState) -> Router {
         .route(
             "/api/notifications/{id}/read",
             patch(notifications::mark_read),
+        )
+        .route("/api/invitations", get(invitations::list_invitations))
+        .route("/api/invitations", post(invitations::create_invitation))
+        .route(
+            "/api/invitations/{id}",
+            delete(invitations::revoke_invitation),
         )
         .route_layer(middleware::from_fn_with_state(
             state.clone(),

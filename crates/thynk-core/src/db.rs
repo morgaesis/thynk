@@ -171,6 +171,18 @@ pub struct SessionRecord {
     pub expires_at: String,
 }
 
+/// A workspace invitation record.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct WorkspaceInvitation {
+    pub id: String,
+    pub email: String,
+    pub role: String,
+    pub invited_by: String,
+    pub token: String,
+    pub expires_at: String,
+    pub created_at: String,
+}
+
 pub struct Database {
     conn: Connection,
 }
@@ -353,6 +365,23 @@ impl Database {
             );
             CREATE INDEX IF NOT EXISTS idx_page_permissions_note ON page_permissions(note_id);
             CREATE INDEX IF NOT EXISTS idx_page_permissions_user ON page_permissions(user_id);
+            ",
+        )?;
+
+        // Workspace invitations.
+        self.conn.execute_batch(
+            "
+            CREATE TABLE IF NOT EXISTS workspace_invitations (
+                id          TEXT PRIMARY KEY,
+                email       TEXT NOT NULL,
+                role        TEXT NOT NULL DEFAULT 'viewer',
+                invited_by  TEXT NOT NULL,
+                token       TEXT NOT NULL UNIQUE,
+                expires_at  TEXT NOT NULL,
+                created_at  TEXT NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS idx_workspace_invitations_email ON workspace_invitations(email);
+            CREATE INDEX IF NOT EXISTS idx_workspace_invitations_token ON workspace_invitations(token);
             ",
         )?;
 
@@ -892,6 +921,125 @@ impl Database {
             |row| row.get(0),
         )?;
         Ok(count > 0)
+    }
+
+    // ── Workspace Invitations ──────────────────────────────────────────────────
+
+    /// Create a new workspace invitation.
+    #[allow(clippy::too_many_arguments)]
+    pub fn create_invitation(
+        &self,
+        id: &str,
+        email: &str,
+        role: &str,
+        invited_by: &str,
+        token: &str,
+        expires_at: &str,
+        created_at: &str,
+    ) -> anyhow::Result<()> {
+        self.conn.execute(
+            "INSERT INTO workspace_invitations (id, email, role, invited_by, token, expires_at, created_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            params![id, email, role, invited_by, token, expires_at, created_at],
+        )?;
+        Ok(())
+    }
+
+    /// List all pending invitations.
+    pub fn list_invitations(&self) -> anyhow::Result<Vec<WorkspaceInvitation>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT id, email, role, invited_by, token, expires_at, created_at
+             FROM workspace_invitations ORDER BY created_at DESC",
+        )?;
+        let invitations = stmt
+            .query_map([], |row| {
+                Ok(WorkspaceInvitation {
+                    id: row.get(0)?,
+                    email: row.get(1)?,
+                    role: row.get(2)?,
+                    invited_by: row.get(3)?,
+                    token: row.get(4)?,
+                    expires_at: row.get(5)?,
+                    created_at: row.get(6)?,
+                })
+            })?
+            .filter_map(|r| r.ok())
+            .collect();
+        Ok(invitations)
+    }
+
+    /// Get an invitation by token.
+    pub fn get_invitation_by_token(
+        &self,
+        token: &str,
+    ) -> anyhow::Result<Option<WorkspaceInvitation>> {
+        let result = self.conn.query_row(
+            "SELECT id, email, role, invited_by, token, expires_at, created_at
+             FROM workspace_invitations WHERE token = ?1",
+            params![token],
+            |row| {
+                Ok(WorkspaceInvitation {
+                    id: row.get(0)?,
+                    email: row.get(1)?,
+                    role: row.get(2)?,
+                    invited_by: row.get(3)?,
+                    token: row.get(4)?,
+                    expires_at: row.get(5)?,
+                    created_at: row.get(6)?,
+                })
+            },
+        );
+        match result {
+            Ok(i) => Ok(Some(i)),
+            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+            Err(e) => Err(e.into()),
+        }
+    }
+
+    /// Get an invitation by email (for checking duplicates).
+    pub fn get_invitation_by_email(
+        &self,
+        email: &str,
+    ) -> anyhow::Result<Option<WorkspaceInvitation>> {
+        let result = self.conn.query_row(
+            "SELECT id, email, role, invited_by, token, expires_at, created_at
+             FROM workspace_invitations WHERE email = ?1",
+            params![email],
+            |row| {
+                Ok(WorkspaceInvitation {
+                    id: row.get(0)?,
+                    email: row.get(1)?,
+                    role: row.get(2)?,
+                    invited_by: row.get(3)?,
+                    token: row.get(4)?,
+                    expires_at: row.get(5)?,
+                    created_at: row.get(6)?,
+                })
+            },
+        );
+        match result {
+            Ok(i) => Ok(Some(i)),
+            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+            Err(e) => Err(e.into()),
+        }
+    }
+
+    /// Delete an invitation (revoke or after acceptance).
+    pub fn delete_invitation(&self, id: &str) -> anyhow::Result<()> {
+        self.conn.execute(
+            "DELETE FROM workspace_invitations WHERE id = ?1",
+            params![id],
+        )?;
+        Ok(())
+    }
+
+    /// Delete expired invitations.
+    pub fn cleanup_expired_invitations(&self, now: &str) -> anyhow::Result<()> {
+        self.conn.execute(
+            "DELETE FROM workspace_invitations WHERE expires_at < ?1",
+            params![now],
+        )?;
+        Ok(())
     }
 
     // ── Uploads ───────────────────────────────────────────────────────────────
@@ -1441,5 +1589,83 @@ mod tests {
             .mention_notification_exists("user2", &note.id, "alice")
             .unwrap();
         assert!(exists);
+    }
+
+    #[test]
+    fn test_invitation_crud() {
+        let db = Database::open_in_memory().unwrap();
+
+        db.create_test_user("user1", "alice").unwrap();
+
+        // Create an invitation.
+        db.create_invitation(
+            "inv1",
+            "bob@example.com",
+            "editor",
+            "user1",
+            "token123",
+            "2025-01-01T00:00:00Z",
+            "2024-01-01T00:00:00Z",
+        )
+        .unwrap();
+
+        // List invitations.
+        let invs = db.list_invitations().unwrap();
+        assert_eq!(invs.len(), 1);
+        assert_eq!(invs[0].email, "bob@example.com");
+        assert_eq!(invs[0].role, "editor");
+
+        // Get by token.
+        let inv = db.get_invitation_by_token("token123").unwrap();
+        assert!(inv.is_some());
+        assert_eq!(inv.unwrap().email, "bob@example.com");
+
+        // Get by email.
+        let inv = db.get_invitation_by_email("bob@example.com").unwrap();
+        assert!(inv.is_some());
+
+        // Delete invitation.
+        db.delete_invitation("inv1").unwrap();
+        let invs = db.list_invitations().unwrap();
+        assert!(invs.is_empty());
+    }
+
+    #[test]
+    fn test_invitation_cleanup() {
+        let db = Database::open_in_memory().unwrap();
+
+        db.create_test_user("user1", "alice").unwrap();
+
+        // Create an expired invitation.
+        db.create_invitation(
+            "inv1",
+            "expired@example.com",
+            "viewer",
+            "user1",
+            "expiredtoken",
+            "2020-01-01T00:00:00Z",
+            "2019-01-01T00:00:00Z",
+        )
+        .unwrap();
+
+        // Create a valid invitation.
+        db.create_invitation(
+            "inv2",
+            "valid@example.com",
+            "editor",
+            "user1",
+            "validtoken",
+            "2030-01-01T00:00:00Z",
+            "2024-01-01T00:00:00Z",
+        )
+        .unwrap();
+
+        // Cleanup expired.
+        db.cleanup_expired_invitations("2025-01-01T00:00:00Z")
+            .unwrap();
+
+        let invs = db.list_invitations().unwrap();
+        assert_eq!(invs.len(), 1);
+        assert_eq!(invs[0].email, "valid@example.com");
     }
 }

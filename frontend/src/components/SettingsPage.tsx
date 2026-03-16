@@ -1,9 +1,9 @@
 import { useCallback, useState, useEffect, useRef } from 'react';
-import { VscArrowLeft } from 'react-icons/vsc';
+import { VscArrowLeft, VscAdd, VscTrash } from 'react-icons/vsc';
 import { useUIStore } from '../stores/uiStore';
 import { useSettingsStore, DEFAULT_SHORTCUTS, type AIProvider } from '../stores/settingsStore';
 import { useAuthStore } from '../stores/authStore';
-import { exportWorkspace } from '../api';
+import { exportWorkspace, listInvitations, createInvitation, revokeInvitation, type Invitation } from '../api';
 import { ImportModal } from './ImportModal';
 import type { User } from '../stores/authStore';
 
@@ -231,6 +231,45 @@ export function SettingsPage({ onClose }: SettingsPageProps) {
   );
   const [savingName, setSavingName] = useState(false);
   const [displayNameError, setDisplayNameError] = useState<string | null>(null);
+  const [invitations, setInvitations] = useState<Invitation[]>([]);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteRole, setInviteRole] = useState('viewer');
+  const [inviting, setInviting] = useState(false);
+  const [invitationError, setInvitationError] = useState<string | null>(null);
+
+  const isAdmin = authUser?.role === 'owner' || authUser?.role === 'admin';
+
+  useEffect(() => {
+    if (isAdmin) {
+      listInvitations()
+        .then(setInvitations)
+        .catch(console.error);
+    }
+  }, [isAdmin]);
+
+  const handleCreateInvitation = useCallback(async () => {
+    if (!inviteEmail) return;
+    setInviting(true);
+    setInvitationError(null);
+    try {
+      const inv = await createInvitation({ email: inviteEmail, role: inviteRole });
+      setInvitations((prev) => [inv, ...prev]);
+      setInviteEmail('');
+    } catch (e) {
+      setInvitationError(e instanceof Error ? e.message : 'Failed to create invitation');
+    } finally {
+      setInviting(false);
+    }
+  }, [inviteEmail, inviteRole]);
+
+  const handleRevokeInvitation = useCallback(async (id: string) => {
+    try {
+      await revokeInvitation(id);
+      setInvitations((prev) => prev.filter((i) => i.id !== id));
+    } catch (e) {
+      console.error('Failed to revoke invitation:', e);
+    }
+  }, []);
 
   const handleSaveDisplayName = useCallback(async () => {
     setSavingName(true);
@@ -484,6 +523,78 @@ export function SettingsPage({ onClose }: SettingsPageProps) {
               )}
             </div>
           </section>
+
+          {/* Team Members Section - Only for Owner/Admin */}
+          {(authUser?.role === 'owner' || authUser?.role === 'admin') && (
+            <section className="mb-8">
+              <SectionTitle>Team Members</SectionTitle>
+              <div className="bg-sidebar dark:bg-sidebar-dark rounded-lg border border-border dark:border-border-dark px-4">
+                <div className="py-3">
+                  <div className="flex items-center gap-2 mb-3">
+                    <input
+                      type="email"
+                      placeholder="Email address"
+                      value={inviteEmail}
+                      onChange={(e) => setInviteEmail(e.target.value)}
+                      className="flex-1 px-2 py-1 text-sm rounded border border-border dark:border-border-dark
+                               bg-surface dark:bg-surface-dark text-text dark:text-text-dark"
+                    />
+                    <select
+                      value={inviteRole}
+                      onChange={(e) => setInviteRole(e.target.value)}
+                      className="px-2 py-1 text-sm rounded border border-border dark:border-border-dark
+                               bg-surface dark:bg-surface-dark text-text dark:text-text-dark"
+                    >
+                      <option value="viewer">Viewer</option>
+                      <option value="editor">Editor</option>
+                      <option value="admin">Admin</option>
+                    </select>
+                    <button
+                      onClick={() => void handleCreateInvitation()}
+                      disabled={inviting || !inviteEmail}
+                      className="flex items-center gap-1 px-3 py-1 text-xs rounded
+                               bg-accent text-white hover:bg-accent/90 disabled:opacity-50"
+                    >
+                      <VscAdd size={14} />
+                      {inviting ? 'Sending...' : 'Invite'}
+                    </button>
+                  </div>
+                  {invitationError && (
+                    <p className="text-xs text-red-500 mb-2">{invitationError}</p>
+                  )}
+                  {invitations.length > 0 && (
+                    <div className="space-y-2 mt-3">
+                      <p className="text-xs text-text-muted dark:text-text-muted-dark">
+                        Pending Invitations
+                      </p>
+                      {invitations.map((inv) => (
+                        <div
+                          key={inv.id}
+                          className="flex items-center justify-between py-1.5 px-2 rounded bg-surface dark:bg-surface-dark"
+                        >
+                          <div>
+                            <span className="text-sm text-text dark:text-text-dark">
+                              {inv.email}
+                            </span>
+                            <span className="text-xs text-text-muted dark:text-text-muted-dark ml-2">
+                              ({inv.role})
+                            </span>
+                          </div>
+                          <button
+                            onClick={() => void handleRevokeInvitation(inv.id)}
+                            className="p-1 text-text-muted dark:text-text-muted-dark hover:text-red-500"
+                            title="Revoke invitation"
+                          >
+                            <VscTrash size={14} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </section>
+          )}
 
           {/* Import / Export Section */}
           <section className="mb-8">

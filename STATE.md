@@ -85,8 +85,8 @@
 | Sync Engine             | Done        | Phase 3 |
 | Unlinked Mentions       | Done        | Phase 3 |
 | Cloud Deployment        | Not Started | Phase 3 |
-| P2P Collaboration       | Done (hook + presence indicator) | Phase 4 |
-| Desktop Apps            | In Progress | Phase 4 (static file serving fixed) |
+| P2P Collaboration       | Done (hook + presence + dynamic cursor color) | Phase 4 |
+| Desktop Apps            | Done (static file serving fixed) | Phase 4 |
 
 ### Phase 1 Exit Criteria (all met)
 
@@ -157,7 +157,7 @@
 
 1. **Desktop Apps** -- Tauri 2.0 app with embedded server (static file serving fixed, 2026-03-16)
 2. **P2P Real-Time Editing** -- Yjs + y-webrtc integration (hook + TipTap extensions added, tests added, 2026-03-16)
-3. Cursor Presence -- Show other users' cursors in editor (CollaborationCursor extension configured)
+3. **Cursor Presence** -- Show other users' cursors in editor (fixed: use dynamic user color from provider, 2026-03-16)
 4. **User Awareness** -- Who's online, viewing what (PresenceIndicator component added, 2026-03-16)
 5. @Mentions -- Mention users for assignment
 6. Notifications -- In-app notification system
@@ -168,4 +168,4 @@
 
 ---
 
-Last Updated: 2026-03-16 (Phase 4: User Awareness - presence indicator showing active users)
+Last Updated: 2026-03-16 (Phase 4: Cursor presence - fixed to use dynamic user colors from collaboration provider)

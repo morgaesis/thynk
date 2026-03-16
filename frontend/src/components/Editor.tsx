@@ -13,6 +13,8 @@ import { Table } from '@tiptap/extension-table';
 import { TableRow } from '@tiptap/extension-table-row';
 import { TableHeader } from '@tiptap/extension-table-header';
 import { TableCell } from '@tiptap/extension-table-cell';
+import Collaboration from '@tiptap/extension-collaboration';
+import CollaborationCursor from '@tiptap/extension-collaboration-cursor';
 import { Extension } from '@tiptap/core';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
@@ -31,6 +33,7 @@ import { UserProfile } from './UserProfile';
 import { FileUploadExtension } from '../extensions/FileUploadExtension';
 import { useFileUpload } from '../hooks/useFileUpload';
 import { useLock } from '../hooks/useLock';
+import { useCollaboration } from '../hooks/useCollaboration';
 import { LockIndicator } from './LockIndicator';
 import { WikiLinkExtension } from '../extensions/WikiLinkExtension';
 import { WikiLinkSuggestions } from './WikiLinkSuggestions';
@@ -261,6 +264,8 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
     releaseLock: doReleaseLock,
   } = useLock(activeNote?.id, currentUsername);
 
+  const { ydoc, provider } = useCollaboration(activeNote?.id);
+
   useEffect(() => {
     activeNoteRef.current = activeNote;
   }, [activeNote]);
@@ -316,6 +321,20 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
       AiCompletionExtension.configure({ onStateChange: setAiState }),
       ...(vimModeEnabled
         ? [VimModeExtension.configure({ onModeChange: setVimMode })]
+        : []),
+      ...(ydoc && provider
+        ? [
+            Collaboration.configure({
+              document: ydoc,
+            }),
+            CollaborationCursor.configure({
+              provider,
+              user: {
+                name: authUser?.username ?? 'Anonymous',
+                color: '#958DF1',
+              },
+            }),
+          ]
         : []),
     ],
     content: '',

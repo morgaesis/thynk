@@ -156,7 +156,7 @@
 ## Phase 4 Next Steps (Collaboration & Platform)
 
 1. **Desktop Apps** -- Tauri 2.0 app with embedded server (static file serving fixed, 2026-03-16)
-2. P2P Real-Time Editing -- Yjs + y-webrtc integration
+2. **P2P Real-Time Editing** -- Yjs + y-webrtc integration (hook + TipTap extensions added, tests added, 2026-03-16)
 3. Cursor Presence -- Show other users' cursors in editor
 4. User Awareness -- Who's online, viewing what
 5. @Mentions -- Mention users for assignment
@@ -168,4 +168,4 @@
 
 ---
 
-Last Updated: 2026-03-16 (Phase 4: Desktop Apps static file serving fixed)
+Last Updated: 2026-03-16 (Phase 4: P2P Real-Time Editing hook + tests added)

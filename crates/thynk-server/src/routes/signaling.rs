@@ -91,36 +91,39 @@ pub async fn signaling_handler(
     State(state): State<AppState>,
 ) -> impl IntoResponse {
     let room = query.room.unwrap_or_else(|| "default".to_string());
-    
+
     ws.on_upgrade(move |socket| handle_signaling_socket(socket, room, state))
 }
 
 async fn handle_signaling_socket(socket: WebSocket, room: String, state: AppState) {
     let (mut sender, mut receiver) = socket.split();
     let client_id = uuid::Uuid::new_v4().to_string();
-    
+
     info!("New signaling client: {} for room: {}", client_id, room);
-    
+
     let (tx, mut rx) = broadcast::channel::<String>(100);
-    
+
     let rooms = state.signaling.rooms.clone();
-    
+
     {
         let mut rooms_lock = rooms.write().await;
         let room_clients = rooms_lock.entry(room.clone()).or_insert_with(HashMap::new);
-        room_clients.insert(client_id.clone(), SignalingClient {
-            id: client_id.clone(),
-            sender: tx.clone(),
-        });
+        room_clients.insert(
+            client_id.clone(),
+            SignalingClient {
+                id: client_id.clone(),
+                sender: tx.clone(),
+            },
+        );
     }
-    
+
     let sync_msg = SignalingMessage::Sync {
         room: room.clone(),
         clients: vec![],
     };
     let sync_json = serde_json::to_string(&sync_msg).unwrap();
     let _ = sender.send(Message::Text(sync_json.into())).await;
-    
+
     {
         let rooms_lock = rooms.read().await;
         if let Some(room_clients) = rooms_lock.get(&room) {
@@ -137,19 +140,19 @@ async fn handle_signaling_socket(socket: WebSocket, room: String, state: AppStat
             }
         }
     }
-    
+
     let tx_clone = tx.clone();
     let client_id_clone = client_id.clone();
     let room_clone = room.clone();
     let rooms_clone = rooms.clone();
-    
+
     let send_task = tokio::spawn(async move {
         while let Ok(msg) = rx.recv().await {
             if sender.send(Message::Text(msg.into())).await.is_err() {
                 break;
             }
         }
-        
+
         let mut rooms_lock = rooms_clone.write().await;
         if let Some(room_clients) = rooms_lock.get_mut(&room_clone) {
             room_clients.remove(&client_id_clone);
@@ -157,14 +160,14 @@ async fn handle_signaling_socket(socket: WebSocket, room: String, state: AppStat
                 rooms_lock.remove(&room_clone);
             }
         }
-        
+
         info!("Signaling client {} disconnected", client_id_clone);
     });
-    
+
     let rooms_for_recv = rooms.clone();
     let client_id_for_recv = client_id.clone();
     let room_for_recv = room.clone();
-    
+
     let recv_task = tokio::spawn(async move {
         while let Some(msg) = receiver.next().await {
             match msg {
@@ -176,7 +179,8 @@ async fn handle_signaling_socket(socket: WebSocket, room: String, state: AppStat
                             &room_for_recv,
                             &rooms_for_recv,
                             &tx_clone,
-                        ).await;
+                        )
+                        .await;
                     }
                 }
                 Ok(Message::Close(_)) | Err(_) => break,
@@ -184,7 +188,7 @@ async fn handle_signaling_socket(socket: WebSocket, room: String, state: AppStat
             }
         }
     });
-    
+
     tokio::select! {
         _ = send_task => {}
         _ = recv_task => {}
@@ -199,18 +203,32 @@ async fn handle_signaling_message(
     sender: &broadcast::Sender<String>,
 ) {
     match msg {
-        SignalingMessage::Subscribe { rooms: subscribe_rooms } => {
-            debug!("Client {} subscribing to rooms: {:?}", client_id, subscribe_rooms);
-            
+        SignalingMessage::Subscribe {
+            rooms: subscribe_rooms,
+        } => {
+            debug!(
+                "Client {} subscribing to rooms: {:?}",
+                client_id, subscribe_rooms
+            );
+
             let mut rooms_lock = rooms.write().await;
             for room_name in subscribe_rooms {
-                let room_clients = rooms_lock.entry(room_name.clone()).or_insert_with(HashMap::new);
-                room_clients.insert(client_id.to_string(), SignalingClient {
-                    id: client_id.to_string(),
-                    sender: sender.clone(),
-                });
-                
-                let clients: Vec<String> = room_clients.keys().filter(|&c| c != client_id).cloned().collect();
+                let room_clients = rooms_lock
+                    .entry(room_name.clone())
+                    .or_insert_with(HashMap::new);
+                room_clients.insert(
+                    client_id.to_string(),
+                    SignalingClient {
+                        id: client_id.to_string(),
+                        sender: sender.clone(),
+                    },
+                );
+
+                let clients: Vec<String> = room_clients
+                    .keys()
+                    .filter(|&c| c != client_id)
+                    .cloned()
+                    .collect();
                 if !clients.is_empty() {
                     let sync_msg = SignalingMessage::Sync {
                         room: room_name,
@@ -222,9 +240,14 @@ async fn handle_signaling_message(
                 }
             }
         }
-        SignalingMessage::Unsubscribe { rooms: unsubscribe_rooms } => {
-            debug!("Client {} unsubscribing from rooms: {:?}", client_id, unsubscribe_rooms);
-            
+        SignalingMessage::Unsubscribe {
+            rooms: unsubscribe_rooms,
+        } => {
+            debug!(
+                "Client {} unsubscribing from rooms: {:?}",
+                client_id, unsubscribe_rooms
+            );
+
             let mut rooms_lock = rooms.write().await;
             for room_name in unsubscribe_rooms {
                 if let Some(room_clients) = rooms_lock.get_mut(&room_name) {
@@ -247,17 +270,46 @@ async fn handle_signaling_message(
         SignalingMessage::Offer { to, from, sdp } => {
             debug!("Forwarding offer from {} to {}", from, to);
             let to_clone = to.clone();
-            forward_message(rooms, room, client_id, &to_clone, SignalingMessage::Offer { to, from, sdp }).await;
+            forward_message(
+                rooms,
+                room,
+                client_id,
+                &to_clone,
+                SignalingMessage::Offer { to, from, sdp },
+            )
+            .await;
         }
         SignalingMessage::Answer { to, from, sdp } => {
             debug!("Forwarding answer from {} to {}", from, to);
             let to_clone = to.clone();
-            forward_message(rooms, room, client_id, &to_clone, SignalingMessage::Answer { to, from, sdp }).await;
+            forward_message(
+                rooms,
+                room,
+                client_id,
+                &to_clone,
+                SignalingMessage::Answer { to, from, sdp },
+            )
+            .await;
         }
-        SignalingMessage::Ice { to, from, candidate } => {
+        SignalingMessage::Ice {
+            to,
+            from,
+            candidate,
+        } => {
             debug!("Forwarding ICE from {} to {}", from, to);
             let to_clone = to.clone();
-            forward_message(rooms, room, client_id, &to_clone, SignalingMessage::Ice { to, from, candidate }).await;
+            forward_message(
+                rooms,
+                room,
+                client_id,
+                &to_clone,
+                SignalingMessage::Ice {
+                    to,
+                    from,
+                    candidate,
+                },
+            )
+            .await;
         }
         _ => {}
     }
@@ -306,14 +358,19 @@ mod tests {
     #[tokio::test]
     async fn test_rooms_handle_subscribe() {
         let rooms: SignalingRooms = Arc::new(RwLock::new(HashMap::new()));
-        
+
         {
             let mut rooms_lock = rooms.write().await;
-            let room_clients = rooms_lock.entry("test-room".to_string()).or_insert_with(HashMap::new);
-            room_clients.insert("client-1".to_string(), SignalingClient {
-                id: "client-1".to_string(),
-                sender: tokio::sync::broadcast::channel(10).0,
-            });
+            let room_clients = rooms_lock
+                .entry("test-room".to_string())
+                .or_insert_with(HashMap::new);
+            room_clients.insert(
+                "client-1".to_string(),
+                SignalingClient {
+                    id: "client-1".to_string(),
+                    sender: tokio::sync::broadcast::channel(10).0,
+                },
+            );
         }
 
         let rooms_lock = rooms.read().await;

@@ -727,10 +727,12 @@ pub async fn move_note(
     let storage = state.storage.lock().await;
     if let Err(e) = storage.move_note(&meta.path, &new_path_buf) {
         return match e {
-            thynk_core::error::ThynkError::AlreadyExists(_) => {
-                err(StatusCode::CONFLICT, "already_exists", "a note already exists at the destination path")
-                    .into_response()
-            }
+            thynk_core::error::ThynkError::AlreadyExists(_) => err(
+                StatusCode::CONFLICT,
+                "already_exists",
+                "a note already exists at the destination path",
+            )
+            .into_response(),
             thynk_core::error::ThynkError::NotFound(_) => {
                 err(StatusCode::NOT_FOUND, "not_found", "source note not found").into_response()
             }
@@ -931,11 +933,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_move_note_success() {
-        use std::sync::Arc;
-        use tokio::sync::Mutex;
-        use thynk_core::{Database, FilesystemStorage};
-        use crate::routes::signaling::SignalingState;
         use crate::routes::auth::AuthUser;
+        use crate::routes::signaling::SignalingState;
+        use std::sync::Arc;
+        use thynk_core::{Database, FilesystemStorage};
+        use tokio::sync::Mutex;
 
         let temp_dir = tempfile::tempdir().unwrap();
         let storage = FilesystemStorage::new(temp_dir.path().to_path_buf()).unwrap();
@@ -987,7 +989,9 @@ mod tests {
 
         assert_eq!(response.status(), StatusCode::OK);
 
-        let body = axum::body::to_bytes(response.into_body(), 1024 * 1024).await.unwrap();
+        let body = axum::body::to_bytes(response.into_body(), 1024 * 1024)
+            .await
+            .unwrap();
         let result: MoveNoteResponse = serde_json::from_slice(&body).unwrap();
         assert_eq!(result.path, "moved/note.md");
         assert_eq!(result.title, "note");
@@ -995,11 +999,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_move_note_conflict() {
-        use std::sync::Arc;
-        use tokio::sync::Mutex;
-        use thynk_core::{Database, FilesystemStorage};
-        use crate::routes::signaling::SignalingState;
         use crate::routes::auth::AuthUser;
+        use crate::routes::signaling::SignalingState;
+        use std::sync::Arc;
+        use thynk_core::{Database, FilesystemStorage};
+        use tokio::sync::Mutex;
 
         let temp_dir = tempfile::tempdir().unwrap();
         let storage = FilesystemStorage::new(temp_dir.path().to_path_buf()).unwrap();
@@ -1067,11 +1071,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_trash_and_restore_note() {
-        use std::sync::Arc;
-        use tokio::sync::Mutex;
-        use thynk_core::{Database, FilesystemStorage};
-        use crate::routes::signaling::SignalingState;
         use crate::routes::auth::AuthUser;
+        use crate::routes::signaling::SignalingState;
+        use std::sync::Arc;
+        use thynk_core::{Database, FilesystemStorage};
+        use tokio::sync::Mutex;
 
         let temp_dir = tempfile::tempdir().unwrap();
         let storage = FilesystemStorage::new(temp_dir.path().to_path_buf()).unwrap();
@@ -1137,11 +1141,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_list_trashed_notes() {
-        use std::sync::Arc;
-        use tokio::sync::Mutex;
-        use thynk_core::{Database, FilesystemStorage};
-        use crate::routes::signaling::SignalingState;
         use crate::routes::auth::AuthUser;
+        use crate::routes::signaling::SignalingState;
+        use std::sync::Arc;
+        use thynk_core::{Database, FilesystemStorage};
+        use tokio::sync::Mutex;
 
         let temp_dir = tempfile::tempdir().unwrap();
         let storage = FilesystemStorage::new(temp_dir.path().to_path_buf()).unwrap();
@@ -1193,16 +1197,15 @@ mod tests {
             display_name: None,
         };
 
-        let response = list_trashed_notes(
-            Extension(auth_user),
-            State(state),
-        )
-        .await
-        .into_response();
+        let response = list_trashed_notes(Extension(auth_user), State(state))
+            .await
+            .into_response();
 
         assert_eq!(response.status(), StatusCode::OK);
 
-        let body = axum::body::to_bytes(response.into_body(), 1024 * 1024).await.unwrap();
+        let body = axum::body::to_bytes(response.into_body(), 1024 * 1024)
+            .await
+            .unwrap();
         let result: TrashedNotesResponse = serde_json::from_slice(&body).unwrap();
         assert_eq!(result.notes.len(), 1);
         assert_eq!(result.notes[0].id, "trash-list-1");

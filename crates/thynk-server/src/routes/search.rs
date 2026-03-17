@@ -31,8 +31,16 @@ pub async fn search(
     let db = state.db.lock().await;
     let engine = SearchEngine::new(&db);
 
-    let limit = if params.limit > 0 { Some(params.limit) } else { None };
-    let offset = if params.offset > 0 { Some(params.offset) } else { None };
+    let limit = if params.limit > 0 {
+        Some(params.limit)
+    } else {
+        None
+    };
+    let offset = if params.offset > 0 {
+        Some(params.offset)
+    } else {
+        None
+    };
 
     let results = if params.tags.is_empty() {
         engine.search(&params.q, limit, offset)

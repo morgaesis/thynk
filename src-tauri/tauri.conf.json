@@ -30,10 +30,19 @@
   "bundle": {
     "active": true,
     "targets": "all",
+    "icon": [
+      "icons/icon.png"
+    ],
     "windows": {
       "certificateThumbprint": null,
       "digestAlgorithm": "sha256",
       "timestampUrl": ""
+    },
+    "android": {
+      "minSdkVersion": 24
+    },
+    "ios": {
+      "minimumSystemVersion": "14.0"
     }
   },
   "plugins": {

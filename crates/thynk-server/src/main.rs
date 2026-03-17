@@ -993,7 +993,6 @@ mod tests {
 
     #[tokio::test]
     async fn test_static_file_serving_serves_index_html() {
-        use std::path::PathBuf;
         use tower_http::services::ServeDir;
 
         let state = test_state();

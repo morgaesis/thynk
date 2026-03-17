@@ -13,9 +13,17 @@ pub struct SearchQuery {
     pub q: String,
     #[serde(default)]
     pub tags: Vec<String>,
+    #[serde(default = "default_limit")]
+    pub limit: i64,
+    #[serde(default)]
+    pub offset: i64,
 }
 
-/// GET /api/search?q=query&tags=tag1&tags=tag2
+fn default_limit() -> i64 {
+    50
+}
+
+/// GET /api/search?q=query&tags=tag1&tags=tag2&limit=20&offset=0
 pub async fn search(
     State(state): State<AppState>,
     Query(params): Query<SearchQuery>,
@@ -23,11 +31,14 @@ pub async fn search(
     let db = state.db.lock().await;
     let engine = SearchEngine::new(&db);
 
+    let limit = if params.limit > 0 { Some(params.limit) } else { None };
+    let offset = if params.offset > 0 { Some(params.offset) } else { None };
+
     let results = if params.tags.is_empty() {
-        engine.search(&params.q)
+        engine.search(&params.q, limit, offset)
     } else {
         let tag_refs: Vec<&str> = params.tags.iter().map(|s| s.as_str()).collect();
-        engine.search_with_tags(&params.q, &tag_refs)
+        engine.search_with_tags(&params.q, &tag_refs, limit, offset)
     };
 
     match results {

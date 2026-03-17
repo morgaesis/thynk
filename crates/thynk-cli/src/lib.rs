@@ -18,7 +18,9 @@ pub fn list_notes(data_dir: &Path) -> anyhow::Result<Vec<PathBuf>> {
 pub fn search_notes(data_dir: &Path, query: &str) -> anyhow::Result<Vec<SearchResult>> {
     let db = Database::open(&get_db_path(data_dir))?;
     let engine = SearchEngine::new(&db);
-    engine.search(query).map_err(|e| anyhow::anyhow!("{}", e))
+    engine
+        .search(query, None, None)
+        .map_err(|e| anyhow::anyhow!("{}", e))
 }
 
 pub fn read_note(data_dir: &Path, path: &str) -> anyhow::Result<String> {

@@ -24,7 +24,13 @@ impl<'a> SearchEngine<'a> {
     }
 
     /// Full-text search across notes. Returns results ranked by relevance.
-    pub fn search(&self, query: &str) -> Result<Vec<SearchResult>, thynk_core::ThynkError> {
+    /// Supports pagination via limit and offset.
+    pub fn search(
+        &self,
+        query: &str,
+        limit: Option<i64>,
+        offset: Option<i64>,
+    ) -> Result<Vec<SearchResult>, thynk_core::ThynkError> {
         let query = query.trim();
         if query.is_empty() {
             return Ok(Vec::new());
@@ -54,15 +60,19 @@ impl<'a> SearchEngine<'a> {
 
         let conn = self.db.conn();
 
+        let limit_clause = limit.unwrap_or(50);
+        let offset_clause = offset.unwrap_or(0);
+
         let mut stmt = conn.prepare(
             "SELECT n.id, n.title, n.path, snippet(notes_fts, 1, '<mark>', '</mark>', '...', 32), rank
              FROM notes_fts
              JOIN notes n ON notes_fts.rowid = n.rowid
              WHERE notes_fts MATCH ?1
-             ORDER BY rank",
+             ORDER BY rank
+             LIMIT ?2 OFFSET ?3",
         )?;
 
-        let rows = stmt.query_map(params![fts_query], |row| {
+        let rows = stmt.query_map(params![fts_query, limit_clause, offset_clause], |row| {
             Ok(SearchResult {
                 note_id: row.get(0)?,
                 title: row.get(1)?,
@@ -80,15 +90,18 @@ impl<'a> SearchEngine<'a> {
     }
 
     /// Full-text search with tag filtering. Only returns notes that have ALL specified tags.
+    /// Supports pagination via limit and offset.
     pub fn search_with_tags(
         &self,
         query: &str,
         tags: &[&str],
+        limit: Option<i64>,
+        offset: Option<i64>,
     ) -> Result<Vec<SearchResult>, thynk_core::ThynkError> {
-        let results = self.search(query)?;
+        let results = self.search(query, None, None)?;
 
         if tags.is_empty() {
-            return Ok(results);
+            return Self::paginate_results(results, limit, offset);
         }
 
         let conn = self.db.conn();
@@ -118,7 +131,18 @@ impl<'a> SearchEngine<'a> {
             .filter(|r| matching_note_ids.contains(&r.note_id))
             .collect();
 
-        Ok(filtered)
+        Self::paginate_results(filtered, limit, offset)
+    }
+
+    fn paginate_results(
+        results: Vec<SearchResult>,
+        limit: Option<i64>,
+        offset: Option<i64>,
+    ) -> Result<Vec<SearchResult>, thynk_core::ThynkError> {
+        let offset = offset.unwrap_or(0) as usize;
+        let limit = limit.unwrap_or(50) as usize;
+
+        Ok(results.into_iter().skip(offset).take(limit).collect())
     }
 }
 
@@ -146,7 +170,7 @@ mod tests {
         db.index_note(&note2).unwrap();
 
         let engine = SearchEngine::new(&db);
-        let results = engine.search("rust").unwrap();
+        let results = engine.search("rust", None, None).unwrap();
         assert_eq!(results.len(), 1);
         assert_eq!(results[0].title, "Rust Programming");
     }
@@ -178,19 +202,25 @@ mod tests {
 
         let engine = SearchEngine::new(&db);
 
-        let results = engine.search_with_tags("rust", &["programming"]).unwrap();
+        let results = engine
+            .search_with_tags("rust", &["programming"], None, None)
+            .unwrap();
         assert_eq!(results.len(), 1);
         assert_eq!(results[0].title, "Rust Programming");
 
-        let results = engine.search_with_tags("python", &["rust"]).unwrap();
+        let results = engine
+            .search_with_tags("python", &["rust"], None, None)
+            .unwrap();
         assert!(results.is_empty());
 
-        let results = engine.search_with_tags("python", &["programming"]).unwrap();
+        let results = engine
+            .search_with_tags("python", &["programming"], None, None)
+            .unwrap();
         assert_eq!(results.len(), 1);
         assert_eq!(results[0].title, "Python Guide");
 
         let results = engine
-            .search_with_tags("rust", &["programming", "rust"])
+            .search_with_tags("rust", &["programming", "rust"], None, None)
             .unwrap();
         assert_eq!(results.len(), 1);
         assert_eq!(results[0].title, "Rust Programming");
@@ -210,7 +240,9 @@ mod tests {
             .unwrap();
 
         let engine = SearchEngine::new(&db);
-        let results = engine.search_with_tags("hello", &["farewell"]).unwrap();
+        let results = engine
+            .search_with_tags("hello", &["farewell"], None, None)
+            .unwrap();
         assert!(results.is_empty());
     }
 
@@ -218,7 +250,7 @@ mod tests {
     fn test_search_no_results() {
         let db = Database::open_in_memory().unwrap();
         let engine = SearchEngine::new(&db);
-        let results = engine.search("nonexistent").unwrap();
+        let results = engine.search("nonexistent", None, None).unwrap();
         assert!(results.is_empty());
     }
 
@@ -233,7 +265,7 @@ mod tests {
         db.index_note(&note).unwrap();
 
         let engine = SearchEngine::new(&db);
-        let results = engine.search("hel").unwrap();
+        let results = engine.search("hel", None, None).unwrap();
         assert_eq!(results.len(), 1);
         assert_eq!(results[0].title, "Hello Note");
     }
@@ -256,7 +288,67 @@ mod tests {
         db.index_note(&note2).unwrap();
 
         let engine = SearchEngine::new(&db);
-        let results = engine.search("rust").unwrap();
+        let results = engine.search("rust", None, None).unwrap();
         assert_eq!(results.len(), 2);
+    }
+
+    #[test]
+    fn test_search_pagination() {
+        let db = Database::open_in_memory().unwrap();
+
+        for i in 0..10 {
+            let note = Note::new(
+                format!("Note {}", i),
+                format!("Content for note {}", i),
+                PathBuf::from(format!("note{}.md", i)),
+            );
+            db.index_note(&note).unwrap();
+        }
+
+        let engine = SearchEngine::new(&db);
+
+        let results = engine.search("note", Some(3), Some(0)).unwrap();
+        assert_eq!(results.len(), 3);
+
+        let results = engine.search("note", Some(3), Some(3)).unwrap();
+        assert_eq!(results.len(), 3);
+
+        let results = engine.search("note", Some(3), Some(6)).unwrap();
+        assert_eq!(results.len(), 3);
+
+        let results = engine.search("note", Some(3), Some(9)).unwrap();
+        assert_eq!(results.len(), 1);
+    }
+
+    #[test]
+    fn test_search_with_tags_pagination() {
+        let db = Database::open_in_memory().unwrap();
+
+        for i in 0..5 {
+            let note = Note::new(
+                format!("Tag Note {}", i),
+                format!("Content for tagged note {}", i),
+                PathBuf::from(format!("tagnote{}.md", i)),
+            );
+            db.index_note(&note).unwrap();
+            db.sync_note_tags(&note.id, &["test".to_string()]).unwrap();
+        }
+
+        let engine = SearchEngine::new(&db);
+
+        let results = engine
+            .search_with_tags("note", &["test"], Some(2), Some(0))
+            .unwrap();
+        assert_eq!(results.len(), 2);
+
+        let results = engine
+            .search_with_tags("note", &["test"], Some(2), Some(2))
+            .unwrap();
+        assert_eq!(results.len(), 2);
+
+        let results = engine
+            .search_with_tags("note", &["test"], Some(2), Some(4))
+            .unwrap();
+        assert_eq!(results.len(), 1);
     }
 }

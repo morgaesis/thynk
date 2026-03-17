@@ -309,6 +309,11 @@ impl Database {
             [],
         );
 
+        // Soft delete (trash) support.
+        let _ = self
+            .conn
+            .execute("ALTER TABLE notes ADD COLUMN deleted_at TEXT", []);
+
         // Wiki-link graph edges.
         self.conn.execute_batch(
             "
@@ -427,9 +432,15 @@ impl Database {
     pub fn get_note_metadata(&self, id: &str) -> Result<NoteMetadata> {
         self.conn
             .query_row(
-                "SELECT id, path, title, content_hash, favorited, created_at, updated_at, last_updated_by FROM notes WHERE id = ?1",
+                "SELECT id, path, title, content_hash, favorited, created_at, updated_at, last_updated_by, deleted_at FROM notes WHERE id = ?1",
                 params![id],
                 |row| {
+                    let deleted_at_str: Option<String> = row.get(8)?;
+                    let deleted_at = deleted_at_str.and_then(|s| {
+                        chrono::DateTime::parse_from_rfc3339(&s)
+                            .ok()
+                            .map(|dt| dt.with_timezone(&chrono::Utc))
+                    });
                     Ok(NoteMetadata {
                         id: row.get(0)?,
                         path: std::path::PathBuf::from(row.get::<_, String>(1)?),
@@ -443,6 +454,7 @@ impl Database {
                             .unwrap_or_default()
                             .with_timezone(&chrono::Utc),
                         last_updated_by: row.get(7)?,
+                        deleted_at,
                     })
                 },
             )
@@ -457,9 +469,15 @@ impl Database {
         let path_str = path.to_string_lossy().to_string();
         self.conn
             .query_row(
-                "SELECT id, path, title, content_hash, favorited, created_at, updated_at, last_updated_by FROM notes WHERE path = ?1",
+                "SELECT id, path, title, content_hash, favorited, created_at, updated_at, last_updated_by, deleted_at FROM notes WHERE path = ?1",
                 params![path_str],
                 |row| {
+                    let deleted_at_str: Option<String> = row.get(8)?;
+                    let deleted_at = deleted_at_str.and_then(|s| {
+                        chrono::DateTime::parse_from_rfc3339(&s)
+                            .ok()
+                            .map(|dt| dt.with_timezone(&chrono::Utc))
+                    });
                     Ok(NoteMetadata {
                         id: row.get(0)?,
                         path: std::path::PathBuf::from(row.get::<_, String>(1)?),
@@ -473,6 +491,7 @@ impl Database {
                             .unwrap_or_default()
                             .with_timezone(&chrono::Utc),
                         last_updated_by: row.get(7)?,
+                        deleted_at,
                     })
                 },
             )
@@ -484,12 +503,18 @@ impl Database {
             })
     }
 
-    /// List metadata for all notes.
+    /// List metadata for all notes (excludes trashed notes).
     pub fn list_notes(&self) -> Result<Vec<NoteMetadata>> {
         let mut stmt = self.conn.prepare(
-            "SELECT id, path, title, content_hash, favorited, created_at, updated_at, last_updated_by FROM notes ORDER BY updated_at DESC",
+            "SELECT id, path, title, content_hash, favorited, created_at, updated_at, last_updated_by, deleted_at FROM notes WHERE deleted_at IS NULL ORDER BY updated_at DESC",
         )?;
         let rows = stmt.query_map([], |row| {
+            let deleted_at_str: Option<String> = row.get(8)?;
+            let deleted_at = deleted_at_str.and_then(|s| {
+                chrono::DateTime::parse_from_rfc3339(&s)
+                    .ok()
+                    .map(|dt| dt.with_timezone(&chrono::Utc))
+            });
             Ok(NoteMetadata {
                 id: row.get(0)?,
                 path: std::path::PathBuf::from(row.get::<_, String>(1)?),
@@ -503,6 +528,7 @@ impl Database {
                     .unwrap_or_default()
                     .with_timezone(&chrono::Utc),
                 last_updated_by: row.get(7)?,
+                deleted_at,
             })
         })?;
 
@@ -532,6 +558,78 @@ impl Database {
             .execute("DELETE FROM notes WHERE path = ?1", params![path_str])?;
         if affected == 0 {
             return Err(ThynkError::NotFound(path.display().to_string()));
+        }
+        Ok(())
+    }
+
+    /// Soft delete a note (move to trash).
+    pub fn trash_note(&self, id: &str) -> Result<()> {
+        let now = chrono::Utc::now().to_rfc3339();
+        let affected = self.conn.execute(
+            "UPDATE notes SET deleted_at = ?1, updated_at = ?1 WHERE id = ?2",
+            params![now, id],
+        )?;
+        if affected == 0 {
+            return Err(ThynkError::NotFound(id.to_string()));
+        }
+        Ok(())
+    }
+
+    /// Restore a note from trash.
+    pub fn restore_note(&self, id: &str) -> Result<()> {
+        let affected = self.conn.execute(
+            "UPDATE notes SET deleted_at = NULL WHERE id = ?1",
+            params![id],
+        )?;
+        if affected == 0 {
+            return Err(ThynkError::NotFound(id.to_string()));
+        }
+        Ok(())
+    }
+
+    /// List trashed notes.
+    pub fn list_trashed_notes(&self) -> Result<Vec<NoteMetadata>> {
+        let mut stmt = self.conn.prepare(
+            "SELECT id, path, title, content_hash, favorited, created_at, updated_at, last_updated_by, deleted_at FROM notes WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC",
+        )?;
+        let rows = stmt.query_map([], |row| {
+            let deleted_at_str: Option<String> = row.get(8)?;
+            let deleted_at = deleted_at_str.and_then(|s| {
+                chrono::DateTime::parse_from_rfc3339(&s)
+                    .ok()
+                    .map(|dt| dt.with_timezone(&chrono::Utc))
+            });
+            Ok(NoteMetadata {
+                id: row.get(0)?,
+                path: std::path::PathBuf::from(row.get::<_, String>(1)?),
+                title: row.get(2)?,
+                content_hash: row.get(3)?,
+                favorited: row.get::<_, i64>(4)? != 0,
+                created_at: chrono::DateTime::parse_from_rfc3339(&row.get::<_, String>(5)?)
+                    .unwrap_or_default()
+                    .with_timezone(&chrono::Utc),
+                updated_at: chrono::DateTime::parse_from_rfc3339(&row.get::<_, String>(6)?)
+                    .unwrap_or_default()
+                    .with_timezone(&chrono::Utc),
+                last_updated_by: row.get(7)?,
+                deleted_at,
+            })
+        })?;
+
+        let mut notes = Vec::new();
+        for row in rows {
+            notes.push(row?);
+        }
+        Ok(notes)
+    }
+
+    /// Permanently delete a note from trash.
+    pub fn permanently_delete_note(&self, id: &str) -> Result<()> {
+        let affected = self
+            .conn
+            .execute("DELETE FROM notes WHERE id = ?1", params![id])?;
+        if affected == 0 {
+            return Err(ThynkError::NotFound(id.to_string()));
         }
         Ok(())
     }
@@ -1185,6 +1283,7 @@ impl Database {
                     .unwrap_or_default()
                     .with_timezone(&chrono::Utc),
                 last_updated_by: row.get(7)?,
+                deleted_at: None,
             })
         })?;
         let mut result = Vec::new();
@@ -1264,6 +1363,7 @@ impl Database {
                     .unwrap_or_default()
                     .with_timezone(&chrono::Utc),
                 last_updated_by: row.get(7)?,
+                deleted_at: None,
             })
         })?;
         let mut result = Vec::new();
@@ -1294,6 +1394,7 @@ impl Database {
                     .unwrap_or_default()
                     .with_timezone(&chrono::Utc),
                 last_updated_by: row.get(7)?,
+                deleted_at: None,
             })
         })?;
         let mut result = Vec::new();
@@ -1333,7 +1434,7 @@ impl Database {
     pub fn list_favorited_notes(&self) -> Result<Vec<NoteMetadata>> {
         let mut stmt = self.conn.prepare(
             "SELECT id, path, title, content_hash, favorited, created_at, updated_at, last_updated_by
-             FROM notes WHERE favorited = 1 ORDER BY updated_at DESC",
+             FROM notes WHERE favorited = 1 AND deleted_at IS NULL ORDER BY updated_at DESC",
         )?;
         let rows = stmt.query_map([], |row| {
             Ok(NoteMetadata {
@@ -1349,6 +1450,7 @@ impl Database {
                     .unwrap_or_default()
                     .with_timezone(&chrono::Utc),
                 last_updated_by: row.get(7)?,
+                deleted_at: None,
             })
         })?;
         let mut result = Vec::new();
@@ -1724,5 +1826,61 @@ mod tests {
         let invs = db.list_invitations().unwrap();
         assert_eq!(invs.len(), 1);
         assert_eq!(invs[0].email, "valid@example.com");
+    }
+
+    #[test]
+    fn test_trash_and_restore_note() {
+        let db = Database::open_in_memory().unwrap();
+
+        let note = Note::new(
+            "To Trash".into(),
+            "Content".into(),
+            PathBuf::from("trash.md"),
+        );
+        let id = note.id.clone();
+        db.index_note(&note).unwrap();
+
+        let notes = db.list_notes().unwrap();
+        assert_eq!(notes.len(), 1);
+
+        db.trash_note(&id).unwrap();
+
+        let notes = db.list_notes().unwrap();
+        assert!(notes.is_empty());
+
+        let trashed = db.list_trashed_notes().unwrap();
+        assert_eq!(trashed.len(), 1);
+        assert_eq!(trashed[0].id, id);
+
+        db.restore_note(&id).unwrap();
+
+        let notes = db.list_notes().unwrap();
+        assert_eq!(notes.len(), 1);
+
+        let trashed = db.list_trashed_notes().unwrap();
+        assert!(trashed.is_empty());
+    }
+
+    #[test]
+    fn test_permanently_delete_note() {
+        let db = Database::open_in_memory().unwrap();
+
+        let note = Note::new(
+            "To Delete".into(),
+            "Content".into(),
+            PathBuf::from("delete.md"),
+        );
+        let id = note.id.clone();
+        db.index_note(&note).unwrap();
+
+        db.trash_note(&id).unwrap();
+
+        let trashed = db.list_trashed_notes().unwrap();
+        assert_eq!(trashed.len(), 1);
+
+        db.permanently_delete_note(&id).unwrap();
+
+        let trashed = db.list_trashed_notes().unwrap();
+        assert!(trashed.is_empty());
     }
 }

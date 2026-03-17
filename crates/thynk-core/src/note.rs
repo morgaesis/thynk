@@ -30,6 +30,8 @@ pub struct NoteMetadata {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub last_updated_by: Option<String>,
+    #[serde(rename = "deletedAt", skip_serializing_if = "Option::is_none")]
+    pub deleted_at: Option<DateTime<Utc>>,
 }
 
 pub fn compute_hash(content: &str) -> String {
@@ -69,6 +71,7 @@ impl Note {
             created_at: self.created_at,
             updated_at: self.updated_at,
             last_updated_by: self.last_updated_by.clone(),
+            deleted_at: None,
         }
     }
 }

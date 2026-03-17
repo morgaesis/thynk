@@ -574,6 +574,120 @@ pub async fn delete_note(
     StatusCode::NO_CONTENT.into_response()
 }
 
+// ── POST /api/notes/:id/trash ─────────────────────────────────────────────────
+
+pub async fn trash_note(
+    Extension(auth_user): Extension<AuthUser>,
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> impl IntoResponse {
+    let db = state.db.lock().await;
+
+    if let Err(resp) = check_note_permission(&db, &id, &auth_user, "edit") {
+        return resp.into_response();
+    }
+
+    let meta = match db.get_note_metadata(&id) {
+        Ok(m) => m,
+        Err(_) => {
+            return err(StatusCode::NOT_FOUND, "not_found", "note not found").into_response();
+        }
+    };
+
+    let storage = state.storage.lock().await;
+    let _ = storage.delete_note(&meta.path);
+    drop(storage);
+
+    if let Err(e) = db.trash_note(&id) {
+        return err(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "db_error",
+            &e.to_string(),
+        )
+        .into_response();
+    }
+
+    StatusCode::NO_CONTENT.into_response()
+}
+
+// ── POST /api/notes/:id/restore ───────────────────────────────────────────────
+
+pub async fn restore_note(
+    Extension(auth_user): Extension<AuthUser>,
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> impl IntoResponse {
+    let db = state.db.lock().await;
+
+    if let Err(resp) = check_note_permission(&db, &id, &auth_user, "edit") {
+        return resp.into_response();
+    }
+
+    if let Err(e) = db.restore_note(&id) {
+        return err(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "db_error",
+            &e.to_string(),
+        )
+        .into_response();
+    }
+
+    StatusCode::NO_CONTENT.into_response()
+}
+
+// ── GET /api/notes/trashed ────────────────────────────────────────────────────
+
+#[derive(Serialize, Deserialize)]
+pub struct TrashedNotesResponse {
+    pub notes: Vec<thynk_core::NoteMetadata>,
+}
+
+pub async fn list_trashed_notes(
+    Extension(_auth_user): Extension<AuthUser>,
+    State(state): State<AppState>,
+) -> impl IntoResponse {
+    let db = state.db.lock().await;
+
+    let notes = match db.list_trashed_notes() {
+        Ok(n) => n,
+        Err(e) => {
+            return err(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "db_error",
+                &e.to_string(),
+            )
+            .into_response();
+        }
+    };
+
+    Json(TrashedNotesResponse { notes }).into_response()
+}
+
+// ── DELETE /api/notes/:id/permanent ─────────────────────────────────────────────
+
+pub async fn permanently_delete_note(
+    Extension(auth_user): Extension<AuthUser>,
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> impl IntoResponse {
+    let db = state.db.lock().await;
+
+    if let Err(resp) = check_note_permission(&db, &id, &auth_user, "edit") {
+        return resp.into_response();
+    }
+
+    if let Err(e) = db.permanently_delete_note(&id) {
+        return err(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "db_error",
+            &e.to_string(),
+        )
+        .into_response();
+    }
+
+    StatusCode::NO_CONTENT.into_response()
+}
+
 // ── PUT /api/notes/:id/move ────────────────────────────────────────────────────
 
 #[derive(Deserialize)]
@@ -949,5 +1063,148 @@ mod tests {
         .into_response();
 
         assert_eq!(response.status(), StatusCode::CONFLICT);
+    }
+
+    #[tokio::test]
+    async fn test_trash_and_restore_note() {
+        use std::sync::Arc;
+        use tokio::sync::Mutex;
+        use thynk_core::{Database, FilesystemStorage};
+        use crate::routes::signaling::SignalingState;
+        use crate::routes::auth::AuthUser;
+
+        let temp_dir = tempfile::tempdir().unwrap();
+        let storage = FilesystemStorage::new(temp_dir.path().to_path_buf()).unwrap();
+        let db = Database::open(&temp_dir.path().join("db.sqlite")).unwrap();
+
+        let note = thynk_core::Note {
+            id: "trash-test-1".to_string(),
+            path: std::path::PathBuf::from("to-trash.md"),
+            title: "To Trash".to_string(),
+            content: "# Test content".to_string(),
+            content_hash: thynk_core::note::compute_hash("# Test content"),
+            frontmatter: std::collections::HashMap::new(),
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+            last_updated_by: None,
+        };
+        storage.write_note(&note).unwrap();
+        db.index_note(&note).unwrap();
+
+        let (events, _) = tokio::sync::broadcast::channel(16);
+        let state = crate::state::AppState {
+            storage: Arc::new(Mutex::new(storage)),
+            db: Arc::new(Mutex::new(db)),
+            config: Arc::new(thynk_core::Config::default()),
+            events,
+            s3_bucket: None,
+            signaling: SignalingState::new(),
+        };
+
+        let auth_user = AuthUser {
+            id: "user1".to_string(),
+            role: thynk_core::db::UserRole::Owner,
+            username: "owner".to_string(),
+            display_name: None,
+        };
+
+        let response = trash_note(
+            Extension(auth_user.clone()),
+            State(state.clone()),
+            Path("trash-test-1".to_string()),
+        )
+        .await
+        .into_response();
+
+        assert_eq!(response.status(), StatusCode::NO_CONTENT);
+
+        let db = state.db.lock().await;
+        let trashed = db.list_trashed_notes().unwrap();
+        assert_eq!(trashed.len(), 1);
+        assert_eq!(trashed[0].id, "trash-test-1");
+        drop(db);
+
+        let response = restore_note(
+            Extension(auth_user),
+            State(state),
+            Path("trash-test-1".to_string()),
+        )
+        .await
+        .into_response();
+
+        assert_eq!(response.status(), StatusCode::NO_CONTENT);
+    }
+
+    #[tokio::test]
+    async fn test_list_trashed_notes() {
+        use std::sync::Arc;
+        use tokio::sync::Mutex;
+        use thynk_core::{Database, FilesystemStorage};
+        use crate::routes::signaling::SignalingState;
+        use crate::routes::auth::AuthUser;
+
+        let temp_dir = tempfile::tempdir().unwrap();
+        let storage = FilesystemStorage::new(temp_dir.path().to_path_buf()).unwrap();
+        let db = Database::open(&temp_dir.path().join("db.sqlite")).unwrap();
+
+        let note1 = thynk_core::Note {
+            id: "trash-list-1".to_string(),
+            path: std::path::PathBuf::from("note1.md"),
+            title: "Note 1".to_string(),
+            content: "Content 1".to_string(),
+            content_hash: thynk_core::note::compute_hash("Content 1"),
+            frontmatter: std::collections::HashMap::new(),
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+            last_updated_by: None,
+        };
+        let note2 = thynk_core::Note {
+            id: "trash-list-2".to_string(),
+            path: std::path::PathBuf::from("note2.md"),
+            title: "Note 2".to_string(),
+            content: "Content 2".to_string(),
+            content_hash: thynk_core::note::compute_hash("Content 2"),
+            frontmatter: std::collections::HashMap::new(),
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+            last_updated_by: None,
+        };
+        storage.write_note(&note1).unwrap();
+        storage.write_note(&note2).unwrap();
+        db.index_note(&note1).unwrap();
+        db.index_note(&note2).unwrap();
+
+        db.trash_note("trash-list-1").unwrap();
+
+        let (events, _) = tokio::sync::broadcast::channel(16);
+        let state = crate::state::AppState {
+            storage: Arc::new(Mutex::new(storage)),
+            db: Arc::new(Mutex::new(db)),
+            config: Arc::new(thynk_core::Config::default()),
+            events,
+            s3_bucket: None,
+            signaling: SignalingState::new(),
+        };
+
+        let auth_user = AuthUser {
+            id: "user1".to_string(),
+            role: thynk_core::db::UserRole::Owner,
+            username: "owner".to_string(),
+            display_name: None,
+        };
+
+        let response = list_trashed_notes(
+            Extension(auth_user),
+            State(state),
+        )
+        .await
+        .into_response();
+
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let body = axum::body::to_bytes(response.into_body(), 1024 * 1024).await.unwrap();
+        let result: TrashedNotesResponse = serde_json::from_slice(&body).unwrap();
+        assert_eq!(result.notes.len(), 1);
+        assert_eq!(result.notes[0].id, "trash-list-1");
     }
 }

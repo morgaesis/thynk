@@ -93,6 +93,7 @@
 | Mobile Apps            | Done (capabilities config, Android minSdk 24, iOS 14.0+) | Phase 4 |
 | Search Tag Filtering  | Done (search_with_tags method, /api/search?tags= query) | Phase 4 |
 | Activity Feed       | Done (getAuditLog API, ActivityFeed component in sidebar) | Phase 4 |
+| Trash/Soft Delete   | Done (trash/restore/permanent-delete API, DB methods, tests) | Phase 4 |
 | Security Fix         | Done (notification ownership validation on mark read) | - |
 
 ### Phase 1 Exit Criteria (all met)
@@ -173,10 +174,11 @@
 9. ~~Signaling Server~~ -- WebRTC signaling in Rust (implemented: WebSocket handler, room management, message routing for offer/answer/ICE, frontend integration, 2026-03-17)
 10. ~~CLI Interface~~ -- Command-line tool for note CRUD and search (thynk-cli crate with list/search/cat/create/delete commands, 2026-03-17)
 11. ~~Mobile Apps~~ -- Tauri 2.0 mobile support (capabilities configuration, Android minSdk 24, iOS 14.0+, 2026-03-17)
-12. **Note Move/Rename** -- Move notes via drag-and-drop in sidebar (move_note API endpoint, get_note_by_path endpoint, storage layer move_note, database update_note_path, frontend drag-drop integration, 2026-03-17)
-13. **Search Tag Filtering** -- Filter search results by tags (search_with_tags method, /api/search?tags= query parameter, tests added, 2026-03-17)
+12. ~~Note Move/Rename~~ -- Move notes via drag-and-drop in sidebar (move_note API endpoint, get_note_by_path endpoint, storage layer move_note, database update_note_path, frontend drag-drop integration, 2026-03-17)
+13. ~~Search Tag Filtering~~ -- Filter search results by tags (search_with_tags method, /api/search?tags= query parameter, tests added, 2026-03-17)
 14. ~~Activity Feed~~ -- Recent activity from audit log (getAuditLog API, ActivityFeed component in sidebar, 2026-03-17)
+15. **Trash/Soft Delete** -- Soft delete with trash view, restore, and permanent delete (API routes added: POST /trash, POST /restore, DELETE /permanent, GET /trashed, DB methods and tests added, 2026-03-17)
 
 ---
 
-Last Updated: 2026-03-17 (Security Fix: Notification ownership validation - Added mark_notification_read_for_user DB method and fixed HTTP route to validate ownership, preventing unauthorized access to mark other users' notifications as read)
+Last Updated: 2026-03-17 (Trash Feature: Added soft delete with trash/restore/permanent delete API, database migration for deleted_at column, list_trashed_notes endpoint, backend tests added)

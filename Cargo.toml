@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/*", "src-tauri"]
+members = ["crates/*", "src-tauri", "crates/thynk-cli"]
 resolver = "2"
 
 [workspace.dependencies]

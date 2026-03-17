@@ -92,6 +92,7 @@
 | CLI Interface          | Done (thynk-cli crate with list/search/cat/create/delete) | Phase 4 |
 | Mobile Apps            | Done (capabilities config, Android minSdk 24, iOS 14.0+) | Phase 4 |
 | Search Tag Filtering  | Done (search_with_tags method, /api/search?tags= query) | Phase 4 |
+| Activity Feed       | Done (getAuditLog API, ActivityFeed component in sidebar) | Phase 4 |
 
 ### Phase 1 Exit Criteria (all met)
 
@@ -173,7 +174,8 @@
 11. ~~Mobile Apps~~ -- Tauri 2.0 mobile support (capabilities configuration, Android minSdk 24, iOS 14.0+, 2026-03-17)
 12. **Note Move/Rename** -- Move notes via drag-and-drop in sidebar (move_note API endpoint, get_note_by_path endpoint, storage layer move_note, database update_note_path, frontend drag-drop integration, 2026-03-17)
 13. **Search Tag Filtering** -- Filter search results by tags (search_with_tags method, /api/search?tags= query parameter, tests added, 2026-03-17)
+14. ~~Activity Feed~~ -- Recent activity from audit log (getAuditLog API, ActivityFeed component in sidebar, 2026-03-17)
 
 ---
 
-Last Updated: 2026-03-17 (Phase 4: Search Tag Filtering - Added tag filtering to search API, search_with_tags method, tests)
+Last Updated: 2026-03-17 (Phase 4: Activity Feed - Added ActivityFeed component to sidebar, getAuditLog API function, and tests)

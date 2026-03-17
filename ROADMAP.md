@@ -198,6 +198,44 @@ Phase 1 → Phase 2 → Phase 3 → Phase 4
 
 Each phase builds on the previous. No phase can be skipped.
 
+---
+
+## Known Issues & Backlog
+
+See `STATE.md` for current blockers and active work.
+
+### Critical Bugs
+
+- **Document locking** - Locking doesn't persist; locked state lost on refresh
+- **Newlines truncated** - Multiple newlines collapse to one on refresh
+- **Content loss** - Fast typing or images disappear on refresh; needs auto-save buffer
+- **404 on refresh** - Opening note then refreshing gives 404, but note appears in UI
+- **WebSocket failures** - Connections to `y-webrtc-signaling-eu.herokuapp.com` and `signaling.yjs.dev` fail; need self-hosted signaling server
+- **History navigation** - Browser back/forward doesn't work between notes and settings
+
+### Features Needed
+
+- **Wiki links** - `[[note-name]]` should create note if it doesn't exist
+- **Editor parity** - Match Obsidian feel with Notion slash-commands
+- **Code blocks** - Fix styling, add copy button, show language
+- **Todo items** - Support `- [ ]`, `- [/]`, `- [x]` states
+- **Multi-tenancy** - Workspaces with user signup and invitations
+- **Cloud storage** - Sync notes to bucket, count towards quota
+- **Document versioning** - Version history for notes
+
+### UI/UX
+
+- **Settings** - Modal overlay, not separate page
+- **Notifications** - Bell icon, not full navbar line
+- **Modal closing** - ESC and click-outside should close modals
+- **Theme support** - Custom CSS themes, selector in settings
+
+### Infrastructure
+
+- **Desktop builds** - CI for Windows/Linux (arm/x86)
+- **Self-hosted signaling** - Add STUN/TURN/signal server to docker-compose
+- **Model discovery** - Auto-fetch model list from API provider
+
 ### External Dependencies
 
 | Dependency              | Phase   | Risk   | Mitigation                        |

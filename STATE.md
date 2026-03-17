@@ -92,6 +92,7 @@
 | CLI Interface          | Done (thynk-cli crate with list/search/cat/create/delete) | Phase 4 |
 | Mobile Apps            | Done (capabilities config, Android minSdk 24, iOS 14.0+) | Phase 4 |
 | Search Tag Filtering  | Done (search_with_tags method, /api/search?tags= query) | Phase 4 |
+| Search Pagination     | Done (limit/offset params, paginated results) | Phase 4 |
 | Activity Feed       | Done (getAuditLog API, ActivityFeed component in sidebar) | Phase 4 |
 | Trash/Soft Delete   | Done (trash/restore/permanent-delete API, DB methods, tests, TrashSection UI in sidebar) | Phase 4 |
 | User Profiles        | Done (mutual work feature showing connected notes between users) | Phase 4 |
@@ -177,10 +178,11 @@
 11. ~~Mobile Apps~~ -- Tauri 2.0 mobile support (capabilities configuration, Android minSdk 24, iOS 14.0+, 2026-03-17)
 12. ~~Note Move/Rename~~ -- Move notes via drag-and-drop in sidebar (move_note API endpoint, get_note_by_path endpoint, storage layer move_note, database update_note_path, frontend drag-drop integration, 2026-03-17)
 13. ~~Search Tag Filtering~~ -- Filter search results by tags (search_with_tags method, /api/search?tags= query parameter, tests added, 2026-03-17)
-14. ~~Activity Feed~~ -- Recent activity from audit log (getAuditLog API, ActivityFeed component in sidebar, 2026-03-17)
-15. ~~Trash/Soft Delete~~ -- Soft delete with trash view, restore, and permanent delete (API routes: POST /trash, POST /restore, DELETE /permanent, GET /trashed; DB methods; frontend TrashSection UI in sidebar with restore/permanent-delete actions, tests added, 2026-03-17)
-16. ~~User Profiles~~ -- View shared docs, activity, mutual work (mutual_work field in API, build_mutual_work function, backend tests, frontend component updated, 2026-03-17)
+14. ~~Search Pagination~~ -- Paginated search results with limit/offset params (SearchEngine updated, API endpoint accepts limit/offset, tests added, 2026-03-17)
+15. ~~Activity Feed~~ -- Recent activity from audit log (getAuditLog API, ActivityFeed component in sidebar, 2026-03-17)
+16. ~~Trash/Soft Delete~~ -- Soft delete with trash view, restore, and permanent delete (API routes: POST /trash, POST /restore, DELETE /permanent, GET /trashed; DB methods; frontend TrashSection UI in sidebar with restore/permanent-delete actions, tests added, 2026-03-17)
+17. ~~User Profiles~~ -- View shared docs, activity, mutual work (mutual_work field in API, build_mutual_work function, backend tests, frontend component updated, 2026-03-17)
 
 ---
 
-Last Updated: 2026-03-17 (User Profiles: Added mutual work feature showing connected notes between users via wiki-links, backend API with tests, frontend component updated)
+Last Updated: 2026-03-17 (Search Pagination: Added limit/offset params to search API for paginated results, SearchEngine updated with pagination support, new tests added)

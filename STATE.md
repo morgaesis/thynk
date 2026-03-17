@@ -89,6 +89,7 @@
 | Desktop Apps            | Done (static file serving fixed) | Phase 4 |
 | Shared Workspaces       | Done (invitation system + Team Members UI) | Phase 4 |
 | Signaling Server       | Done (WebSocket handler, room management, message routing) | Phase 4 |
+| CLI Interface          | Done (thynk-cli crate with list/search/cat/create/delete) | Phase 4 |
 
 ### Phase 1 Exit Criteria (all met)
 
@@ -166,8 +167,9 @@
 7. **Permissions** -- Page-level permissions (page_permissions table, API routes, permission checks on note access, 2026-03-16)
 8. **Shared Workspaces** -- Invite users via email (workspace_invitations table, API routes for create/list/revoke/accept, Team Members UI in Settings, 2026-03-16)
 9. ~~Signaling Server~~ -- WebRTC signaling in Rust (implemented: WebSocket handler, room management, message routing for offer/answer/ICE, frontend integration, 2026-03-17)
-10. Mobile Apps -- Tauri for iOS/Android
+10. ~~CLI Interface~~ -- Command-line tool for note CRUD and search (thynk-cli crate with list/search/cat/create/delete commands, 2026-03-17)
+11. Mobile Apps -- Tauri for iOS/Android
 
 ---
 
-Last Updated: 2026-03-17 (Phase 4: Signaling Server implemented - WebRTC signaling in Rust with room management, message routing, frontend integration with fallback to public signaling)
+Last Updated: 2026-03-17 (Phase 4: CLI Interface implemented - thynk-cli crate with list, search, cat, create, delete commands; Signaling Server complete)

@@ -11,9 +11,11 @@ use crate::state::AppState;
 #[derive(Deserialize)]
 pub struct SearchQuery {
     pub q: String,
+    #[serde(default)]
+    pub tags: Vec<String>,
 }
 
-/// GET /api/search?q=query
+/// GET /api/search?q=query&tags=tag1&tags=tag2
 pub async fn search(
     State(state): State<AppState>,
     Query(params): Query<SearchQuery>,
@@ -21,7 +23,14 @@ pub async fn search(
     let db = state.db.lock().await;
     let engine = SearchEngine::new(&db);
 
-    match engine.search(&params.q) {
+    let results = if params.tags.is_empty() {
+        engine.search(&params.q)
+    } else {
+        let tag_refs: Vec<&str> = params.tags.iter().map(|s| s.as_str()).collect();
+        engine.search_with_tags(&params.q, &tag_refs)
+    };
+
+    match results {
         Ok(results) => {
             (StatusCode::OK, Json(serde_json::to_value(results).unwrap())).into_response()
         }

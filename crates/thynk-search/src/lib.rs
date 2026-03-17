@@ -78,6 +78,48 @@ impl<'a> SearchEngine<'a> {
         }
         Ok(results)
     }
+
+    /// Full-text search with tag filtering. Only returns notes that have ALL specified tags.
+    pub fn search_with_tags(
+        &self,
+        query: &str,
+        tags: &[&str],
+    ) -> Result<Vec<SearchResult>, thynk_core::ThynkError> {
+        let results = self.search(query)?;
+
+        if tags.is_empty() {
+            return Ok(results);
+        }
+
+        let conn = self.db.conn();
+        let tags_owned: Vec<String> = tags.iter().map(|s| s.to_string()).collect();
+        let placeholders: Vec<String> = tags_owned.iter().map(|_| "?".to_string()).collect();
+        let sql = format!(
+            "SELECT note_id FROM note_tags nt JOIN tags t ON nt.tag_id = t.id WHERE t.name IN ({}) GROUP BY note_id HAVING COUNT(DISTINCT t.name) = {}",
+            placeholders.join(","),
+            tags_owned.len()
+        );
+        let mut stmt = conn.prepare(&sql)?;
+
+        let params: Vec<&dyn rusqlite::ToSql> = tags_owned
+            .iter()
+            .map(|s| s as &dyn rusqlite::ToSql)
+            .collect();
+        let rows = stmt.query_map(params.as_slice(), |row| row.get::<_, String>(0))?;
+
+        let mut matching_note_ids: std::collections::HashSet<String> =
+            std::collections::HashSet::new();
+        for row in rows {
+            matching_note_ids.insert(row?);
+        }
+
+        let filtered: Vec<SearchResult> = results
+            .into_iter()
+            .filter(|r| matching_note_ids.contains(&r.note_id))
+            .collect();
+
+        Ok(filtered)
+    }
 }
 
 #[cfg(test)]
@@ -110,6 +152,69 @@ mod tests {
     }
 
     #[test]
+    fn test_search_with_tags() {
+        let db = Database::open_in_memory().unwrap();
+
+        let note1 = Note::new(
+            "Rust Programming".into(),
+            "Rust is a systems programming language focused on safety.".into(),
+            PathBuf::from("rust.md"),
+        );
+        let note2 = Note::new(
+            "Python Guide".into(),
+            "Python is great for scripting and data science.".into(),
+            PathBuf::from("python.md"),
+        );
+        db.index_note(&note1).unwrap();
+        db.index_note(&note2).unwrap();
+
+        db.sync_note_tags(&note1.id, &["programming".to_string(), "rust".to_string()])
+            .unwrap();
+        db.sync_note_tags(
+            &note2.id,
+            &["programming".to_string(), "scripting".to_string()],
+        )
+        .unwrap();
+
+        let engine = SearchEngine::new(&db);
+
+        let results = engine.search_with_tags("rust", &["programming"]).unwrap();
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].title, "Rust Programming");
+
+        let results = engine.search_with_tags("python", &["rust"]).unwrap();
+        assert!(results.is_empty());
+
+        let results = engine.search_with_tags("python", &["programming"]).unwrap();
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].title, "Python Guide");
+
+        let results = engine
+            .search_with_tags("rust", &["programming", "rust"])
+            .unwrap();
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].title, "Rust Programming");
+    }
+
+    #[test]
+    fn test_search_with_tags_no_match() {
+        let db = Database::open_in_memory().unwrap();
+
+        let note = Note::new(
+            "Hello Note".into(),
+            "This note contains the word hello.".into(),
+            PathBuf::from("hello.md"),
+        );
+        db.index_note(&note).unwrap();
+        db.sync_note_tags(&note.id, &["greeting".to_string()])
+            .unwrap();
+
+        let engine = SearchEngine::new(&db);
+        let results = engine.search_with_tags("hello", &["farewell"]).unwrap();
+        assert!(results.is_empty());
+    }
+
+    #[test]
     fn test_search_no_results() {
         let db = Database::open_in_memory().unwrap();
         let engine = SearchEngine::new(&db);
@@ -128,7 +233,6 @@ mod tests {
         db.index_note(&note).unwrap();
 
         let engine = SearchEngine::new(&db);
-        // Partial prefix "hel" should match "hello".
         let results = engine.search("hel").unwrap();
         assert_eq!(results.len(), 1);
         assert_eq!(results[0].title, "Hello Note");

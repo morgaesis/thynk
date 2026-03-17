@@ -94,6 +94,7 @@
 | Search Tag Filtering  | Done (search_with_tags method, /api/search?tags= query) | Phase 4 |
 | Activity Feed       | Done (getAuditLog API, ActivityFeed component in sidebar) | Phase 4 |
 | Trash/Soft Delete   | Done (trash/restore/permanent-delete API, DB methods, tests, TrashSection UI in sidebar) | Phase 4 |
+| User Profiles        | Done (mutual work feature showing connected notes between users) | Phase 4 |
 | Security Fix         | Done (notification ownership validation on mark read) | - |
 
 ### Phase 1 Exit Criteria (all met)
@@ -178,7 +179,8 @@
 13. ~~Search Tag Filtering~~ -- Filter search results by tags (search_with_tags method, /api/search?tags= query parameter, tests added, 2026-03-17)
 14. ~~Activity Feed~~ -- Recent activity from audit log (getAuditLog API, ActivityFeed component in sidebar, 2026-03-17)
 15. ~~Trash/Soft Delete~~ -- Soft delete with trash view, restore, and permanent delete (API routes: POST /trash, POST /restore, DELETE /permanent, GET /trashed; DB methods; frontend TrashSection UI in sidebar with restore/permanent-delete actions, tests added, 2026-03-17)
+16. ~~User Profiles~~ -- View shared docs, activity, mutual work (mutual_work field in API, build_mutual_work function, backend tests, frontend component updated, 2026-03-17)
 
 ---
 
-Last Updated: 2026-03-17 (Trash Feature: Added soft delete with trash/restore/permanent delete API, database migration for deleted_at column, list_trashed_notes endpoint, backend tests added, frontend TrashSection UI in sidebar with restore/permanent-delete actions)
+Last Updated: 2026-03-17 (User Profiles: Added mutual work feature showing connected notes between users via wiki-links, backend API with tests, frontend component updated)

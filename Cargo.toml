@@ -8,6 +8,7 @@ argon2 = "0.5"
 axum = { version = "0.8", features = ["ws", "multipart"] }
 axum-extra = { version = "0.10", features = ["cookie"] }
 chrono = { version = "0.4", features = ["serde"] }
+futures-util = "0.3"
 hex = "0.4"
 notify = "8"
 s3 = { package = "rust-s3", version = "0.37", default-features = false, features = ["tokio-rustls-tls"] }

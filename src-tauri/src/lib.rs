@@ -10,6 +10,7 @@ use tracing_subscriber::EnvFilter;
 use thynk_core::{Config, Database, FilesystemStorage, NoteStorage};
 
 use thynk_server::routes::router;
+use thynk_server::routes::signaling::SignalingState;
 use thynk_server::state::{AppState, WsEvent};
 
 fn index_all_files(db: &Database, storage: &FilesystemStorage) {
@@ -125,6 +126,7 @@ pub fn run() {
         config: Arc::new(config.clone()),
         events: events_tx.clone(),
         s3_bucket: None,
+        signaling: SignalingState::new(),
     };
 
     let cors = CorsLayer::new()

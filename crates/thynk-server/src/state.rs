@@ -4,6 +4,8 @@ use serde::{Deserialize, Serialize};
 use thynk_core::{Config, Database, FilesystemStorage};
 use tokio::sync::{broadcast, Mutex};
 
+use crate::routes::signaling::SignalingState;
+
 /// Events broadcast to all connected WebSocket clients.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
@@ -36,4 +38,6 @@ pub struct AppState {
     pub events: broadcast::Sender<WsEvent>,
     /// Optional S3 bucket for file uploads. None if S3 env vars are not set.
     pub s3_bucket: Option<Arc<s3::Bucket>>,
+    /// WebRTC signaling server state for P2P collaboration.
+    pub signaling: SignalingState,
 }

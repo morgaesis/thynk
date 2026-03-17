@@ -13,6 +13,7 @@ use tracing_subscriber::EnvFilter;
 
 use thynk_core::{Config, Database, FilesystemStorage, NoteStorage};
 
+use crate::routes::signaling::SignalingState;
 use crate::state::{AppState, WsEvent};
 
 /// Attempt to create an S3 Bucket from environment variables.
@@ -102,6 +103,7 @@ async fn main() -> anyhow::Result<()> {
         config: Arc::new(config.clone()),
         events: events_tx.clone(),
         s3_bucket,
+        signaling: SignalingState::new(),
     };
 
     // Start file watcher in background.
@@ -329,6 +331,7 @@ mod tests {
             config: Arc::new(Config::default()),
             events,
             s3_bucket: None,
+            signaling: SignalingState::new(),
         }
     }
 

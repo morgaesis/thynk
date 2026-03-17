@@ -536,6 +536,7 @@ mod tests {
     use thynk_core::{Config, Database, FilesystemStorage, NoteStorage};
 
     use crate::routes;
+    use crate::routes::signaling::SignalingState;
     use crate::state::AppState;
 
     fn test_state() -> AppState {
@@ -549,6 +550,7 @@ mod tests {
             config: Arc::new(Config::default()),
             events,
             s3_bucket: None,
+            signaling: SignalingState::new(),
         }
     }
 

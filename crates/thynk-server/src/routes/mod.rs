@@ -9,6 +9,7 @@ pub mod notes;
 pub mod notifications;
 pub mod profiles;
 pub mod search;
+pub mod signaling;
 pub mod sync;
 pub mod tags;
 pub mod templates;
@@ -74,6 +75,7 @@ pub fn router(state: AppState) -> Router {
         .route("/api/notes/{id}/mentions", get(links::get_mentions))
         .route("/api/graph", get(links::get_graph))
         .route("/api/ws", get(ws::ws_handler))
+        .route("/api/signaling", get(signaling::signaling_handler))
         .route(
             "/api/uploads",
             post(uploads::upload_file).layer(DefaultBodyLimit::max(50 * 1024 * 1024)),

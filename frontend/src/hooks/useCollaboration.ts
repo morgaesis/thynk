@@ -60,8 +60,14 @@ export function useCollaboration(noteId: string | undefined) {
     const roomName = `thynk-note-${noteId}`;
     const username = user?.username ?? 'Anonymous';
     
+    const getSignalingUrl = () => {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const host = window.location.host;
+      return `${protocol}//${host}/api/signaling?room=${encodeURIComponent(roomName)}`;
+    };
+    
     const provider = new WebrtcProvider(roomName, ydoc, {
-      signaling: ['wss://signaling.yjs.dev', 'wss://y-webrtc-signaling-eu.herokuapp.com'],
+      signaling: [getSignalingUrl(), 'wss://signaling.yjs.dev'],
       password: undefined,
       awareness: undefined,
       maxConns: 20,

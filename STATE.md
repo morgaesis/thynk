@@ -93,6 +93,7 @@
 | Mobile Apps            | Done (capabilities config, Android minSdk 24, iOS 14.0+) | Phase 4 |
 | Search Tag Filtering  | Done (search_with_tags method, /api/search?tags= query) | Phase 4 |
 | Activity Feed       | Done (getAuditLog API, ActivityFeed component in sidebar) | Phase 4 |
+| Security Fix         | Done (notification ownership validation on mark read) | - |
 
 ### Phase 1 Exit Criteria (all met)
 
@@ -178,4 +179,4 @@
 
 ---
 
-Last Updated: 2026-03-17 (Phase 4: Activity Feed - Added ActivityFeed component to sidebar, getAuditLog API function, and tests)
+Last Updated: 2026-03-17 (Security Fix: Notification ownership validation - Added mark_notification_read_for_user DB method and fixed HTTP route to validate ownership, preventing unauthorized access to mark other users' notifications as read)

@@ -88,6 +88,7 @@
 | P2P Collaboration       | Done (hook + presence + dynamic cursor color) | Phase 4 |
 | Desktop Apps            | Done (static file serving fixed) | Phase 4 |
 | Shared Workspaces       | Done (invitation system + Team Members UI) | Phase 4 |
+| Signaling Server       | Done (WebSocket handler, room management, message routing) | Phase 4 |
 
 ### Phase 1 Exit Criteria (all met)
 
@@ -164,9 +165,9 @@
 6. **Notifications** -- In-app notification system (NotificationsPanel, unread count, mark read API, 2026-03-16)
 7. **Permissions** -- Page-level permissions (page_permissions table, API routes, permission checks on note access, 2026-03-16)
 8. **Shared Workspaces** -- Invite users via email (workspace_invitations table, API routes for create/list/revoke/accept, Team Members UI in Settings, 2026-03-16)
-9. Signaling Server -- WebRTC signaling in Rust
+9. ~~Signaling Server~~ -- WebRTC signaling in Rust (implemented: WebSocket handler, room management, message routing for offer/answer/ICE, frontend integration, 2026-03-17)
 10. Mobile Apps -- Tauri for iOS/Android
 
 ---
 
-Last Updated: 2026-03-16 (Phase 4: Shared Workspaces implemented - invitation system with email invites, role-based access, Team Members UI in Settings)
+Last Updated: 2026-03-17 (Phase 4: Signaling Server implemented - WebRTC signaling in Rust with room management, message routing, frontend integration with fallback to public signaling)

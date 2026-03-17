@@ -62,13 +62,14 @@ pub async fn get_unread_count(
 }
 
 pub async fn mark_read(
-    axum::extract::Extension(_auth_user): axum::extract::Extension<AuthUser>,
+    axum::extract::Extension(auth_user): axum::extract::Extension<AuthUser>,
     State(state): State<AppState>,
     axum::extract::Path(id): axum::extract::Path<String>,
 ) -> impl IntoResponse {
     let db = state.db.lock().await;
-    match db.mark_notification_read(&id) {
-        Ok(()) => StatusCode::NO_CONTENT.into_response(),
+    match db.mark_notification_read_for_user(&id, &auth_user.id) {
+        Ok(true) => StatusCode::NO_CONTENT.into_response(),
+        Ok(false) => err_json(StatusCode::NOT_FOUND, "not_found", "Notification not found").into_response(),
         Err(e) => err_json(
             StatusCode::INTERNAL_SERVER_ERROR,
             "db_error",

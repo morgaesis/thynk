@@ -820,6 +820,20 @@ impl Database {
         Ok(())
     }
 
+    /// Mark a notification as read, validating user ownership.
+    /// Returns Ok(true) if marked, Ok(false) if not found or not owned, Err on DB error.
+    pub fn mark_notification_read_for_user(
+        &self,
+        notification_id: &str,
+        user_id: &str,
+    ) -> anyhow::Result<bool> {
+        let rows = self.conn.execute(
+            "UPDATE notifications SET read = 1 WHERE id = ?1 AND user_id = ?2",
+            params![notification_id, user_id],
+        )?;
+        Ok(rows > 0)
+    }
+
     /// Get count of unread notifications for a user.
     pub fn get_unread_notification_count(&self, user_id: &str) -> anyhow::Result<i64> {
         let count: i64 = self.conn.query_row(
@@ -1540,7 +1554,7 @@ mod tests {
         let note = Note::new("Test Note".into(), "Hello".into(), PathBuf::from("test.md"));
         db.index_note(&note).unwrap();
 
-        // Create a notification.
+        // Create a notification for user2.
         db.create_notification(
             "notif1",
             "user2",
@@ -1561,14 +1575,44 @@ mod tests {
         let count = db.get_unread_notification_count("user2").unwrap();
         assert_eq!(count, 1);
 
-        // Mark as read.
-        db.mark_notification_read("notif1").unwrap();
+        // Mark as read (with ownership check).
+        db.mark_notification_read_for_user("notif1", "user2")
+            .unwrap();
 
         let notifs = db.get_notifications_for_user("user2").unwrap();
         assert!(notifs[0].read);
 
         let count = db.get_unread_notification_count("user2").unwrap();
         assert_eq!(count, 0);
+    }
+
+    #[test]
+    fn test_mark_notification_read_validates_ownership() {
+        let db = Database::open_in_memory().unwrap();
+
+        db.create_test_user("user1", "alice").unwrap();
+        db.create_test_user("user2", "bob").unwrap();
+        let note = Note::new("Test Note".into(), "Hello".into(), PathBuf::from("test.md"));
+        db.index_note(&note).unwrap();
+
+        // Create a notification for user2.
+        db.create_notification(
+            "notif1",
+            "user2",
+            &note.id,
+            "mention",
+            "alice mentioned you",
+            "2024-01-01T00:00:00Z",
+        )
+        .unwrap();
+
+        // user1 should NOT be able to mark user2's notification as read.
+        let result = db.mark_notification_read_for_user("notif1", "user1");
+        assert!(result.is_err() || result.unwrap() == false);
+
+        // Verify notification is still unread for user2.
+        let notifs = db.get_notifications_for_user("user2").unwrap();
+        assert!(!notifs[0].read);
     }
 
     #[test]

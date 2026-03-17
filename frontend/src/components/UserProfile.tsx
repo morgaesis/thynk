@@ -13,6 +13,7 @@ interface UserProfileData {
   username: string;
   display_name: string | null;
   recent_notes: NoteActivity[];
+  mutual_work: NoteActivity[];
 }
 
 interface Props {
@@ -113,10 +114,35 @@ export function UserProfile({ username, onClose }: Props) {
               Recent Activity
             </h3>
             {profile.recent_notes.length === 0 ? (
-              <p className="text-xs text-text-muted dark:text-text-muted-dark">No recent activity.</p>
+              <p className="text-xs text-text-muted dark:text-text-muted-dark mb-4">No recent activity.</p>
+            ) : (
+              <ul className="space-y-1 mb-6">
+                {profile.recent_notes.map((note) => (
+                  <li key={note.id}>
+                    <button
+                      onClick={() => { openNote(note.id); onClose(); }}
+                      className="w-full text-left px-2 py-1.5 rounded text-sm text-text dark:text-text-dark
+                                 hover:bg-sidebar dark:hover:bg-sidebar-dark transition-colors"
+                    >
+                      <span className="truncate block">{note.title}</span>
+                      <span className="text-xs text-text-muted dark:text-text-muted-dark">
+                        {new Date(note.updated_at).toLocaleDateString()}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {/* Mutual Work */}
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-text-muted dark:text-text-muted-dark mb-2">
+              Connected Through
+            </h3>
+            {profile.mutual_work.length === 0 ? (
+              <p className="text-xs text-text-muted dark:text-text-muted-dark">No connected notes.</p>
             ) : (
               <ul className="space-y-1">
-                {profile.recent_notes.map((note) => (
+                {profile.mutual_work.map((note) => (
                   <li key={note.id}>
                     <button
                       onClick={() => { openNote(note.id); onClose(); }}

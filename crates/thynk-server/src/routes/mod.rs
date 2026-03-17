@@ -19,7 +19,7 @@ pub mod ws;
 
 use axum::extract::DefaultBodyLimit;
 use axum::middleware;
-use axum::routing::{delete, get, patch, post};
+use axum::routing::{delete, get, patch, post, put};
 use axum::Router;
 
 use crate::state::AppState;
@@ -60,6 +60,14 @@ pub fn router(state: AppState) -> Router {
             get(notes::get_note)
                 .put(notes::update_note)
                 .delete(notes::delete_note),
+        )
+        .route(
+            "/api/notes/by-path/{path}",
+            get(notes::get_note_by_path),
+        )
+        .route(
+            "/api/notes/{id}/move",
+            put(notes::move_note),
         )
         .route("/api/search", get(search::search))
         .route("/api/tree", get(tree::file_tree))

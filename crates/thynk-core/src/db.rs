@@ -536,6 +536,19 @@ impl Database {
         Ok(())
     }
 
+    /// Update a note's path (for rename/move operations).
+    pub fn update_note_path(&self, id: &str, new_path: &Path) -> Result<()> {
+        let new_path_str = new_path.to_string_lossy().to_string();
+        let affected = self.conn.execute(
+            "UPDATE notes SET path = ?1, updated_at = datetime('now') WHERE id = ?2",
+            params![new_path_str, id],
+        )?;
+        if affected == 0 {
+            return Err(ThynkError::NotFound(id.to_string()));
+        }
+        Ok(())
+    }
+
     // ── Auth: Users ──────────────────────────────────────────────────────────
 
     /// Insert a new user record.

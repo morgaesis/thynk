@@ -206,6 +206,45 @@ pub async fn get_note(
     (StatusCode::OK, Json(serde_json::to_value(note).unwrap())).into_response()
 }
 
+// ── GET /api/notes/by-path/:path ───────────────────────────────────────────────
+
+pub async fn get_note_by_path(
+    Extension(auth_user): Extension<AuthUser>,
+    State(state): State<AppState>,
+    Path(path): Path<String>,
+) -> impl IntoResponse {
+    let db = state.db.lock().await;
+
+    let meta = match db.get_note_by_path(&PathBuf::from(&path)) {
+        Ok(m) => m,
+        Err(_) => {
+            return err(StatusCode::NOT_FOUND, "not_found", "note not found").into_response();
+        }
+    };
+
+    // Check view permission.
+    if let Err(resp) = check_note_permission(&db, &meta.id, &auth_user, "view") {
+        return resp.into_response();
+    }
+
+    #[derive(Serialize)]
+    struct NoteByPathResponse {
+        id: String,
+        path: String,
+        title: String,
+    }
+
+    (
+        StatusCode::OK,
+        Json(NoteByPathResponse {
+            id: meta.id,
+            path: meta.path.to_string_lossy().to_string(),
+            title: meta.title,
+        }),
+    )
+        .into_response()
+}
+
 // ── POST /api/notes ──────────────────────────────────────────────────────────
 
 #[derive(Deserialize)]
@@ -535,6 +574,88 @@ pub async fn delete_note(
     StatusCode::NO_CONTENT.into_response()
 }
 
+// ── PUT /api/notes/:id/move ────────────────────────────────────────────────────
+
+#[derive(Deserialize)]
+pub struct MoveNoteRequest {
+    pub new_path: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct MoveNoteResponse {
+    pub id: String,
+    pub path: String,
+    pub title: String,
+}
+
+pub async fn move_note(
+    Extension(auth_user): Extension<AuthUser>,
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    Json(body): Json<MoveNoteRequest>,
+) -> impl IntoResponse {
+    let db = state.db.lock().await;
+
+    if let Err(resp) = check_note_permission(&db, &id, &auth_user, "edit") {
+        return resp.into_response();
+    }
+
+    let meta = match db.get_note_metadata(&id) {
+        Ok(m) => m,
+        Err(_) => {
+            return err(StatusCode::NOT_FOUND, "not_found", "note not found").into_response();
+        }
+    };
+
+    let new_path = title_to_path(&body.new_path);
+    let new_path_buf = std::path::PathBuf::from(&new_path);
+
+    let storage = state.storage.lock().await;
+    if let Err(e) = storage.move_note(&meta.path, &new_path_buf) {
+        return match e {
+            thynk_core::error::ThynkError::AlreadyExists(_) => {
+                err(StatusCode::CONFLICT, "already_exists", "a note already exists at the destination path")
+                    .into_response()
+            }
+            thynk_core::error::ThynkError::NotFound(_) => {
+                err(StatusCode::NOT_FOUND, "not_found", "source note not found").into_response()
+            }
+            _ => err(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "io_error",
+                &e.to_string(),
+            )
+            .into_response(),
+        };
+    }
+    drop(storage);
+
+    if let Err(e) = db.update_note_path(&id, &new_path_buf) {
+        return err(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "db_error",
+            &e.to_string(),
+        )
+        .into_response();
+    }
+
+    let new_title = std::path::Path::new(&body.new_path)
+        .file_stem()
+        .and_then(|s| s.to_str())
+        .unwrap_or("untitled")
+        .to_string();
+
+    (
+        StatusCode::OK,
+        Json(MoveNoteResponse {
+            id: id.clone(),
+            path: new_path,
+            title: new_title,
+        }),
+    )
+        .into_response()
+}
+
 // ── Page Permissions ─────────────────────────────────────────────────────────
 
 #[derive(Deserialize)]
@@ -692,5 +813,141 @@ mod tests {
     fn test_title_to_path_trailing_slash_creates_untitled() {
         // trailing slash = directory, append untitled
         assert_eq!(title_to_path("folder/"), "folder/untitled.md");
+    }
+
+    #[tokio::test]
+    async fn test_move_note_success() {
+        use std::sync::Arc;
+        use tokio::sync::Mutex;
+        use thynk_core::{Database, FilesystemStorage};
+        use crate::routes::signaling::SignalingState;
+        use crate::routes::auth::AuthUser;
+
+        let temp_dir = tempfile::tempdir().unwrap();
+        let storage = FilesystemStorage::new(temp_dir.path().to_path_buf()).unwrap();
+        let db = Database::open(&temp_dir.path().join("db.sqlite")).unwrap();
+
+        let note = thynk_core::Note {
+            id: "test-note-1".to_string(),
+            path: std::path::PathBuf::from("original.md"),
+            title: "Original".to_string(),
+            content: "# Test\nHello world".to_string(),
+            content_hash: thynk_core::note::compute_hash("# Test\nHello world"),
+            frontmatter: std::collections::HashMap::new(),
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+            last_updated_by: None,
+        };
+        storage.write_note(&note).unwrap();
+        db.index_note(&note).unwrap();
+
+        let (events, _) = tokio::sync::broadcast::channel(16);
+        let state = crate::state::AppState {
+            storage: Arc::new(Mutex::new(storage)),
+            db: Arc::new(Mutex::new(db)),
+            config: Arc::new(thynk_core::Config::default()),
+            events,
+            s3_bucket: None,
+            signaling: SignalingState::new(),
+        };
+
+        let auth_user = AuthUser {
+            id: "user1".to_string(),
+            role: thynk_core::db::UserRole::Owner,
+            username: "owner".to_string(),
+            display_name: None,
+        };
+
+        let req = MoveNoteRequest {
+            new_path: "moved/note".to_string(),
+        };
+
+        let response = move_note(
+            Extension(auth_user),
+            State(state),
+            Path("test-note-1".to_string()),
+            Json(req),
+        )
+        .await
+        .into_response();
+
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let body = axum::body::to_bytes(response.into_body(), 1024 * 1024).await.unwrap();
+        let result: MoveNoteResponse = serde_json::from_slice(&body).unwrap();
+        assert_eq!(result.path, "moved/note.md");
+        assert_eq!(result.title, "note");
+    }
+
+    #[tokio::test]
+    async fn test_move_note_conflict() {
+        use std::sync::Arc;
+        use tokio::sync::Mutex;
+        use thynk_core::{Database, FilesystemStorage};
+        use crate::routes::signaling::SignalingState;
+        use crate::routes::auth::AuthUser;
+
+        let temp_dir = tempfile::tempdir().unwrap();
+        let storage = FilesystemStorage::new(temp_dir.path().to_path_buf()).unwrap();
+        let db = Database::open(&temp_dir.path().join("db.sqlite")).unwrap();
+
+        let note1 = thynk_core::Note {
+            id: "note-1".to_string(),
+            path: std::path::PathBuf::from("note1.md"),
+            title: "Note 1".to_string(),
+            content: "# Note 1".to_string(),
+            content_hash: thynk_core::note::compute_hash("# Note 1"),
+            frontmatter: std::collections::HashMap::new(),
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+            last_updated_by: None,
+        };
+        let note2 = thynk_core::Note {
+            id: "note-2".to_string(),
+            path: std::path::PathBuf::from("target.md"),
+            title: "Target".to_string(),
+            content: "# Target".to_string(),
+            content_hash: thynk_core::note::compute_hash("# Target"),
+            frontmatter: std::collections::HashMap::new(),
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+            last_updated_by: None,
+        };
+        storage.write_note(&note1).unwrap();
+        storage.write_note(&note2).unwrap();
+        db.index_note(&note1).unwrap();
+        db.index_note(&note2).unwrap();
+
+        let (events, _) = tokio::sync::broadcast::channel(16);
+        let state = crate::state::AppState {
+            storage: Arc::new(Mutex::new(storage)),
+            db: Arc::new(Mutex::new(db)),
+            config: Arc::new(thynk_core::Config::default()),
+            events,
+            s3_bucket: None,
+            signaling: SignalingState::new(),
+        };
+
+        let auth_user = AuthUser {
+            id: "user1".to_string(),
+            role: thynk_core::db::UserRole::Owner,
+            username: "owner".to_string(),
+            display_name: None,
+        };
+
+        let req = MoveNoteRequest {
+            new_path: "target".to_string(),
+        };
+
+        let response = move_note(
+            Extension(auth_user),
+            State(state),
+            Path("note-1".to_string()),
+            Json(req),
+        )
+        .await
+        .into_response();
+
+        assert_eq!(response.status(), StatusCode::CONFLICT);
     }
 }

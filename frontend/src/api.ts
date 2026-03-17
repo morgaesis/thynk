@@ -72,6 +72,33 @@ export async function deleteNote(id: string): Promise<void> {
   }
 }
 
+export interface MoveNoteRequest {
+  new_path: string;
+}
+
+export interface MoveNoteResponse {
+  id: string;
+  path: string;
+  title: string;
+}
+
+export async function moveNote(id: string, newPath: string): Promise<MoveNoteResponse> {
+  return request(`/notes/${id}/move`, {
+    method: 'PUT',
+    body: JSON.stringify({ new_path: newPath } as MoveNoteRequest),
+  });
+}
+
+export interface NoteByPathResponse {
+  id: string;
+  path: string;
+  title: string;
+}
+
+export async function getNoteByPath(path: string): Promise<NoteByPathResponse> {
+  return request(`/notes/by-path/${encodeURIComponent(path)}`);
+}
+
 export async function searchNotes(query: string): Promise<SearchResult[]> {
   return request(`/search?q=${encodeURIComponent(query)}`);
 }

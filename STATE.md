@@ -170,7 +170,8 @@
 9. ~~Signaling Server~~ -- WebRTC signaling in Rust (implemented: WebSocket handler, room management, message routing for offer/answer/ICE, frontend integration, 2026-03-17)
 10. ~~CLI Interface~~ -- Command-line tool for note CRUD and search (thynk-cli crate with list/search/cat/create/delete commands, 2026-03-17)
 11. ~~Mobile Apps~~ -- Tauri 2.0 mobile support (capabilities configuration, Android minSdk 24, iOS 14.0+, 2026-03-17)
+12. **Note Move/Rename** -- Move notes via drag-and-drop in sidebar (move_note API endpoint, get_note_by_path endpoint, storage layer move_note, database update_note_path, frontend drag-drop integration, 2026-03-17)
 
 ---
 
-Last Updated: 2026-03-17 (Phase 4: Mobile Apps - Tauri 2.0 mobile support added with capabilities configuration for Android/iOS; CLI Interface complete; Signaling Server complete)
+Last Updated: 2026-03-17 (Phase 4: Note Move/Rename - Added move_note endpoint, drag-and-drop in sidebar, storage/database support)

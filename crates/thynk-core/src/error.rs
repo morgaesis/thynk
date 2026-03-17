@@ -25,6 +25,9 @@ pub enum ThynkError {
 
     #[error("conflict: {0}")]
     Conflict(String),
+
+    #[error("already exists: {0}")]
+    AlreadyExists(String),
 }
 
 pub type Result<T> = std::result::Result<T, ThynkError>;

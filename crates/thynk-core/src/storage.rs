@@ -11,6 +11,7 @@ pub trait NoteStorage {
     fn read_note(&self, relative_path: &Path) -> Result<Note>;
     fn write_note(&self, note: &Note) -> Result<()>;
     fn delete_note(&self, relative_path: &Path) -> Result<()>;
+    fn move_note(&self, from: &Path, to: &Path) -> Result<()>;
     fn list_files(&self) -> Result<Vec<PathBuf>>;
     fn exists(&self, relative_path: &Path) -> bool;
 }
@@ -101,6 +102,22 @@ impl NoteStorage for FilesystemStorage {
             return Err(ThynkError::NotFound(relative_path.display().to_string()));
         }
         fs::remove_file(&full_path)?;
+        Ok(())
+    }
+
+    fn move_note(&self, from: &Path, to: &Path) -> Result<()> {
+        let from_full = self.safe_resolve(from)?;
+        let to_full = self.safe_resolve(to)?;
+        if !from_full.exists() {
+            return Err(ThynkError::NotFound(from.display().to_string()));
+        }
+        if to_full.exists() {
+            return Err(ThynkError::AlreadyExists(to.display().to_string()));
+        }
+        if let Some(parent) = to_full.parent() {
+            fs::create_dir_all(parent)?;
+        }
+        fs::rename(&from_full, &to_full)?;
         Ok(())
     }
 
@@ -213,5 +230,55 @@ mod tests {
 
         let files = storage.list_files().unwrap();
         assert_eq!(files.len(), 2);
+    }
+
+    #[test]
+    fn test_move_note() {
+        let dir = tempfile::tempdir().unwrap();
+        let storage = FilesystemStorage::new(dir.path().to_path_buf()).unwrap();
+
+        let note = Note::new(
+            "Test".into(),
+            "Content".into(),
+            PathBuf::from("original.md"),
+        );
+        storage.write_note(&note).unwrap();
+        storage
+            .move_note(Path::new("original.md"), Path::new("moved/note.md"))
+            .unwrap();
+
+        assert!(!storage.exists(Path::new("original.md")));
+        assert!(storage.exists(Path::new("moved/note.md")));
+
+        let loaded = storage.read_note(Path::new("moved/note.md")).unwrap();
+        assert_eq!(loaded.content, "Content");
+    }
+
+    #[test]
+    fn test_move_note_creates_parent_dirs() {
+        let dir = tempfile::tempdir().unwrap();
+        let storage = FilesystemStorage::new(dir.path().to_path_buf()).unwrap();
+
+        let note = Note::new("Test".into(), "Content".into(), PathBuf::from("source.md"));
+        storage.write_note(&note).unwrap();
+        storage
+            .move_note(Path::new("source.md"), Path::new("deeply/nested/dest.md"))
+            .unwrap();
+
+        assert!(storage.exists(Path::new("deeply/nested/dest.md")));
+    }
+
+    #[test]
+    fn test_move_note_conflict() {
+        let dir = tempfile::tempdir().unwrap();
+        let storage = FilesystemStorage::new(dir.path().to_path_buf()).unwrap();
+
+        let note1 = Note::new("Note1".into(), "Content1".into(), PathBuf::from("a.md"));
+        let note2 = Note::new("Note2".into(), "Content2".into(), PathBuf::from("b.md"));
+        storage.write_note(&note1).unwrap();
+        storage.write_note(&note2).unwrap();
+
+        let result = storage.move_note(Path::new("a.md"), Path::new("b.md"));
+        assert!(matches!(result.unwrap_err(), ThynkError::AlreadyExists(_)));
     }
 }

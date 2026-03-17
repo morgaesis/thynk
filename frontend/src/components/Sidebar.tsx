@@ -27,7 +27,7 @@ import { NotificationsPanel } from './NotificationsPanel';
 import { useAutomationEvents } from '../hooks/useAutomationEvents';
 import { BacklinksPanel } from './BacklinksPanel';
 import type { TreeNode, NoteMetadata } from '../types';
-import { getTree, toggleFavorite, getFavorites } from '../api';
+import { getTree, toggleFavorite, getFavorites, moveNote, getNoteByPath } from '../api';
 
 function TreeItem({
   node,
@@ -132,13 +132,27 @@ function TreeItem({
         setDragOver(true);
       }}
       onDragLeave={() => setDragOver(false)}
-      onDrop={(e) => {
+      onDrop={async (e) => {
         e.preventDefault();
         setDragOver(false);
         const sourcePath = e.dataTransfer.getData('text/plain');
         if (sourcePath && sourcePath !== path) {
-          // TODO: call backend file move endpoint when available
-          addToast('info', `Move "${sourcePath}" → "${path}" (backend move endpoint pending)`);
+          try {
+            const sourceNote = await getNoteByPath(sourcePath);
+            const targetDir = path.includes('/') ? path.split('/').slice(0, -1).join('/') : '';
+            const sourceName = sourcePath.split('/').pop()?.replace('.md', '') || 'untitled';
+            const newPath = targetDir ? `${targetDir}/${sourceName}.md` : `${sourceName}.md`;
+            await moveNote(sourceNote.id, newPath);
+            addToast('success', `Moved "${sourcePath}" → "${newPath}"`);
+            await fetchNotes();
+          } catch (err) {
+            const msg = err instanceof Error ? err.message : 'Unknown error';
+            if (msg.includes('409') || msg.includes('already_exists')) {
+              addToast('error', 'A note already exists at the destination');
+            } else {
+              addToast('error', `Failed to move note: ${msg}`);
+            }
+          }
         }
       }}
     >

@@ -36,6 +36,46 @@ vi.mock('../api', () => {
         throw new Error(`API ${res.status}: ${body}`);
       }
     },
+    listTrashedNotes: () => request('/notes/trashed'),
+    trashNote: async (id: string) => {
+      const res = await (globalThis.fetch as typeof fetch)(`${API_BASE}/notes/${id}/trash`, {
+        method: 'POST',
+        credentials: 'same-origin',
+      });
+      if (res.status === 401) {
+        const { useAuthStore } = await import('../stores/authStore');
+        useAuthStore.setState({ user: null, loading: false });
+        throw new Error('Unauthorized');
+      }
+      if (!res.ok) {
+        const body = await res.text();
+        throw new Error(`API ${res.status}: ${body}`);
+      }
+    },
+    restoreNote: async (id: string) => {
+      const res = await (globalThis.fetch as typeof fetch)(`${API_BASE}/notes/${id}/restore`, {
+        method: 'POST',
+        credentials: 'same-origin',
+      });
+      if (res.status === 401) {
+        const { useAuthStore } = await import('../stores/authStore');
+        useAuthStore.setState({ user: null, loading: false });
+        throw new Error('Unauthorized');
+      }
+      if (!res.ok) {
+        const body = await res.text();
+        throw new Error(`API ${res.status}: ${body}`);
+      }
+    },
+    permanentDeleteNote: async (id: string) => {
+      const res = await (globalThis.fetch as typeof fetch)(`${API_BASE}/notes/${id}/permanent`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) {
+        const body = await res.text();
+        throw new Error(`API ${res.status}: ${body}`);
+      }
+    },
     searchNotes: (query: string) => request(`/search?q=${encodeURIComponent(query)}`),
     getAuditLog: (query?: Record<string, unknown>) => {
       const params = new URLSearchParams();
@@ -248,5 +288,83 @@ describe('api.getAuditLog', () => {
       '/api/sync/audit?since=2026-03-01T00%3A00%3A00Z&limit=50',
       expect.anything(),
     );
+  });
+});
+
+describe('api.listTrashedNotes', () => {
+  it('calls GET /api/notes/trashed and returns trashed notes', async () => {
+    const trashed = [
+      { id: 'trash-1', path: 'trash/a.md', title: 'A', deleted_at: '2026-03-17T10:00:00Z' },
+      { id: 'trash-2', path: 'trash/b.md', title: 'B', deleted_at: '2026-03-17T09:00:00Z' },
+    ];
+    mockFetch.mockResolvedValue(makeJsonResponse({ notes: trashed }));
+
+    const result = await api.listTrashedNotes();
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      '/api/notes/trashed',
+      expect.objectContaining({ headers: { 'Content-Type': 'application/json' } }),
+    );
+    expect(result).toEqual({ notes: trashed });
+  });
+});
+
+describe('api.trashNote', () => {
+  it('calls POST /api/notes/:id/trash to soft delete a note', async () => {
+    mockFetch.mockResolvedValue({ 
+      ok: true, 
+      status: 204, 
+      text: () => Promise.resolve(''),
+      json: () => Promise.resolve({}),
+      headers: new Headers()
+    });
+
+    await expect(api.trashNote('note-123')).resolves.toBeUndefined();
+    expect(mockFetch).toHaveBeenCalledWith(
+      '/api/notes/note-123/trash',
+      expect.objectContaining({ method: 'POST', credentials: 'same-origin' }),
+    );
+  });
+
+  it('throws an error on non-ok response', async () => {
+    mockFetch.mockResolvedValue(makeErrorResponse('Not Found', 404));
+
+    await expect(api.trashNote('bad-id')).rejects.toThrow('API 404: Not Found');
+  });
+});
+
+describe('api.restoreNote', () => {
+  it('calls POST /api/notes/:id/restore to restore a trashed note', async () => {
+    mockFetch.mockResolvedValue({ 
+      ok: true, 
+      status: 204, 
+      text: () => Promise.resolve(''),
+      json: () => Promise.resolve({}),
+      headers: new Headers()
+    });
+
+    await expect(api.restoreNote('trash-1')).resolves.toBeUndefined();
+    expect(mockFetch).toHaveBeenCalledWith(
+      '/api/notes/trash-1/restore',
+      expect.objectContaining({ method: 'POST', credentials: 'same-origin' }),
+    );
+  });
+});
+
+describe('api.permanentDeleteNote', () => {
+  it('calls DELETE /api/notes/:id/permanent to permanently delete a note', async () => {
+    mockFetch.mockResolvedValue({ ok: true, status: 204, text: () => Promise.resolve('') });
+
+    await expect(api.permanentDeleteNote('trash-1')).resolves.toBeUndefined();
+    expect(mockFetch).toHaveBeenCalledWith(
+      '/api/notes/trash-1/permanent',
+      expect.objectContaining({ method: 'DELETE' }),
+    );
+  });
+
+  it('throws an error on non-ok response', async () => {
+    mockFetch.mockResolvedValue(makeErrorResponse('Not Found', 404));
+
+    await expect(api.permanentDeleteNote('bad-id')).rejects.toThrow('API 404: Not Found');
   });
 });

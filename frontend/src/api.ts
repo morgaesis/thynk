@@ -72,6 +72,71 @@ export async function deleteNote(id: string): Promise<void> {
   }
 }
 
+// ── Trash / Soft Delete ─────────────────────────────────────────────────────────
+
+export interface TrashedNote {
+  id: string;
+  path: string;
+  title: string;
+  deleted_at: string;
+}
+
+export interface TrashedNotesResponse {
+  notes: TrashedNote[];
+}
+
+export async function listTrashedNotes(): Promise<TrashedNotesResponse> {
+  return request('/notes/trashed');
+}
+
+export async function trashNote(id: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/notes/${id}/trash`, {
+    method: 'POST',
+    credentials: 'same-origin',
+  });
+  if (res.status === 401) {
+    const { useAuthStore } = await import('./stores/authStore');
+    useAuthStore.setState({ user: null, loading: false });
+    throw new Error('Unauthorized');
+  }
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`API ${res.status}: ${body}`);
+  }
+}
+
+export async function restoreNote(id: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/notes/${id}/restore`, {
+    method: 'POST',
+    credentials: 'same-origin',
+  });
+  if (res.status === 401) {
+    const { useAuthStore } = await import('./stores/authStore');
+    useAuthStore.setState({ user: null, loading: false });
+    throw new Error('Unauthorized');
+  }
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`API ${res.status}: ${body}`);
+  }
+}
+
+export async function permanentDeleteNote(id: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/notes/${id}/permanent`, {
+    method: 'DELETE',
+    credentials: 'same-origin',
+  });
+  if (res.status === 401) {
+    const { useAuthStore } = await import('./stores/authStore');
+    useAuthStore.setState({ user: null, loading: false });
+    throw new Error('Unauthorized');
+  }
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`API ${res.status}: ${body}`);
+  }
+}
+
 export interface MoveNoteRequest {
   new_path: string;
 }

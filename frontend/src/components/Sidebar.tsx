@@ -28,7 +28,7 @@ import { ActivityFeed } from './ActivityFeed';
 import { useAutomationEvents } from '../hooks/useAutomationEvents';
 import { BacklinksPanel } from './BacklinksPanel';
 import type { TreeNode, NoteMetadata } from '../types';
-import { getTree, toggleFavorite, getFavorites, moveNote, getNoteByPath } from '../api';
+import { getTree, toggleFavorite, getFavorites, moveNote, getNoteByPath, listTrashedNotes, restoreNote, permanentDeleteNote, type TrashedNote } from '../api';
 
 function TreeItem({
   node,
@@ -329,6 +329,143 @@ function RecentNotesSection() {
   );
 }
 
+// ── Trash Section ───────────────────────────────────────────────────────────
+
+function TrashSection() {
+  const [trashedNotes, setTrashedNotes] = useState<TrashedNote[]>([]);
+  const [expanded, setExpanded] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [restoring, setRestoring] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const addToast = useUIStore((s) => s.addToast);
+  const fetchNotes = useNoteStore((s) => s.fetchNotes);
+
+  const loadTrashedNotes = useCallback(async () => {
+    try {
+      const result = await listTrashedNotes();
+      setTrashedNotes(result.notes);
+    } catch {
+      setTrashedNotes([]);
+    }
+  }, []);
+
+  const handleToggle = useCallback(async () => {
+    if (!expanded) {
+      setLoading(true);
+      await loadTrashedNotes();
+      setLoading(false);
+    }
+    setExpanded((e) => !e);
+  }, [expanded, loadTrashedNotes]);
+
+  const handleRestore = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (restoring) return;
+    setRestoring(id);
+    try {
+      await restoreNote(id);
+      await loadTrashedNotes();
+      await fetchNotes();
+      addToast('success', 'Note restored');
+    } catch (err) {
+      addToast('error', 'Failed to restore note');
+    } finally {
+      setRestoring(null);
+    }
+  };
+
+  const handlePermanentDelete = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (deleting) return;
+    if (!confirm('Permanently delete this note? This cannot be undone.')) return;
+    setDeleting(id);
+    try {
+      await permanentDeleteNote(id);
+      await loadTrashedNotes();
+      addToast('success', 'Note permanently deleted');
+    } catch (err) {
+      addToast('error', 'Failed to delete note');
+    } finally {
+      setDeleting(null);
+    }
+  };
+
+  if (trashedNotes.length === 0 && !expanded) {
+    return (
+      <div className="mb-1">
+        <button
+          onClick={handleToggle}
+          className="flex items-center gap-1.5 w-full px-3 py-1.5 text-xs font-semibold
+                     text-text-muted dark:text-text-muted-dark uppercase tracking-wider
+                     hover:text-text dark:hover:text-text-dark transition-colors"
+        >
+          <VscTrash size={12} />
+          Trash
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mb-1">
+      <button
+        onClick={handleToggle}
+        className="flex items-center gap-1.5 w-full px-3 py-1.5 text-xs font-semibold
+                   text-text-muted dark:text-text-muted-dark uppercase tracking-wider
+                   hover:text-text dark:hover:text-text-dark transition-colors"
+      >
+        <VscTrash size={12} />
+        Trash
+        <span className="ml-auto text-[10px] normal-case font-normal">
+          {expanded ? '▾' : '▸'}
+        </span>
+      </button>
+      {expanded && (
+        <ul className="space-y-0.5 px-3 mb-2">
+          {loading ? (
+            <li className="text-xs text-text-muted dark:text-text-muted-dark px-2 py-1">
+              Loading...
+            </li>
+          ) : trashedNotes.length === 0 ? (
+            <li className="text-xs text-text-muted dark:text-text-muted-dark px-2 py-1">
+              Trash is empty
+            </li>
+          ) : (
+            trashedNotes.map((note) => (
+              <li
+                key={note.id}
+                className="group flex items-center gap-1 px-2 py-1.5 text-sm rounded-md
+                           text-text dark:text-text-dark hover:bg-border dark:hover:bg-border-dark"
+              >
+                <VscTrash size={12} className="shrink-0 text-text-muted" />
+                <span className="truncate flex-1">{note.title}</span>
+                <button
+                  onClick={(e) => handleRestore(note.id, e)}
+                  disabled={restoring === note.id}
+                  className="opacity-0 group-hover:opacity-100 p-1 rounded text-xs
+                             text-green-600 hover:bg-green-500/10 transition-all"
+                  title="Restore"
+                >
+                  {restoring === note.id ? '...' : '↩'}
+                </button>
+                <button
+                  onClick={(e) => handlePermanentDelete(note.id, e)}
+                  disabled={deleting === note.id}
+                  className="opacity-0 group-hover:opacity-100 p-1 rounded text-xs
+                             text-red-600 hover:bg-red-500/10 transition-all"
+                  title="Permanently delete"
+                >
+                  {deleting === note.id ? '...' : '×'}
+                </button>
+              </li>
+            ))
+          )}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 // ── Main Sidebar ──────────────────────────────────────────────────────────────
 
 export function Sidebar() {
@@ -543,6 +680,9 @@ export function Sidebar() {
 
           {/* Recent Notes */}
           <RecentNotesSection />
+
+          {/* Trash */}
+          <TrashSection />
 
           {/* Separator */}
           <hr className="mx-3 border-border dark:border-border-dark opacity-60" />

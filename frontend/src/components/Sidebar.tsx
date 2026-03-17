@@ -24,6 +24,7 @@ import { DailyNoteCalendar } from './DailyNoteCalendar';
 import { TemplateSelector } from './TemplateSelector';
 import { AutomationLog } from './AutomationLog';
 import { NotificationsPanel } from './NotificationsPanel';
+import { ActivityFeed } from './ActivityFeed';
 import { useAutomationEvents } from '../hooks/useAutomationEvents';
 import { BacklinksPanel } from './BacklinksPanel';
 import type { TreeNode, NoteMetadata } from '../types';
@@ -548,6 +549,9 @@ export function Sidebar() {
 
           {/* Automation log */}
           <AutomationLog events={automationEvents} />
+
+          {/* Activity Feed */}
+          <ActivityFeed />
 
           {/* Notifications */}
           <NotificationsPanel />

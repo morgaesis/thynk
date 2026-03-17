@@ -37,6 +37,14 @@ vi.mock('../api', () => {
       }
     },
     searchNotes: (query: string) => request(`/search?q=${encodeURIComponent(query)}`),
+    getAuditLog: (query?: Record<string, unknown>) => {
+      const params = new URLSearchParams();
+      if (query?.note_id) params.set('note_id', String(query.note_id));
+      if (query?.since) params.set('since', String(query.since));
+      if (query?.limit) params.set('limit', String(query.limit));
+      const qs = params.toString();
+      return request(`/sync/audit${qs ? `?${qs}` : ''}`);
+    },
   };
 });
 
@@ -198,5 +206,47 @@ describe('api error handling (request helper)', () => {
     mockFetch.mockResolvedValue(makeErrorResponse('Unauthorized', 401));
 
     await expect(api.listNotes()).rejects.toThrow('API 401: Unauthorized');
+  });
+});
+
+describe('api.getAuditLog', () => {
+  it('calls GET /api/sync/audit and returns audit entries', async () => {
+    const entries = [
+      { id: 1, note_id: 'n1', action: 'create', user_id: 'u1', old_hash: null, new_hash: 'abc', timestamp: '2026-03-17T10:00:00Z' },
+      { id: 2, note_id: 'n1', action: 'update', user_id: 'u1', old_hash: 'abc', new_hash: 'def', timestamp: '2026-03-17T11:00:00Z' },
+    ];
+    mockFetch.mockResolvedValue(makeJsonResponse(entries));
+
+    const result = await api.getAuditLog();
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      '/api/sync/audit',
+      expect.objectContaining({ headers: { 'Content-Type': 'application/json' } }),
+    );
+    expect(result).toEqual(entries);
+  });
+
+  it('passes query parameters when provided', async () => {
+    const entries: api.AuditEntry[] = [];
+    mockFetch.mockResolvedValue(makeJsonResponse(entries));
+
+    await api.getAuditLog({ note_id: 'n1', limit: 10 });
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      '/api/sync/audit?note_id=n1&limit=10',
+      expect.objectContaining({ headers: { 'Content-Type': 'application/json' } }),
+    );
+  });
+
+  it('handles since parameter as ISO date string', async () => {
+    const entries: api.AuditEntry[] = [];
+    mockFetch.mockResolvedValue(makeJsonResponse(entries));
+
+    await api.getAuditLog({ since: '2026-03-01T00:00:00Z', limit: 50 });
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      '/api/sync/audit?since=2026-03-01T00%3A00%3A00Z&limit=50',
+      expect.anything(),
+    );
   });
 });

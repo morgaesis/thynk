@@ -415,3 +415,30 @@ export async function acceptInvitation(
     body: JSON.stringify(data),
   });
 }
+
+// ── Activity / Audit Log ───────────────────────────────────────────────────────
+
+export interface AuditEntry {
+  id: number;
+  note_id: string;
+  action: 'create' | 'update' | 'delete';
+  user_id: string | null;
+  old_hash: string | null;
+  new_hash: string | null;
+  timestamp: string;
+}
+
+export interface AuditQuery {
+  note_id?: string;
+  since?: string;
+  limit?: number;
+}
+
+export async function getAuditLog(query?: AuditQuery): Promise<AuditEntry[]> {
+  const params = new URLSearchParams();
+  if (query?.note_id) params.set('note_id', query.note_id);
+  if (query?.since) params.set('since', query.since);
+  if (query?.limit) params.set('limit', String(query.limit));
+  const qs = params.toString();
+  return request(`/sync/audit${qs ? `?${qs}` : ''}`);
+}

@@ -1,6 +1,5 @@
 #!/bin/bash
 # Thynk GSD worker - runs opencode to work on tasks
-# Called by cron hourly
 
 export PATH="$HOME/.local/share/tooler/bin:$HOME/.opencode/bin:$HOME/.cargo/bin:$HOME/.local/share/pnpm:/usr/local/bin:/usr/bin:/bin"
 export OPENROUTER_API_KEY="${OPENROUTER_API_KEY:-}"
@@ -54,9 +53,11 @@ Read STATE.md and ROADMAP.md to understand current phase and status.
 Check ROADMAP.md 'Known Issues & Backlog' section for priority bugs.
 
 Pick ONE high-impact task from remaining work. Priority order:
-1. Critical bugs (locking, websockets, refresh issues)
-2. Infrastructure (self-hosted signaling, CI builds)
-3. Features from backlog
+1. CI/CD: Fix desktop build (missing icons - generate/placeholders at src-tauri/icons/)
+2. CI/CD: Add Docker image build to GitHub Actions for watchtower auto-updates
+3. Critical bugs (locking, websockets, refresh issues)
+4. Infrastructure (self-hosted signaling)
+5. Features from backlog
 
 Implementation requirements:
 - TDD: write failing test first, then implement

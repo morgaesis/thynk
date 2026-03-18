@@ -204,6 +204,12 @@ Each phase builds on the previous. No phase can be skipped.
 
 See `STATE.md` for current blockers and active work.
 
+### CI/CD (Priority)
+
+- **Desktop build icons** - macOS needs `.icns`, Windows needs `.ico`, Linux needs PNG sizes (currently failing)
+- **Docker image build** - Add to CI for watchtower auto-updates (docker-compose.prod.yml references image, needs GHCR/registry)
+- **Release permissions** - GitHub Actions needs `contents: write` permission to create releases
+
 ### Critical Bugs
 
 - ~~**Document locking**~~ - Locking doesn't persist; locked state lost on refresh (FIXED: lock intent stored in sessionStorage, re-acquires on page refresh)

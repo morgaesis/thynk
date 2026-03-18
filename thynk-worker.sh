@@ -3,17 +3,15 @@
 
 export PATH="$HOME/.local/share/tooler/bin:$HOME/.opencode/bin:$HOME/.cargo/bin:$HOME/.local/share/pnpm:/usr/local/bin:/usr/bin:/bin"
 
-# Load API keys from system environment
-if [ -f /etc/ai-tools/env ]; then
-    ENV_CONTENT=$(sudo cat /etc/ai-tools/env 2>/dev/null)
-    echo "DEBUG: ENV_CONTENT length=${#ENV_CONTENT}" >&2
+# Load API keys from system environment (requires sudo to read /etc/ai-tools/env)
+ENV_CONTENT=$(sudo cat /etc/ai-tools/env 2>/dev/null) || true
+if [ -n "$ENV_CONTENT" ]; then
     while IFS= read -r line; do
         [ -z "$line" ] && continue
         [[ "$line" == \#* ]] && continue
         key="${line%%=*}"
         value="${line#*=}"
         export "$key=$value"
-        [ "$key" = "OPENCODE_MODEL" ] && echo "DEBUG: Found OPENCODE_MODEL=$value" >&2
     done <<< "$ENV_CONTENT"
 fi
 echo "DEBUG: OPENCODE_MODEL=$OPENCODE_MODEL" >&2

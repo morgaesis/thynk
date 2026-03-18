@@ -3,9 +3,11 @@
 
 export PATH="$HOME/.local/share/tooler/bin:$HOME/.opencode/bin:$HOME/.cargo/bin:$HOME/.local/share/pnpm:/usr/local/bin:/usr/bin:/bin"
 
-# Load API keys from system environment
+# Load API keys from system environment (set -a auto-exports all variables)
 if [ -f /etc/ai-tools/env ]; then
-    eval "$(sudo cat /etc/ai-tools/env 2>/dev/null)"
+    set -a
+    source <(sudo cat /etc/ai-tools/env 2>/dev/null)
+    set +a
 fi
 
 LOCKFILE="/tmp/thynk-worker.lock"

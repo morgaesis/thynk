@@ -194,7 +194,8 @@
 24. ~~History Navigation~~ -- Browser back/forward now works between notes and settings (openNoteByPath fetches note from API when not in local cache, 2026-03-18)
 25. ~~Document Versioning~~ -- Version history with list/get/restore APIs, automatic version save on note updates (storage layer methods, API routes, 5 new tests, 2026-03-18)
 26. ~~Desktop CI~~ -- Add cross-platform CI workflow for desktop builds (Windows/Linux/macOS, x86_64/arm64, tauri-action for releases, 2026-03-18)
+27. ~~Modal ESC Handling~~ -- Add ESC key listener to ImportModal and TemplateSelector to close modals on Escape key press (tests added, 2026-03-18)
 
 ---
 
-Last Updated: 2026-03-18 (Desktop CI: Added cross-platform build workflow for Windows/Linux/macOS)
+Last Updated: 2026-03-18 (Modal ESC Handling: Added ESC key handling to close ImportModal and TemplateSelector)

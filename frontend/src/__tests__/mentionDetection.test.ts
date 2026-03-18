@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 
 function detectMentions(text: string): string[] {
-  const regex = /@([a-zA-Z0-9_.[-]]*)$/g;
+  const regex = /@([a-zA-Z0-9_.\-]*)$/g;
   const matches: string[] = [];
   let match;
   while ((match = regex.exec(text)) !== null) {

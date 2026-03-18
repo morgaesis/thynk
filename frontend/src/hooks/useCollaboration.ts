@@ -75,7 +75,7 @@ export function useCollaboration(noteId: string | undefined) {
     };
 
     const provider = new WebrtcProvider(roomName, ydoc, {
-      signaling: [getSignalingUrl(), 'wss://signaling.yjs.dev'],
+      signaling: [getSignalingUrl()],
       password: undefined,
       awareness: undefined,
       maxConns: 20,

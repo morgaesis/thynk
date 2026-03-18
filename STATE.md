@@ -190,7 +190,8 @@
 20. ~~Wiki-Link Auto-Create~~ -- Clicking [[non-existent note]] now creates the note automatically (onNavigate callback updated to call createNote when target doesn't exist, tests added, 2026-03-18)
 21. ~~Code Block Copy Button~~ -- Copy button appears on hover, copies code to clipboard (CodeBlockCopyButton extension, click handler, CSS styling, tests added, 2026-03-18)
 22. ~~Newline Preservation~~ -- Fixed blank lines collapsing to single newline on refresh by storing content as HTML instead of markdown (Editor.tsx updated, tests added, 2026-03-18)
+23. ~~Content Buffer~~ -- Add sessionStorage-based content buffer to prevent data loss on refresh (useContentBuffer hook, immediate local backup on each edit, restore on page load, tests added, 2026-03-18)
 
 ---
 
-Last Updated: 2026-03-18 (Newline Preservation: Changed content storage from markdown to HTML to preserve blank lines)
+Last Updated: 2026-03-18 (Content Buffer: Added sessionStorage-based content buffer to prevent data loss on refresh)

@@ -208,14 +208,14 @@ See `STATE.md` for current blockers and active work.
 
 - ~~**Document locking**~~ - Locking doesn't persist; locked state lost on refresh (FIXED: lock intent stored in sessionStorage, re-acquires on page refresh)
 - ~~**Newlines truncated**~~ - Multiple newlines collapse to one on refresh (FIXED: changed storage from markdown to HTML which preserves blank lines)
-- **Content loss** - Fast typing or images disappear on refresh; needs auto-save buffer
+- ~~**Content loss**~~ - Fast typing or images disappear on refresh; needs auto-save buffer (FIXED: sessionStorage-based content buffer with immediate local backup)
 - ~~**404 on refresh**~~ - Opening note then refreshing gives 404, but note appears in UI (FIXED: spa_fallback handler now serves index.html for non-API paths)
 - ~~**WebSocket failures**~~ - External signaling servers `y-webrtc-signaling-eu.herokuapp.com` and `signaling.yjs.dev` fail (FIXED: removed external fallback, now uses self-hosted signaling only)
 - **History navigation** - Browser back/forward doesn't work between notes and settings
 
 ### Features Needed
 
-- **Wiki links** - `[[note-name]]` should create note if it doesn't exist
+- ~~**Wiki links**~~ - `[[note-name]]` should create note if it doesn't exist (DONE: auto-create on click, 2026-03-18)
 - **Editor parity** - Match Obsidian feel with Notion slash-commands
 - ~~**Code blocks**~~ - Fix styling, add copy button, show language (DONE: copy button added, 2026-03-18)
 - ~~**Todo items**~~ - Support `- [ ]`, `- [/]`, `- [x]` states (DONE)

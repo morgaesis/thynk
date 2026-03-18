@@ -2,8 +2,11 @@
 # Thynk GSD worker - runs opencode to work on tasks
 
 export PATH="$HOME/.local/share/tooler/bin:$HOME/.opencode/bin:$HOME/.cargo/bin:$HOME/.local/share/pnpm:/usr/local/bin:/usr/bin:/bin"
-export OPENROUTER_API_KEY="${OPENROUTER_API_KEY:-}"
-export OPENCODE_API_KEY="${OPENCODE_API_KEY:-}"
+
+# Load API keys from system environment
+if [ -f /etc/ai-tools/env ]; then
+    eval "$(sudo cat /etc/ai-tools/env 2>/dev/null)"
+fi
 
 LOCKFILE="/tmp/thynk-worker.lock"
 LOG_DIR="$HOME/thynk-logs"

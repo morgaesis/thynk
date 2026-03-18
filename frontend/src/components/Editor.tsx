@@ -189,6 +189,46 @@ const CodeBlockLanguageDecoration = Extension.create({
   },
 });
 
+// Custom extension: adds a copy button to code blocks
+const CodeBlockCopyButton = Extension.create({
+  name: 'codeBlockCopyButton',
+
+  addProseMirrorPlugins() {
+    return [
+      new Plugin({
+        key: new PluginKey('codeBlockCopyButton'),
+        props: {
+          decorations(state) {
+            const { doc } = state;
+            const decorations: Decoration[] = [];
+
+            doc.forEach((node, offset) => {
+              if (node.type.name === 'codeBlock') {
+                decorations.push(
+                  Decoration.widget(offset, () => {
+                    const button = document.createElement('button');
+                    button.className = 'code-block-copy-button';
+                    button.type = 'button';
+                    button.setAttribute('aria-label', 'Copy code');
+                    button.innerHTML =
+                      '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
+                    button.dataset.codeBlockPos = String(offset);
+                    return button;
+                  }, {
+                    side: -1,
+                  }),
+                );
+              }
+            });
+
+            return DecorationSet.create(doc, decorations);
+          },
+        },
+      }),
+    ];
+  },
+});
+
 // Custom extension: fix Backspace at the start of a heading
 // When cursor is at position 0 inside a heading, convert it to a paragraph
 // instead of joining with the previous node (which would delete the newline above).
@@ -324,6 +364,7 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
       HeadingBackspaceFix,
       CodeBlockExitOnDoubleEnter,
       CodeBlockLanguageDecoration,
+      CodeBlockCopyButton,
       FileUploadExtension.configure({
         onUpload: async (file: File) => {
           try {
@@ -518,6 +559,35 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
     [editor],
   );
 
+  const handleEditorClick = useCallback(
+    (e: React.MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const copyButton = target.closest('.code-block-copy-button');
+      if (copyButton && editor) {
+        const posStr = copyButton.getAttribute('data-code-block-pos');
+        if (posStr) {
+          const pos = parseInt(posStr, 10);
+          let codeContent = '';
+          editor.state.doc.forEach((node, offset) => {
+            if (node.type.name === 'codeBlock' && offset === pos) {
+              codeContent = node.textContent;
+            }
+          });
+          if (codeContent) {
+            navigator.clipboard.writeText(codeContent).then(() => {
+              addToast('success', 'Code copied to clipboard');
+              copyButton.classList.add('copied');
+              setTimeout(() => {
+                copyButton.classList.remove('copied');
+              }, 2000);
+            });
+          }
+        }
+      }
+    },
+    [editor, addToast],
+  );
+
   // Clean up debounce on unmount
   useEffect(() => {
     return () => {
@@ -668,6 +738,7 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
             className={
               vimModeEnabled && vimMode === 'normal' ? 'vim-normal-mode' : ''
             }
+            onClick={handleEditorClick}
           >
             <EditorContent
               editor={editor}

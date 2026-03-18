@@ -25,6 +25,7 @@ fi
 trap "rmdir $LOCKFILE" EXIT
 
 log "=== GSD Worker cycle starting ==="
+log "Environment loaded: OPENCODE_MODEL=${OPENCODE_MODEL:-not-set}"
 
 cd ~/thynk
 

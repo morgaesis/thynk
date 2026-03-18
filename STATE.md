@@ -192,4 +192,4 @@
 
 ---
 
-Last Updated: 2026-03-18 (Document Locking: Lock intent stored in sessionStorage, re-acquires on page refresh)
+Last Updated: 2026-03-18 (WebSocket: Removed external signaling server fallback that was failing; Mention detection regex fixed in tests)

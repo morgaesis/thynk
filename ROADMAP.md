@@ -210,7 +210,7 @@ See `STATE.md` for current blockers and active work.
 - **Newlines truncated** - Multiple newlines collapse to one on refresh
 - **Content loss** - Fast typing or images disappear on refresh; needs auto-save buffer
 - ~~**404 on refresh**~~ - Opening note then refreshing gives 404, but note appears in UI (FIXED: spa_fallback handler now serves index.html for non-API paths)
-- **WebSocket failures** - Connections to `y-webrtc-signaling-eu.herokuapp.com` and `signaling.yjs.dev` fail; need self-hosted signaling server
+- ~~**WebSocket failures**~~ - External signaling servers `y-webrtc-signaling-eu.herokuapp.com` and `signaling.yjs.dev` fail (FIXED: removed external fallback, now uses self-hosted signaling only)
 - **History navigation** - Browser back/forward doesn't work between notes and settings
 
 ### Features Needed

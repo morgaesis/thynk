@@ -41,64 +41,64 @@
 
 ### Code Progress
 
-| Component               | Status      | Phase   |
-| ----------------------- | ----------- | ------- |
-| Project Scaffold        | Done        | Phase 1 |
-| Rust Backend (Axum)     | Done        | Phase 1 |
-| SQLite Layer + FTS5     | Done        | Phase 1 |
-| Note CRUD API           | Done        | Phase 1 |
-| Content Hash (SHA-256)  | Done        | Phase 1 |
-| If-Match concurrency    | Done        | Phase 1 |
-| Startup file indexing   | Done        | Phase 1 |
-| File watcher (notify)   | Done        | Phase 1 |
-| WebSocket (/api/ws)     | Done        | Phase 1 |
-| Static file serving     | Done        | Phase 1 |
-| TipTap Editor           | Done        | Phase 1 |
-| Sidebar + File tree     | Done        | Phase 1 |
-| Command palette (FTS5)  | Done        | Phase 1 |
-| Delete notes            | Done        | Phase 1 |
-| Error toasts            | Done        | Phase 1 |
-| Keyboard shortcuts      | Done        | Phase 1 |
-| Dark/light theme        | Done        | Phase 1 |
-| THYNK_DATA_DIR env var  | Done        | Phase 1 |
-| Image uploads (inline)  | Done        | Phase 1 |
-| Local file uploads      | Done        | Phase 1 |
-| WS heartbeat            | Done        | Phase 1 |
-| last_updated_by         | Done        | Phase 1 |
-| Linking System          | Done        | Phase 2 |
-| Graph View              | Done        | Phase 2 |
-| Tags                    | Done        | Phase 2 |
-| Templates / Daily Notes | Done        | Phase 2 |
-| Database Views          | Done        | Phase 2 |
-| Page Locking            | Done        | Phase 2 |
-| Automations             | Done        | Phase 2 |
-| Vim Mode                | Done        | Phase 2 |
-| Import/Export           | Done        | Phase 2 |
-| Favorites               | Done        | Phase 2 |
-| Page Properties         | Done        | Phase 2 |
-| AI Settings UI          | Done        | Phase 3 |
-| AI API Routes           | Done        | Phase 3 |
-| AI Completion API       | Done        | Phase 3 |
-| AI Chat API             | Done        | Phase 3 |
-| AI Inline Completions    | Done        | Phase 3 |
-| AI Integration          | Done        | Phase 3 |
-| Sync Engine             | Done        | Phase 3 |
-| Unlinked Mentions       | Done        | Phase 3 |
-| Cloud Deployment        | Not Started | Phase 3 |
-| P2P Collaboration       | Done (hook + presence + dynamic cursor color) | Phase 4 |
-| Desktop Apps            | Done (static file serving fixed) | Phase 4 |
-| Shared Workspaces       | Done (invitation system + Team Members UI) | Phase 4 |
-| Signaling Server       | Done (WebSocket handler, room management, message routing) | Phase 4 |
-| CLI Interface          | Done (thynk-cli crate with list/search/cat/create/delete) | Phase 4 |
-| Mobile Apps            | Done (capabilities config, Android minSdk 24, iOS 14.0+) | Phase 4 |
-| Search Tag Filtering  | Done (search_with_tags method, /api/search?tags= query) | Phase 4 |
-| Search Pagination     | Done (limit/offset params, paginated results) | Phase 4 |
-| Activity Feed       | Done (getAuditLog API, ActivityFeed component in sidebar) | Phase 4 |
-| Trash/Soft Delete   | Done (trash/restore/permanent-delete API, DB methods, tests, TrashSection UI in sidebar) | Phase 4 |
-| User Profiles        | Done (mutual work feature showing connected notes between users) | Phase 4 |
-| Todo Items          | Done (TaskList extension, - [ ], - [/], - [x] syntax) | Phase 4 |
-| Code Block Copy     | Done (copy button with clipboard API, hover state, tests) | Phase 4 |
-| Security Fix         | Done (notification ownership validation on mark read) | - |
+| Component               | Status                                                                                   | Phase   |
+| ----------------------- | ---------------------------------------------------------------------------------------- | ------- |
+| Project Scaffold        | Done                                                                                     | Phase 1 |
+| Rust Backend (Axum)     | Done                                                                                     | Phase 1 |
+| SQLite Layer + FTS5     | Done                                                                                     | Phase 1 |
+| Note CRUD API           | Done                                                                                     | Phase 1 |
+| Content Hash (SHA-256)  | Done                                                                                     | Phase 1 |
+| If-Match concurrency    | Done                                                                                     | Phase 1 |
+| Startup file indexing   | Done                                                                                     | Phase 1 |
+| File watcher (notify)   | Done                                                                                     | Phase 1 |
+| WebSocket (/api/ws)     | Done                                                                                     | Phase 1 |
+| Static file serving     | Done                                                                                     | Phase 1 |
+| TipTap Editor           | Done                                                                                     | Phase 1 |
+| Sidebar + File tree     | Done                                                                                     | Phase 1 |
+| Command palette (FTS5)  | Done                                                                                     | Phase 1 |
+| Delete notes            | Done                                                                                     | Phase 1 |
+| Error toasts            | Done                                                                                     | Phase 1 |
+| Keyboard shortcuts      | Done                                                                                     | Phase 1 |
+| Dark/light theme        | Done                                                                                     | Phase 1 |
+| THYNK_DATA_DIR env var  | Done                                                                                     | Phase 1 |
+| Image uploads (inline)  | Done                                                                                     | Phase 1 |
+| Local file uploads      | Done                                                                                     | Phase 1 |
+| WS heartbeat            | Done                                                                                     | Phase 1 |
+| last_updated_by         | Done                                                                                     | Phase 1 |
+| Linking System          | Done                                                                                     | Phase 2 |
+| Graph View              | Done                                                                                     | Phase 2 |
+| Tags                    | Done                                                                                     | Phase 2 |
+| Templates / Daily Notes | Done                                                                                     | Phase 2 |
+| Database Views          | Done                                                                                     | Phase 2 |
+| Page Locking            | Done                                                                                     | Phase 2 |
+| Automations             | Done                                                                                     | Phase 2 |
+| Vim Mode                | Done                                                                                     | Phase 2 |
+| Import/Export           | Done                                                                                     | Phase 2 |
+| Favorites               | Done                                                                                     | Phase 2 |
+| Page Properties         | Done                                                                                     | Phase 2 |
+| AI Settings UI          | Done                                                                                     | Phase 3 |
+| AI API Routes           | Done                                                                                     | Phase 3 |
+| AI Completion API       | Done                                                                                     | Phase 3 |
+| AI Chat API             | Done                                                                                     | Phase 3 |
+| AI Inline Completions   | Done                                                                                     | Phase 3 |
+| AI Integration          | Done                                                                                     | Phase 3 |
+| Sync Engine             | Done                                                                                     | Phase 3 |
+| Unlinked Mentions       | Done                                                                                     | Phase 3 |
+| Cloud Deployment        | Not Started                                                                              | Phase 3 |
+| P2P Collaboration       | Done (hook + presence + dynamic cursor color)                                            | Phase 4 |
+| Desktop Apps            | Done (static file serving fixed)                                                         | Phase 4 |
+| Shared Workspaces       | Done (invitation system + Team Members UI)                                               | Phase 4 |
+| Signaling Server        | Done (WebSocket handler, room management, message routing)                               | Phase 4 |
+| CLI Interface           | Done (thynk-cli crate with list/search/cat/create/delete)                                | Phase 4 |
+| Mobile Apps             | Done (capabilities config, Android minSdk 24, iOS 14.0+)                                 | Phase 4 |
+| Search Tag Filtering    | Done (search_with_tags method, /api/search?tags= query)                                  | Phase 4 |
+| Search Pagination       | Done (limit/offset params, paginated results)                                            | Phase 4 |
+| Activity Feed           | Done (getAuditLog API, ActivityFeed component in sidebar)                                | Phase 4 |
+| Trash/Soft Delete       | Done (trash/restore/permanent-delete API, DB methods, tests, TrashSection UI in sidebar) | Phase 4 |
+| User Profiles           | Done (mutual work feature showing connected notes between users)                         | Phase 4 |
+| Todo Items              | Done (TaskList extension, - [ ], - [/], - [x] syntax)                                    | Phase 4 |
+| Code Block Copy         | Done (copy button with clipboard API, hover state, tests)                                | Phase 4 |
+| Security Fix            | Done (notification ownership validation on mark read)                                    | -       |
 
 ### Phase 1 Exit Criteria (all met)
 
@@ -134,14 +134,14 @@
 
 ### Phase 2 Bug Fixes (2026-03-15)
 
-| Bug | Root Cause | Fix |
-| --- | --- | --- |
-| Page locking race condition | `setTimeout(reset, 0)` in `useLock` could fire after `getLock` microtask, overriding correct lock state | Replaced with `Promise.resolve().then(reset)` so ordering is deterministic |
-| Lock not enforced server-side | Was enforced but had no HTTP-level integration test | Added tests: 423 on locked-note update, GET returns locker info |
-| "Today" button still in sidebar | `DailyNoteButton` was never removed from Sidebar | Removed component and import from Sidebar.tsx |
-| Vim block cursor not shown | CSS targeted `.ProseMirror-cursor` (gap cursor, never present for text) | Hide native caret with `caret-color: transparent`; add `Decoration.inline`/`widget` for character highlight |
-| Startup log format wrong | Two separate `println!` lines | Combined to single `"Data directory: <path> (<N> files)"` |
-| Document locking doesn't persist on refresh | Lock released on component unmount, lost on page refresh | Store lock intent in sessionStorage; re-acquire on mount if user previously held lock |
+| Bug                                         | Root Cause                                                                                              | Fix                                                                                                         |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Page locking race condition                 | `setTimeout(reset, 0)` in `useLock` could fire after `getLock` microtask, overriding correct lock state | Replaced with `Promise.resolve().then(reset)` so ordering is deterministic                                  |
+| Lock not enforced server-side               | Was enforced but had no HTTP-level integration test                                                     | Added tests: 423 on locked-note update, GET returns locker info                                             |
+| "Today" button still in sidebar             | `DailyNoteButton` was never removed from Sidebar                                                        | Removed component and import from Sidebar.tsx                                                               |
+| Vim block cursor not shown                  | CSS targeted `.ProseMirror-cursor` (gap cursor, never present for text)                                 | Hide native caret with `caret-color: transparent`; add `Decoration.inline`/`widget` for character highlight |
+| Startup log format wrong                    | Two separate `println!` lines                                                                           | Combined to single `"Data directory: <path> (<N> files)"`                                                   |
+| Document locking doesn't persist on refresh | Lock released on component unmount, lost on page refresh                                                | Store lock intent in sessionStorage; re-acquire on mount if user previously held lock                       |
 
 ---
 

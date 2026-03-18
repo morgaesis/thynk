@@ -15,14 +15,13 @@ import { TableHeader } from '@tiptap/extension-table-header';
 import { TableCell } from '@tiptap/extension-table-cell';
 import Collaboration from '@tiptap/extension-collaboration';
 import CollaborationCursor from '@tiptap/extension-collaboration-cursor';
+import TaskList from '@tiptap/extension-task-list';
+import TaskItem from '@tiptap/extension-task-item';
 import { Extension } from '@tiptap/core';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
 import { createLowlight, common } from 'lowlight';
-import {
-  defaultMarkdownSerializer,
-  defaultMarkdownParser,
-} from '@tiptap/pm/markdown';
+import { Markdown } from 'tiptap-markdown';
 import { useNoteStore } from '../stores/noteStore';
 import { useUIStore } from '../stores/uiStore';
 import { useAuthStore } from '../stores/authStore';
@@ -66,12 +65,13 @@ interface Props {
 }
 
 function getMarkdown(ed: TipTapEditor): string {
-  return defaultMarkdownSerializer.serialize(ed.state.doc);
+  return (ed.storage as unknown as { markdown: { getMarkdown: () => string } }).markdown.getMarkdown();
 }
 
 function setMarkdownContent(ed: TipTapEditor, markdown: string) {
-  const doc = defaultMarkdownParser.parse(markdown || '');
-  ed.commands.setContent(doc ? doc.toJSON() : '');
+  ed.commands.setContent(markdown || '', { 
+    contentType: 'markdown' 
+  } as Parameters<typeof ed.commands.setContent>[1]);
 }
 
 // Plugin key for active node decoration
@@ -315,6 +315,11 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
       TableRow,
       TableHeader,
       TableCell,
+      TaskList,
+      TaskItem.configure({
+        nested: true,
+      }),
+      Markdown,
       ActiveNodeDecoration,
       HeadingBackspaceFix,
       CodeBlockExitOnDoubleEnter,

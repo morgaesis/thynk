@@ -219,8 +219,6 @@ See `STATE.md` for current blockers and active work.
 - **Editor parity** - Match Obsidian feel with Notion slash-commands
 - ~~**Code blocks**~~ - Fix styling, add copy button, show language (DONE: copy button added, 2026-03-18)
 - ~~**Todo items**~~ - Support `- [ ]`, `- [/]`, `- [x]` states (DONE)
-- **Multi-tenancy** - Workspaces with user signup and invitations
-- **Cloud storage** - Sync notes to bucket, count towards quota
 - ~~**Document versioning**~~ - Version history for notes (DONE: list/get/restore APIs, auto-save on update, 2026-03-18)
 
 ### UI/UX
@@ -232,7 +230,7 @@ See `STATE.md` for current blockers and active work.
 
 ### Infrastructure
 
-- **Desktop builds** - CI for Windows/Linux (arm/x86)
+- ~~**Desktop builds**~~ - CI for Windows/Linux (arm/x86) (DONE: .github/workflows/desktop.yml, 2026-03-18)
 - **Self-hosted signaling** - Add STUN/TURN/signal server to docker-compose
 - **Model discovery** - Auto-fetch model list from API provider
 

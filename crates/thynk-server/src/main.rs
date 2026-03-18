@@ -4,10 +4,7 @@ mod state;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use axum::{
-    body::Body,
-    Router,
-};
+use axum::{body::Body, Router};
 use notify::{RecursiveMode, Watcher};
 use tokio::sync::{broadcast, Mutex};
 use tower_http::cors::{Any, CorsLayer};
@@ -128,19 +125,19 @@ async fn main() -> anyhow::Result<()> {
     let dist_path = PathBuf::from("frontend/dist");
     let app = if dist_path.exists() {
         info!("Serving static files from {}", dist_path.display());
-        
+
         #[derive(Clone)]
         struct SpaState {
             dist_path: PathBuf,
         }
-        
+
         async fn spa_fallback(
             axum::extract::State(state): axum::extract::State<SpaState>,
             request: axum::http::Request<Body>,
         ) -> axum::response::Response<Body> {
             let path = request.uri().path();
             let index_path = state.dist_path.join("index.html");
-            
+
             // For API calls, we shouldn't be here - return 404
             if path.starts_with("/api/") {
                 return axum::response::Response::builder()
@@ -148,7 +145,7 @@ async fn main() -> anyhow::Result<()> {
                     .body(Body::from("Not Found"))
                     .unwrap();
             }
-            
+
             // For everything else (SPA routes), serve index.html
             // This handles /notes/*, /settings, /calendar, etc.
             match tokio::fs::read(&index_path).await {
@@ -163,12 +160,12 @@ async fn main() -> anyhow::Result<()> {
                     .unwrap(),
             }
         }
-        
-        let spa_state = SpaState { dist_path: dist_path.clone() };
-        let spa_router = Router::new()
-            .fallback(spa_fallback)
-            .with_state(spa_state);
-        
+
+        let spa_state = SpaState {
+            dist_path: dist_path.clone(),
+        };
+        let spa_router = Router::new().fallback(spa_fallback).with_state(spa_state);
+
         api_router.merge(spa_router)
     } else {
         api_router
@@ -1075,10 +1072,10 @@ mod tests {
             }
         }
 
-        let spa_state = SpaState { dist_path: dist_dir.path().to_path_buf() };
-        let spa_router = Router::new()
-            .fallback(spa_fallback)
-            .with_state(spa_state);
+        let spa_state = SpaState {
+            dist_path: dist_dir.path().to_path_buf(),
+        };
+        let spa_router = Router::new().fallback(spa_fallback).with_state(spa_state);
 
         let app = api_router.merge(spa_router);
 
@@ -1135,10 +1132,10 @@ mod tests {
             }
         }
 
-        let spa_state = SpaState { dist_path: dist_dir.path().to_path_buf() };
-        let spa_router = Router::new()
-            .fallback(spa_fallback)
-            .with_state(spa_state);
+        let spa_state = SpaState {
+            dist_path: dist_dir.path().to_path_buf(),
+        };
+        let spa_router = Router::new().fallback(spa_fallback).with_state(spa_state);
 
         let app = api_router.merge(spa_router);
 
@@ -1152,7 +1149,11 @@ mod tests {
             .await
             .unwrap();
 
-        assert_eq!(response.status(), StatusCode::OK, "SPA route should return index.html");
+        assert_eq!(
+            response.status(),
+            StatusCode::OK,
+            "SPA route should return index.html"
+        );
         let body = axum::body::to_bytes(response.into_body(), usize::MAX)
             .await
             .unwrap();

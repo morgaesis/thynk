@@ -211,7 +211,7 @@ See `STATE.md` for current blockers and active work.
 - ~~**Content loss**~~ - Fast typing or images disappear on refresh; needs auto-save buffer (FIXED: sessionStorage-based content buffer with immediate local backup)
 - ~~**404 on refresh**~~ - Opening note then refreshing gives 404, but note appears in UI (FIXED: spa_fallback handler now serves index.html for non-API paths)
 - ~~**WebSocket failures**~~ - External signaling servers `y-webrtc-signaling-eu.herokuapp.com` and `signaling.yjs.dev` fail (FIXED: removed external fallback, now uses self-hosted signaling only)
-- **History navigation** - Browser back/forward doesn't work between notes and settings
+- ~~**History navigation**~~ - Browser back/forward doesn't work between notes and settings (FIXED: openNoteByPath now fetches note from API when not in local cache)
 
 ### Features Needed
 

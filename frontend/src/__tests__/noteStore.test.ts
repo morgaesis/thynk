@@ -6,6 +6,7 @@ import type { Note, NoteMetadata } from '../types';
 vi.mock('../api', () => ({
   listNotes: vi.fn(),
   getNote: vi.fn(),
+  getNoteByPath: vi.fn(),
   createNote: vi.fn(),
   updateNote: vi.fn(),
   deleteNote: vi.fn(),
@@ -202,6 +203,21 @@ describe('noteStore.openNoteByPath', () => {
     await useNoteStore.getState().openNoteByPath('nonexistent/path.md');
 
     expect(api.getNote).not.toHaveBeenCalled();
+  });
+
+  it('fetches note by path from API when not in local cache', async () => {
+    useNoteStore.setState({ notes: [] });
+    const note = makeNote({ id: 'remote-1', path: 'docs/remote.md', title: 'Remote Note' });
+    (api.getNoteByPath as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 'remote-1', path: 'docs/remote.md', title: 'Remote Note' });
+    (api.getNote as ReturnType<typeof vi.fn>).mockResolvedValue(note);
+    const pushStateSpy = vi.spyOn(window.history, 'pushState');
+
+    await useNoteStore.getState().openNoteByPath('docs/remote.md');
+
+    expect(api.getNoteByPath).toHaveBeenCalledWith('docs/remote.md');
+    expect(useNoteStore.getState().activeNote?.title).toBe('Remote Note');
+    expect(pushStateSpy).toHaveBeenCalledWith({}, '', '/notes/docs%2Fremote.md');
+    pushStateSpy.mockRestore();
   });
 });
 

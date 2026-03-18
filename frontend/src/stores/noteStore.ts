@@ -64,6 +64,15 @@ export const useNoteStore = create<NoteStore>((set, get) => ({
     const note = notes.find((n) => n.path === path);
     if (note) {
       await openNote(note.id);
+      return;
+    }
+    try {
+      const response = await api.getNoteByPath(path);
+      await openNote(response.id);
+    } catch (e) {
+      const msg = (e as Error).message;
+      set({ error: msg, loading: false });
+      useUIStore.getState().addToast('error', `Failed to open note: ${msg}`);
     }
   },
 

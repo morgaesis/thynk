@@ -46,8 +46,14 @@ import {
 } from '../extensions/VimModeExtension';
 import { VimStatusBar } from './VimStatusBar';
 import { TableControls } from './TableControls';
-import { SlashCommandExtension, type SlashCommandState } from '../extensions/SlashCommandExtension';
-import { AiCompletionExtension, type AiCompletionState } from '../extensions/AiCompletionExtension';
+import {
+  SlashCommandExtension,
+  type SlashCommandState,
+} from '../extensions/SlashCommandExtension';
+import {
+  AiCompletionExtension,
+  type AiCompletionState,
+} from '../extensions/AiCompletionExtension';
 import { SlashCommandMenu } from './SlashCommandMenu';
 import { AiCompletionMenu } from './AiCompletionMenu';
 
@@ -272,7 +278,11 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
     releaseLock: doReleaseLock,
   } = useLock(activeNote?.id, currentUsername);
 
-  const { ydoc, provider, users: collabUsers } = useCollaboration(activeNote?.id);
+  const {
+    ydoc,
+    provider,
+    users: collabUsers,
+  } = useCollaboration(activeNote?.id);
 
   const localUserColor = useMemo(() => {
     if (!provider) return '#958DF1';
@@ -393,7 +403,7 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
       }
 
       // @mention autocomplete: detect @ trigger
-      const mentionMatch = /@([a-zA-Z0-9_.\-]*)$/.exec(textBefore);
+      const mentionMatch = /@([a-zA-Z0-9_.[-]]*)$/.exec(textBefore);
       if (mentionMatch) {
         const view = e.view;
         const cursorPos = view.coordsAtPos($from.pos);
@@ -538,7 +548,7 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
       const { state } = editor;
       const { $from } = state.selection;
       const textBefore = $from.parent.textContent.slice(0, $from.parentOffset);
-      const triggerMatch = /@([a-zA-Z0-9_.\-]*)$/.exec(textBefore);
+      const triggerMatch = /@([a-zA-Z0-9_.[-]]*)$/.exec(textBefore);
       if (!triggerMatch) return;
       const from = $from.pos - triggerMatch[0].length;
       const to = $from.pos;
@@ -617,7 +627,9 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
                 <span>
                   Last edited by{' '}
                   <button
-                    onClick={() => setProfileUsername(activeNote.last_updated_by!)}
+                    onClick={() =>
+                      setProfileUsername(activeNote.last_updated_by!)
+                    }
                     className="underline hover:text-text dark:hover:text-text-dark transition-colors"
                   >
                     {activeNote.last_updated_by}
@@ -688,7 +700,8 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
         )}
 
       {/* Slash command menu */}
-      {editor && slashState.active &&
+      {editor &&
+        slashState.active &&
         createPortal(
           <SlashCommandMenu
             slashState={slashState}
@@ -699,20 +712,25 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
         )}
 
       {/* AI completion menu */}
-      {editor && aiState.active && aiState.anchorRect &&
+      {editor &&
+        aiState.active &&
+        aiState.anchorRect &&
         createPortal(
           <AiCompletionMenu
             anchorRect={aiState.anchorRect}
             onSelect={(completion) => {
               // Insert the completion after the ::ai trigger
-              editor.chain()
+              editor
+                .chain()
                 .deleteRange({ from: aiState.from, to: aiState.to })
                 .insertContent(completion + ' ')
                 .focus()
                 .run();
               setAiState((s) => ({ ...s, active: false, suggestions: [] }));
             }}
-            onClose={() => setAiState((s) => ({ ...s, active: false, suggestions: [] }))}
+            onClose={() =>
+              setAiState((s) => ({ ...s, active: false, suggestions: [] }))
+            }
           />,
           document.body,
         )}

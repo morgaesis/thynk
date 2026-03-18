@@ -9,7 +9,13 @@ export interface CollabUser {
 }
 
 const COLORS = [
-  '#958DF1', '#F98181', '#FBBC88', '#FAF594', '#70CFF8', '#94FADB', '#B9F18D',
+  '#958DF1',
+  '#F98181',
+  '#FBBC88',
+  '#FAF594',
+  '#70CFF8',
+  '#94FADB',
+  '#B9F18D',
 ];
 
 function getRandomColor(): string {
@@ -45,11 +51,13 @@ export function useCollaboration(noteId: string | undefined) {
         ydocRef.current.destroy();
         ydocRef.current = null;
       }
-      setCollabState({
-        provider: null,
-        ydoc: null,
-        connected: false,
-        users: [],
+      queueMicrotask(() => {
+        setCollabState({
+          provider: null,
+          ydoc: null,
+          connected: false,
+          users: [],
+        });
       });
       return;
     }
@@ -59,13 +67,13 @@ export function useCollaboration(noteId: string | undefined) {
 
     const roomName = `thynk-note-${noteId}`;
     const username = user?.username ?? 'Anonymous';
-    
+
     const getSignalingUrl = () => {
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const host = window.location.host;
       return `${protocol}//${host}/api/signaling?room=${encodeURIComponent(roomName)}`;
     };
-    
+
     const provider = new WebrtcProvider(roomName, ydoc, {
       signaling: [getSignalingUrl(), 'wss://signaling.yjs.dev'],
       password: undefined,
@@ -99,11 +107,13 @@ export function useCollaboration(noteId: string | undefined) {
       setCollabState((prev) => ({ ...prev, connected: true }));
     });
 
-    setCollabState({
-      provider,
-      ydoc,
-      connected: false,
-      users: [{ name: username, color: userColor }],
+    queueMicrotask(() => {
+      setCollabState({
+        provider,
+        ydoc,
+        connected: false,
+        users: [{ name: username, color: userColor }],
+      });
     });
 
     return () => {

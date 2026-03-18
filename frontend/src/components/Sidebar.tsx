@@ -28,7 +28,17 @@ import { ActivityFeed } from './ActivityFeed';
 import { useAutomationEvents } from '../hooks/useAutomationEvents';
 import { BacklinksPanel } from './BacklinksPanel';
 import type { TreeNode, NoteMetadata } from '../types';
-import { getTree, toggleFavorite, getFavorites, moveNote, getNoteByPath, listTrashedNotes, restoreNote, permanentDeleteNote, type TrashedNote } from '../api';
+import {
+  getTree,
+  toggleFavorite,
+  getFavorites,
+  moveNote,
+  getNoteByPath,
+  listTrashedNotes,
+  restoreNote,
+  permanentDeleteNote,
+  type TrashedNote,
+} from '../api';
 
 function TreeItem({
   node,
@@ -140,13 +150,18 @@ function TreeItem({
         if (sourcePath && sourcePath !== path) {
           try {
             const sourceNote = await getNoteByPath(sourcePath);
-            const targetDir = path.includes('/') ? path.split('/').slice(0, -1).join('/') : '';
-            const sourceName = sourcePath.split('/').pop()?.replace('.md', '') || 'untitled';
-            const newPath = targetDir ? `${targetDir}/${sourceName}.md` : `${sourceName}.md`;
+            const targetDir = path.includes('/')
+              ? path.split('/').slice(0, -1).join('/')
+              : '';
+            const sourceName =
+              sourcePath.split('/').pop()?.replace('.md', '') || 'untitled';
+            const newPath = targetDir
+              ? `${targetDir}/${sourceName}.md`
+              : `${sourceName}.md`;
             await moveNote(sourceNote.id, newPath);
             addToast('success', `Moved "${sourcePath}" → "${newPath}"`);
             await fetchNotes();
-          } catch (err) {
+          } catch {
             const msg = err instanceof Error ? err.message : 'Unknown error';
             if (msg.includes('409') || msg.includes('already_exists')) {
               addToast('error', 'A note already exists at the destination');
@@ -158,7 +173,12 @@ function TreeItem({
       }}
     >
       <button
-        onClick={() => { if (noteMeta) { setShowGraph(false); void openNoteByPath(path); } }}
+        onClick={() => {
+          if (noteMeta) {
+            setShowGraph(false);
+            void openNoteByPath(path);
+          }
+        }}
         className={`flex items-center gap-2 w-full py-1.5 text-sm rounded-md
           transition-colors text-left
           ${
@@ -253,7 +273,10 @@ function FavoritesSection() {
           {favorites.map((n) => (
             <li key={n.id}>
               <button
-                onClick={() => { setShowGraph(false); void openNote(n.id); }}
+                onClick={() => {
+                  setShowGraph(false);
+                  void openNote(n.id);
+                }}
                 className={`flex items-center gap-2 w-full px-2 py-1.5 text-sm rounded-md
                   transition-colors text-left
                   ${
@@ -309,7 +332,10 @@ function RecentNotesSection() {
           {recentNotes.map((n) => (
             <li key={n.id}>
               <button
-                onClick={() => { setShowGraph(false); void openNote(n.id); }}
+                onClick={() => {
+                  setShowGraph(false);
+                  void openNote(n.id);
+                }}
                 className={`flex items-center gap-2 w-full px-2 py-1.5 text-sm rounded-md
                   transition-colors text-left
                   ${
@@ -367,7 +393,7 @@ function TrashSection() {
       await loadTrashedNotes();
       await fetchNotes();
       addToast('success', 'Note restored');
-    } catch (err) {
+    } catch {
       addToast('error', 'Failed to restore note');
     } finally {
       setRestoring(null);
@@ -377,13 +403,14 @@ function TrashSection() {
   const handlePermanentDelete = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (deleting) return;
-    if (!confirm('Permanently delete this note? This cannot be undone.')) return;
+    if (!confirm('Permanently delete this note? This cannot be undone.'))
+      return;
     setDeleting(id);
     try {
       await permanentDeleteNote(id);
       await loadTrashedNotes();
       addToast('success', 'Note permanently deleted');
-    } catch (err) {
+    } catch {
       addToast('error', 'Failed to delete note');
     } finally {
       setDeleting(null);
@@ -739,11 +766,7 @@ export function Sidebar() {
           )}
 
           {/* Backlinks - shown when a note is active */}
-          {activeNote && (
-            <BacklinksPanel
-              noteId={activeNote.id}
-            />
-          )}
+          {activeNote && <BacklinksPanel noteId={activeNote.id} />}
         </nav>
 
         {/* Footer */}
@@ -796,7 +819,6 @@ export function Sidebar() {
       {showTemplateSelector && (
         <TemplateSelector onClose={() => setShowTemplateSelector(false)} />
       )}
-
     </>
   );
 }

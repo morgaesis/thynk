@@ -15,6 +15,34 @@ interface UseLockReturn extends LockState {
 
 const HEARTBEAT_INTERVAL_MS = 15_000;
 
+function getLockIntentKey(noteId: string): string {
+  return `thynk-lock-${noteId}`;
+}
+
+function getStoredLockIntent(noteId: string): string | null {
+  try {
+    return sessionStorage.getItem(getLockIntentKey(noteId));
+  } catch {
+    return null;
+  }
+}
+
+function setStoredLockIntent(noteId: string, user: string): void {
+  try {
+    sessionStorage.setItem(getLockIntentKey(noteId), user);
+  } catch {
+    // sessionStorage not available
+  }
+}
+
+function clearStoredLockIntent(noteId: string): void {
+  try {
+    sessionStorage.removeItem(getLockIntentKey(noteId));
+  } catch {
+    // sessionStorage not available
+  }
+}
+
 export function useLock(
   noteId: string | undefined,
   currentUser: string,
@@ -106,21 +134,59 @@ export function useLock(
       try {
         const result = await getLock(noteId);
         if (cancelled) return;
+
+        // Check if current user previously held this lock (page refresh scenario)
+        const storedUser = getStoredLockIntent(noteId);
+        const isCurrentUser = storedUser === currentUserRef.current;
+
         if (result.locked && result.user !== currentUserRef.current) {
+          // Lock held by another user
           setLockState({
             locked: true,
             lockedByMe: false,
             lockedBy: result.user ?? null,
             expiresAt: result.expires_at ?? null,
           });
-        } else if (!result.locked) {
-          setLockState(prev =>
-            prev.lockedByMe ? prev : {
-              locked: false,
-              lockedByMe: false,
-              lockedBy: null,
-              expiresAt: null,
+        } else if (!result.locked && isCurrentUser) {
+          // No lock in DB but current user had it before - try to re-acquire
+          try {
+            const acquireResult = await acquireLock(noteId);
+            if (cancelled) return;
+            if (
+              acquireResult.locked &&
+              acquireResult.user === currentUserRef.current
+            ) {
+              setLockState({
+                locked: true,
+                lockedByMe: true,
+                lockedBy: acquireResult.user ?? null,
+                expiresAt: acquireResult.expires_at ?? null,
+              });
+              startHeartbeat(noteId);
+            } else if (acquireResult.locked) {
+              // Someone else got the lock while we were trying
+              clearStoredLockIntent(noteId);
+              setLockState({
+                locked: true,
+                lockedByMe: false,
+                lockedBy: acquireResult.user ?? null,
+                expiresAt: acquireResult.expires_at ?? null,
+              });
             }
+          } catch {
+            // Failed to re-acquire - clear stored intent
+            clearStoredLockIntent(noteId);
+          }
+        } else if (!result.locked) {
+          setLockState((prev) =>
+            prev.lockedByMe
+              ? prev
+              : {
+                  locked: false,
+                  lockedByMe: false,
+                  lockedBy: null,
+                  expiresAt: null,
+                },
           );
         }
       } catch {
@@ -135,16 +201,13 @@ export function useLock(
       cancelled = true;
       clearInterval(interval);
     };
-  }, [noteId]); // intentionally omit currentUserRef — it's a ref, not a reactive value
+  }, [noteId, startHeartbeat]); // intentionally omit currentUserRef — it's a ref, not a reactive value
 
-  // Release lock on unmount if we hold it
+  // Stop heartbeat on unmount, but don't release the lock in DB.
+  // The lock intent is stored in sessionStorage to survive page refreshes.
   useEffect(() => {
     return () => {
       stopHeartbeat();
-      const id = noteIdRef.current;
-      if (id) {
-        releaseLock(id).catch(() => {});
-      }
     };
   }, [stopHeartbeat]);
 
@@ -159,6 +222,7 @@ export function useLock(
           lockedBy: result.user ?? null,
           expiresAt: result.expires_at ?? null,
         });
+        setStoredLockIntent(noteId, currentUser);
         startHeartbeat(noteId);
         return true;
       } else if (result.locked) {
@@ -180,6 +244,7 @@ export function useLock(
   const doReleaseLock = useCallback(async (): Promise<void> => {
     if (!noteId) return;
     stopHeartbeat();
+    clearStoredLockIntent(noteId);
     try {
       await releaseLock(noteId);
     } catch {

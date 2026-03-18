@@ -9,6 +9,14 @@ vi.mock('../api', () => ({
   heartbeatLock: vi.fn(),
 }));
 
+// Mock sessionStorage
+const mockSessionStorage = {
+  getItem: vi.fn(),
+  setItem: vi.fn(),
+  removeItem: vi.fn(),
+};
+vi.stubGlobal('sessionStorage', mockSessionStorage);
+
 import { useLock } from '../hooks/useLock';
 import * as api from '../api';
 
@@ -17,6 +25,7 @@ const mockAcquireLock = api.acquireLock as ReturnType<typeof vi.fn>;
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockSessionStorage.getItem.mockReturnValue(null);
   // releaseLock must always resolve to avoid hanging on unmount cleanup
   (api.releaseLock as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
 });
@@ -112,6 +121,34 @@ describe('useLock – lock detection on note open', () => {
 
     expect(result.current.lockedByMe).toBe(false);
     expect(result.current.lockedBy).toBe('alice');
+
+    unmount();
+  });
+
+  it('re-acquires lock on page refresh if user previously held it', async () => {
+    // Simulate: user had a lock on note-1, refreshed the page
+    // sessionStorage has the stored intent
+    mockSessionStorage.getItem.mockReturnValue('bob');
+
+    // getLock returns no lock (because old component released it on unmount)
+    mockGetLock.mockResolvedValue({ locked: false });
+
+    // acquireLock should be called to re-acquire the lock
+    mockAcquireLock.mockResolvedValue({
+      locked: true,
+      user: 'bob',
+      expires_at: new Date(Date.now() + 30_000).toISOString(),
+    });
+
+    const { result, unmount } = renderHook(() => useLock('note-1', 'bob'));
+
+    // Should eventually re-acquire the lock
+    await waitFor(() => {
+      expect(result.current.lockedByMe).toBe(true);
+    }, { timeout: 3000 });
+
+    expect(result.current.locked).toBe(true);
+    expect(result.current.lockedBy).toBe('bob');
 
     unmount();
   });

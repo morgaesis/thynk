@@ -192,7 +192,8 @@
 22. ~~Newline Preservation~~ -- Fixed blank lines collapsing to single newline on refresh by storing content as HTML instead of markdown (Editor.tsx updated, tests added, 2026-03-18)
 23. ~~Content Buffer~~ -- Add sessionStorage-based content buffer to prevent data loss on refresh (useContentBuffer hook, immediate local backup on each edit, restore on page load, tests added, 2026-03-18)
 24. ~~History Navigation~~ -- Browser back/forward now works between notes and settings (openNoteByPath fetches note from API when not in local cache, 2026-03-18)
+25. ~~Document Versioning~~ -- Version history with list/get/restore APIs, automatic version save on note updates (storage layer methods, API routes, 5 new tests, 2026-03-18)
 
 ---
 
-Last Updated: 2026-03-18 (History Navigation: Fixed browser back/forward navigation to properly load notes from API when not in local cache)
+Last Updated: 2026-03-18 (Document Versioning: Added version history with list/get/restore APIs, automatic version save on note updates)

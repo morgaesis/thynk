@@ -221,7 +221,7 @@ See `STATE.md` for current blockers and active work.
 - ~~**Todo items**~~ - Support `- [ ]`, `- [/]`, `- [x]` states (DONE)
 - **Multi-tenancy** - Workspaces with user signup and invitations
 - **Cloud storage** - Sync notes to bucket, count towards quota
-- **Document versioning** - Version history for notes
+- ~~**Document versioning**~~ - Version history for notes (DONE: list/get/restore APIs, auto-save on update, 2026-03-18)
 
 ### UI/UX
 

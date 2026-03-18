@@ -44,9 +44,8 @@ if ! bash .hooks/pre-push 2>&1 | tee -a "$LOG_FILE"; then
     fi
 fi
 
-# Run opencode with task
-log "Starting opencode worker..."
-timeout 3600 tooler run opencode run "You are the Thynk GSD worker. 
+PROMPT=$(cat <<'EOF'
+You are the Thynk GSD worker.
 
 Read STATE.md and ROADMAP.md to understand current phase and status.
 
@@ -66,7 +65,13 @@ Implementation requirements:
 - Push after verification
 - Update STATE.md with progress
 
-If QA hooks fail, fix the issues before committing." 2>&1 | tee -a "$LOG_FILE"
+If QA hooks fail, fix the issues before committing.
+EOF
+)
+
+# Run opencode with task
+log "Starting opencode worker..."
+timeout 3600 tooler run opencode run "$PROMPT" 2>&1 | tee -a "$LOG_FILE"
 
 log "=== GSD Worker cycle complete ==="
 

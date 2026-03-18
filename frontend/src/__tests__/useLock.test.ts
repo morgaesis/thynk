@@ -11,11 +11,16 @@ vi.mock('../api', () => ({
 
 // Mock sessionStorage
 const mockSessionStorage = {
-  getItem: vi.fn(),
-  setItem: vi.fn(),
-  removeItem: vi.fn(),
+  getItem: vi.fn(() => null),
+  setItem: vi.fn(() => null),
+  removeItem: vi.fn(() => null),
 };
-vi.stubGlobal('sessionStorage', mockSessionStorage);
+
+// Replace global sessionStorage with mock before importing the hook
+Object.defineProperty(globalThis, 'sessionStorage', {
+  value: mockSessionStorage,
+  writable: true,
+});
 
 import { useLock } from '../hooks/useLock';
 import * as api from '../api';

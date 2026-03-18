@@ -64,14 +64,23 @@ interface Props {
   onRegisterFocusTitle?: (fn: () => void) => void;
 }
 
-function getMarkdown(ed: TipTapEditor): string {
-  return (ed.storage as unknown as { markdown: { getMarkdown: () => string } }).markdown.getMarkdown();
+function getHTML(ed: TipTapEditor): string {
+  return ed.getHTML();
 }
 
-function setMarkdownContent(ed: TipTapEditor, markdown: string) {
-  ed.commands.setContent(markdown || '', { 
-    contentType: 'markdown' 
-  } as Parameters<typeof ed.commands.setContent>[1]);
+function setMarkdownContent(ed: TipTapEditor, content: string) {
+  if (!content) {
+    ed.commands.setContent('', { emitUpdate: false });
+    return;
+  }
+  
+  if (content.includes('<p>') || content.includes('<h') || content.includes('<ul>') || content.includes('<ol>')) {
+    ed.commands.setContent(content, { emitUpdate: false });
+  } else {
+    ed.commands.setContent(content, { 
+      contentType: 'markdown' 
+    } as Parameters<typeof ed.commands.setContent>[1]);
+  }
 }
 
 // Plugin key for active node decoration
@@ -420,7 +429,7 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
       if (!note) return;
       if (debounceRef.current) clearTimeout(debounceRef.current);
       debounceRef.current = setTimeout(() => {
-        updateNote(note.id, { content: getMarkdown(e) });
+        updateNote(note.id, { content: getHTML(e) });
       }, 1000);
 
       // Wiki-link autocomplete: detect [[  trigger
@@ -474,7 +483,7 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
       const note = activeNoteRef.current;
       if (!note) return;
       if (debounceRef.current) clearTimeout(debounceRef.current);
-      updateNote(note.id, { content: getMarkdown(e) });
+      updateNote(note.id, { content: getHTML(e) });
     },
     onTransaction: ({ editor: e }) => {
       if (vimModeEnabled) {
@@ -516,7 +525,7 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
     const ed = editorRef.current;
     if (!note || !ed) return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    updateNote(note.id, { content: getMarkdown(ed) });
+    updateNote(note.id, { content: getHTML(ed) });
     if (titleRef.current) {
       const newTitle = titleRef.current.value.trim();
       if (newTitle && newTitle !== note.title) {

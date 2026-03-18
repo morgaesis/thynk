@@ -5,7 +5,12 @@ export PATH="$HOME/.local/share/tooler/bin:$HOME/.opencode/bin:$HOME/.cargo/bin:
 
 # Load API keys from system environment
 if [ -f /etc/ai-tools/env ]; then
-    eval "$(sudo cat /etc/ai-tools/env 2>/dev/null | grep -v '^#' | grep '=' | sed 's/^/export /')"
+    ENV_TEMP=$(mktemp)
+    sudo cat /etc/ai-tools/env 2>/dev/null | grep -v '^#' | grep '=' > "$ENV_TEMP"
+    while IFS= read -r line; do
+        export "$line"
+    done < "$ENV_TEMP"
+    rm -f "$ENV_TEMP"
 fi
 
 LOCKFILE="/tmp/thynk-worker.lock"
@@ -25,7 +30,6 @@ fi
 trap "rmdir $LOCKFILE" EXIT
 
 log "=== GSD Worker cycle starting ==="
-log "Environment loaded: OPENCODE_MODEL=${OPENCODE_MODEL:-not-set}"
 
 cd ~/thynk
 

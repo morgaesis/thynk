@@ -49,34 +49,15 @@ if ! bash .hooks/pre-push 2>&1 | tee -a "$LOG_FILE"; then
     fi
 fi
 
-PROMPT=$(cat <<'EOF'
-You are the Thynk GSD worker.
-
-Read STATE.md and ROADMAP.md to understand current phase and status.
-
-Check ROADMAP.md 'Known Issues & Backlog' section for priority bugs.
-
-Pick ONE high-impact task from remaining work. Priority order:
-1. CI/CD: Fix desktop build (missing icons - generate/placeholders at src-tauri/icons/)
-2. CI/CD: Add Docker image build to GitHub Actions for watchtower auto-updates
-3. Critical bugs (locking, websockets, refresh issues)
-4. Infrastructure (self-hosted signaling)
-5. Features from backlog
-
-Implementation requirements:
-- TDD: write failing test first, then implement
-- Verify: cargo build --quiet && cargo test --quiet && cd frontend && bun run build && bun test && cd .. && cargo clippy --quiet -- -D warnings
-- Commit with conventional commit format: type(scope): description
-- Push after verification
-- Update STATE.md with progress
-
-If QA hooks fail, fix the issues before committing.
-EOF
-)
+PROMPT='Read STATE.md and ROADMAP.md for current status. Pick ONE high-impact task from ROADMAP.md backlog. Prioritize: CI/CD fixes for desktop build icons, Docker image build for watchtower, critical bugs. Write failing tests first, implement, verify with cargo build/test and bun build/test, commit with conventional format, push, update STATE.md.'
 
 # Run opencode with task
-log "Starting opencode worker..."
-timeout 3600 tooler run opencode run "$PROMPT" 2>&1 | tee -a "$LOG_FILE"
+log "Starting opencode worker (model: ${OPENCODE_MODEL:-default})..."
+if [ -n "$OPENCODE_MODEL" ]; then
+    timeout 3600 tooler run opencode run -m "$OPENCODE_MODEL" "$PROMPT" 2>&1 | tee -a "$LOG_FILE"
+else
+    timeout 3600 tooler run opencode run "$PROMPT" 2>&1 | tee -a "$LOG_FILE"
+fi
 
 log "=== GSD Worker cycle complete ==="
 

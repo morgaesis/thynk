@@ -96,6 +96,7 @@
 | Activity Feed       | Done (getAuditLog API, ActivityFeed component in sidebar) | Phase 4 |
 | Trash/Soft Delete   | Done (trash/restore/permanent-delete API, DB methods, tests, TrashSection UI in sidebar) | Phase 4 |
 | User Profiles        | Done (mutual work feature showing connected notes between users) | Phase 4 |
+| Todo Items          | Done (TaskList extension, - [ ], - [/], - [x] syntax) | Phase 4 |
 | Security Fix         | Done (notification ownership validation on mark read) | - |
 
 ### Phase 1 Exit Criteria (all met)
@@ -182,7 +183,8 @@
 15. ~~Activity Feed~~ -- Recent activity from audit log (getAuditLog API, ActivityFeed component in sidebar, 2026-03-17)
 16. ~~Trash/Soft Delete~~ -- Soft delete with trash view, restore, and permanent delete (API routes: POST /trash, POST /restore, DELETE /permanent, GET /trashed; DB methods; frontend TrashSection UI in sidebar with restore/permanent-delete actions, tests added, 2026-03-17)
 17. ~~User Profiles~~ -- View shared docs, activity, mutual work (mutual_work field in API, build_mutual_work function, backend tests, frontend component updated, 2026-03-17)
+18. ~~Todo Items~~ -- Support for - [ ], - [/], - [x] syntax in editor (TaskList + TaskItem extensions added, Markdown extension configured for proper parsing, tests added, 2026-03-18)
 
 ---
 
-Last Updated: 2026-03-17 (Search Pagination: Added limit/offset params to search API for paginated results, SearchEngine updated with pagination support, new tests added)
+Last Updated: 2026-03-18 (Todo Items: Added TaskList extension support for - [ ], - [/], - [x] syntax in editor, tests added)

@@ -161,7 +161,7 @@ function TreeItem({
             await moveNote(sourceNote.id, newPath);
             addToast('success', `Moved "${sourcePath}" → "${newPath}"`);
             await fetchNotes();
-          } catch {
+          } catch (err) {
             const msg = err instanceof Error ? err.message : 'Unknown error';
             if (msg.includes('409') || msg.includes('already_exists')) {
               addToast('error', 'A note already exists at the destination');

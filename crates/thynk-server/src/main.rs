@@ -4,10 +4,13 @@ mod state;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
+use axum::{
+    body::Body,
+    Router,
+};
 use notify::{RecursiveMode, Watcher};
 use tokio::sync::{broadcast, Mutex};
 use tower_http::cors::{Any, CorsLayer};
-use tower_http::services::{ServeDir, ServeFile};
 use tracing::{info, warn};
 use tracing_subscriber::EnvFilter;
 
@@ -125,10 +128,48 @@ async fn main() -> anyhow::Result<()> {
     let dist_path = PathBuf::from("frontend/dist");
     let app = if dist_path.exists() {
         info!("Serving static files from {}", dist_path.display());
-        api_router.fallback_service(
-            ServeDir::new(&dist_path)
-                .not_found_service(ServeFile::new(dist_path.join("index.html"))),
-        )
+        
+        #[derive(Clone)]
+        struct SpaState {
+            dist_path: PathBuf,
+        }
+        
+        async fn spa_fallback(
+            axum::extract::State(state): axum::extract::State<SpaState>,
+            request: axum::http::Request<Body>,
+        ) -> axum::response::Response<Body> {
+            let path = request.uri().path();
+            let index_path = state.dist_path.join("index.html");
+            
+            // For API calls, we shouldn't be here - return 404
+            if path.starts_with("/api/") {
+                return axum::response::Response::builder()
+                    .status(axum::http::StatusCode::NOT_FOUND)
+                    .body(Body::from("Not Found"))
+                    .unwrap();
+            }
+            
+            // For everything else (SPA routes), serve index.html
+            // This handles /notes/*, /settings, /calendar, etc.
+            match tokio::fs::read(&index_path).await {
+                Ok(body) => axum::response::Response::builder()
+                    .status(axum::http::StatusCode::OK)
+                    .header(axum::http::header::CONTENT_TYPE, "text/html")
+                    .body(Body::from(body))
+                    .unwrap(),
+                Err(_) => axum::response::Response::builder()
+                    .status(axum::http::StatusCode::NOT_FOUND)
+                    .body(Body::from("Not Found"))
+                    .unwrap(),
+            }
+        }
+        
+        let spa_state = SpaState { dist_path: dist_path.clone() };
+        let spa_router = Router::new()
+            .fallback(spa_fallback)
+            .with_state(spa_state);
+        
+        api_router.merge(spa_router)
     } else {
         api_router
     };
@@ -1002,11 +1043,44 @@ mod tests {
         let dist_dir = tempfile::tempdir().unwrap();
         std::fs::write(dist_dir.path().join("index.html"), "<html>test</html>").unwrap();
 
-        // Build the app with static file serving (like desktop should do)
-        let app = api_router.fallback_service(
-            ServeDir::new(dist_dir.path())
-                .not_found_service(ServeFile::new(dist_dir.path().join("index.html"))),
-        );
+        #[derive(Clone)]
+        struct SpaState {
+            dist_path: PathBuf,
+        }
+
+        async fn spa_fallback(
+            axum::extract::State(state): axum::extract::State<SpaState>,
+            request: axum::http::Request<Body>,
+        ) -> axum::response::Response<Body> {
+            let path = request.uri().path();
+            let index_path = state.dist_path.join("index.html");
+
+            if path.starts_with("/api/") {
+                return axum::response::Response::builder()
+                    .status(StatusCode::NOT_FOUND)
+                    .body(Body::from("Not Found"))
+                    .unwrap();
+            }
+
+            match tokio::fs::read(&index_path).await {
+                Ok(body) => axum::response::Response::builder()
+                    .status(StatusCode::OK)
+                    .header(axum::http::header::CONTENT_TYPE, "text/html")
+                    .body(Body::from(body))
+                    .unwrap(),
+                Err(_) => axum::response::Response::builder()
+                    .status(StatusCode::NOT_FOUND)
+                    .body(Body::from("Not Found"))
+                    .unwrap(),
+            }
+        }
+
+        let spa_state = SpaState { dist_path: dist_dir.path().to_path_buf() };
+        let spa_router = Router::new()
+            .fallback(spa_fallback)
+            .with_state(spa_state);
+
+        let app = api_router.merge(spa_router);
 
         // Test that root path serves index.html
         let response = app
@@ -1019,5 +1093,69 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(&body[..], b"<html>test</html>");
+    }
+
+    #[tokio::test]
+    async fn test_static_file_serving_serves_index_html_for_spa_routes() {
+        let state = test_state();
+        let api_router = routes::router(state);
+
+        let dist_dir = tempfile::tempdir().unwrap();
+        std::fs::write(dist_dir.path().join("index.html"), "<html>spa</html>").unwrap();
+
+        #[derive(Clone)]
+        struct SpaState {
+            dist_path: PathBuf,
+        }
+
+        async fn spa_fallback(
+            axum::extract::State(state): axum::extract::State<SpaState>,
+            request: axum::http::Request<Body>,
+        ) -> axum::response::Response<Body> {
+            let path = request.uri().path();
+            let index_path = state.dist_path.join("index.html");
+
+            if path.starts_with("/api/") {
+                return axum::response::Response::builder()
+                    .status(StatusCode::NOT_FOUND)
+                    .body(Body::from("Not Found"))
+                    .unwrap();
+            }
+
+            match tokio::fs::read(&index_path).await {
+                Ok(body) => axum::response::Response::builder()
+                    .status(StatusCode::OK)
+                    .header(axum::http::header::CONTENT_TYPE, "text/html")
+                    .body(Body::from(body))
+                    .unwrap(),
+                Err(_) => axum::response::Response::builder()
+                    .status(StatusCode::NOT_FOUND)
+                    .body(Body::from("Not Found"))
+                    .unwrap(),
+            }
+        }
+
+        let spa_state = SpaState { dist_path: dist_dir.path().to_path_buf() };
+        let spa_router = Router::new()
+            .fallback(spa_fallback)
+            .with_state(spa_state);
+
+        let app = api_router.merge(spa_router);
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/notes/my-note")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK, "SPA route should return index.html");
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        assert_eq!(&body[..], b"<html>spa</html>");
     }
 }

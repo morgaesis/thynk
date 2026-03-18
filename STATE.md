@@ -141,6 +141,7 @@
 | "Today" button still in sidebar | `DailyNoteButton` was never removed from Sidebar | Removed component and import from Sidebar.tsx |
 | Vim block cursor not shown | CSS targeted `.ProseMirror-cursor` (gap cursor, never present for text) | Hide native caret with `caret-color: transparent`; add `Decoration.inline`/`widget` for character highlight |
 | Startup log format wrong | Two separate `println!` lines | Combined to single `"Data directory: <path> (<N> files)"` |
+| Document locking doesn't persist on refresh | Lock released on component unmount, lost on page refresh | Store lock intent in sessionStorage; re-acquire on mount if user previously held lock |
 
 ---
 
@@ -191,4 +192,4 @@
 
 ---
 
-Last Updated: 2026-03-18 (Code Block Copy Button: Copy button appears on hover, copies code to clipboard)
+Last Updated: 2026-03-18 (Document Locking: Lock intent stored in sessionStorage, re-acquires on page refresh)

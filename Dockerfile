@@ -13,8 +13,9 @@ COPY crates/thynk-search/Cargo.toml ./crates/thynk-search/
 COPY crates/thynk-sync/Cargo.toml ./crates/thynk-sync/
 COPY crates/thynk-server/Cargo.toml ./crates/thynk-server/
 
-# Remove src-tauri from workspace (desktop app, not needed for server)
-RUN sed -i 's/"src-tauri", //' Cargo.toml && sed -i 's/, "src-tauri"//' Cargo.toml
+# Remove src-tauri and thynk-cli from workspace (not needed for server)
+RUN sed -i 's/"src-tauri", //' Cargo.toml && sed -i 's/, "src-tauri"//' Cargo.toml && \
+    sed -i 's/"crates\/thynk-cli", //' Cargo.toml && sed -i 's/, "crates\/thynk-cli"//' Cargo.toml
 
 # Create placeholder source files
 RUN mkdir -p crates/thynk-core/src crates/thynk-search/src crates/thynk-sync/src crates/thynk-server/src && \

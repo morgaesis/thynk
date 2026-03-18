@@ -12,6 +12,7 @@ if [ -f /etc/ai-tools/env ]; then
     done < "$ENV_TEMP"
     rm -f "$ENV_TEMP"
 fi
+echo "DEBUG: OPENCODE_MODEL=$OPENCODE_MODEL" >&2
 
 LOCKFILE="/tmp/thynk-worker.lock"
 LOG_DIR="$HOME/thynk-logs"

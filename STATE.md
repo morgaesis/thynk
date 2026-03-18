@@ -189,7 +189,8 @@
 19. ~~404 on Refresh~~ -- Fixed SPA routing so refreshing note pages returns index.html instead of 404 (spa_fallback handler added, tests added, 2026-03-18)
 20. ~~Wiki-Link Auto-Create~~ -- Clicking [[non-existent note]] now creates the note automatically (onNavigate callback updated to call createNote when target doesn't exist, tests added, 2026-03-18)
 21. ~~Code Block Copy Button~~ -- Copy button appears on hover, copies code to clipboard (CodeBlockCopyButton extension, click handler, CSS styling, tests added, 2026-03-18)
+22. ~~Newline Preservation~~ -- Fixed blank lines collapsing to single newline on refresh by storing content as HTML instead of markdown (Editor.tsx updated, tests added, 2026-03-18)
 
 ---
 
-Last Updated: 2026-03-18 (WebSocket: Removed external signaling server fallback that was failing; Mention detection regex fixed in tests)
+Last Updated: 2026-03-18 (Newline Preservation: Changed content storage from markdown to HTML to preserve blank lines)

@@ -1,12 +1,12 @@
 #!/bin/bash
 # Thynk GSD worker - runs opencode to work on tasks
-# This script is called by cron every 30 minutes
+# Called by cron hourly
 
 export PATH="$HOME/.local/share/tooler/bin:$HOME/.opencode/bin:$HOME/.cargo/bin:$HOME/.local/share/pnpm:/usr/local/bin:/usr/bin:/bin"
 export OPENROUTER_API_KEY="${OPENROUTER_API_KEY:-}"
 export OPENCODE_API_KEY="${OPENCODE_API_KEY:-}"
-cd ~/thynk
 
+LOCKFILE="/tmp/thynk-worker.lock"
 LOG_DIR="$HOME/thynk-logs"
 mkdir -p "$LOG_DIR"
 LOG_FILE="$LOG_DIR/worker-$(date +%Y%m%d-%H%M%S).log"
@@ -15,7 +15,16 @@ log() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOG_FILE"
 }
 
+# Acquire lock - exit if another instance is running
+if ! mkdir "$LOCKFILE" 2>/dev/null; then
+    log "Another worker instance is running, exiting"
+    exit 0
+fi
+trap "rmdir $LOCKFILE" EXIT
+
 log "=== GSD Worker cycle starting ==="
+
+cd ~/thynk
 
 # Pull latest
 git pull origin main 2>&1 | tee -a "$LOG_FILE" || true

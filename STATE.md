@@ -184,7 +184,8 @@
 16. ~~Trash/Soft Delete~~ -- Soft delete with trash view, restore, and permanent delete (API routes: POST /trash, POST /restore, DELETE /permanent, GET /trashed; DB methods; frontend TrashSection UI in sidebar with restore/permanent-delete actions, tests added, 2026-03-17)
 17. ~~User Profiles~~ -- View shared docs, activity, mutual work (mutual_work field in API, build_mutual_work function, backend tests, frontend component updated, 2026-03-17)
 18. ~~Todo Items~~ -- Support for - [ ], - [/], - [x] syntax in editor (TaskList + TaskItem extensions added, Markdown extension configured for proper parsing, tests added, 2026-03-18)
+19. ~~404 on Refresh~~ -- Fixed SPA routing so refreshing note pages returns index.html instead of 404 (spa_fallback handler added, tests added, 2026-03-18)
 
 ---
 
-Last Updated: 2026-03-18 (Todo Items: Added TaskList extension support for - [ ], - [/], - [x] syntax in editor, tests added)
+Last Updated: 2026-03-18 (404 on Refresh: Fixed SPA routing so refreshing note pages returns index.html instead of 404; Todo Items: Added TaskList extension support for - [ ], - [/], - [x] syntax in editor, tests added)

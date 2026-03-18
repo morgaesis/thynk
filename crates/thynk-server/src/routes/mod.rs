@@ -70,6 +70,12 @@ pub fn router(state: AppState) -> Router {
             delete(notes::permanently_delete_note),
         )
         .route("/api/notes/trashed", get(notes::list_trashed_notes))
+        .route("/api/notes/{id}/versions", get(notes::list_note_versions))
+        .route("/api/notes/{id}/version", get(notes::get_note_version))
+        .route(
+            "/api/notes/{id}/restore-version",
+            post(notes::restore_note_version),
+        )
         .route("/api/search", get(search::search))
         .route("/api/tree", get(tree::file_tree))
         .route("/api/notes/{id}/backlinks", get(links::get_backlinks))

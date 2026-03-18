@@ -446,6 +446,11 @@ pub async fn update_note(
         )
         .into_response();
     }
+
+    // Save version for history
+    if let Err(e) = storage.save_version(&note) {
+        tracing::warn!("failed to save version: {}", e);
+    }
     drop(storage);
 
     if let Err(e) = db.index_note(&note) {
@@ -1210,4 +1215,171 @@ mod tests {
         assert_eq!(result.notes.len(), 1);
         assert_eq!(result.notes[0].id, "trash-list-1");
     }
+}
+
+#[derive(Serialize)]
+pub struct VersionInfo {
+    pub path: String,
+    pub timestamp: String,
+    pub hash: String,
+}
+
+#[derive(Serialize)]
+pub struct VersionHistoryResponse {
+    pub versions: Vec<VersionInfo>,
+}
+
+pub async fn list_note_versions(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    Extension(_auth_user): Extension<AuthUser>,
+) -> impl IntoResponse {
+    let db = state.db.lock().await;
+
+    let meta = match db.get_note_metadata(&id) {
+        Ok(m) => m,
+        Err(_) => {
+            return err(StatusCode::NOT_FOUND, "not_found", "note not found").into_response();
+        }
+    };
+
+    let storage = state.storage.lock().await;
+    let version_paths = match storage.list_versions(&meta.path) {
+        Ok(v) => v,
+        Err(e) => {
+            return err(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "storage_error",
+                &e.to_string(),
+            )
+            .into_response();
+        }
+    };
+
+    let mut versions = Vec::new();
+    for vp in version_paths {
+        if let Ok(content) = storage.get_version_content(&vp) {
+            let content_hash = thynk_core::note::compute_hash(&content);
+            let timestamp = vp
+                .file_stem()
+                .and_then(|s| s.to_str())
+                .unwrap_or("")
+                .to_string();
+            versions.push(VersionInfo {
+                path: vp.display().to_string(),
+                timestamp,
+                hash: content_hash,
+            });
+        }
+    }
+
+    (StatusCode::OK, Json(VersionHistoryResponse { versions })).into_response()
+}
+
+#[derive(Deserialize)]
+pub struct GetVersionQuery {
+    path: String,
+}
+
+pub async fn get_note_version(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    Query(query): Query<GetVersionQuery>,
+    Extension(_auth_user): Extension<AuthUser>,
+) -> impl IntoResponse {
+    let db = state.db.lock().await;
+
+    let _meta = match db.get_note_metadata(&id) {
+        Ok(m) => m,
+        Err(_) => {
+            return err(StatusCode::NOT_FOUND, "not_found", "note not found").into_response();
+        }
+    };
+
+    let storage = state.storage.lock().await;
+    let version_full = std::path::PathBuf::from(&query.path);
+
+    match storage.get_version_content(&version_full) {
+        Ok(content) => (
+            StatusCode::OK,
+            Json(serde_json::json!({ "content": content })),
+        )
+            .into_response(),
+        Err(e) => err(StatusCode::NOT_FOUND, "version_not_found", &e.to_string()).into_response(),
+    }
+}
+
+#[derive(Deserialize)]
+pub struct RestoreVersionRequest {
+    version_path: String,
+}
+
+pub async fn restore_note_version(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    Extension(auth_user): Extension<AuthUser>,
+    Json(body): Json<RestoreVersionRequest>,
+) -> impl IntoResponse {
+    let db = state.db.lock().await;
+
+    let meta = match db.get_note_metadata(&id) {
+        Ok(m) => m,
+        Err(_) => {
+            return err(StatusCode::NOT_FOUND, "not_found", "note not found").into_response();
+        }
+    };
+
+    let storage = state.storage.lock().await;
+    let version_full = std::path::PathBuf::from(&body.version_path);
+
+    let content = match storage.get_version_content(&version_full) {
+        Ok(c) => c,
+        Err(e) => {
+            return err(StatusCode::NOT_FOUND, "version_not_found", &e.to_string()).into_response();
+        }
+    };
+
+    let mut note = match storage.read_note(&meta.path) {
+        Ok(n) => n,
+        Err(e) => {
+            return err(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "storage_error",
+                &e.to_string(),
+            )
+            .into_response();
+        }
+    };
+
+    note.id = meta.id.clone();
+    note.title = meta.title.clone();
+    note.content = content;
+    note.update_hash();
+    note.updated_at = chrono::Utc::now();
+
+    let editor_name = auth_user
+        .display_name
+        .clone()
+        .unwrap_or_else(|| auth_user.username.clone());
+    note.last_updated_by = Some(editor_name);
+
+    if let Err(e) = storage.write_note(&note) {
+        return err(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "storage_error",
+            &e.to_string(),
+        )
+        .into_response();
+    }
+
+    if let Err(e) = db.index_note(&note) {
+        return err(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "db_error",
+            &e.to_string(),
+        )
+        .into_response();
+    }
+
+    (StatusCode::OK, Json(serde_json::json!({ "success": true }))).into_response()
 }

@@ -17,6 +17,12 @@ pub enum ThynkError {
         source: rusqlite::Error,
     },
 
+    #[error("JSON error: {source}")]
+    JsonError {
+        #[from]
+        source: serde_json::Error,
+    },
+
     #[error("invalid path: {0}")]
     InvalidPath(PathBuf),
 

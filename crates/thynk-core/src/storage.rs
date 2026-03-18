@@ -14,6 +14,10 @@ pub trait NoteStorage {
     fn move_note(&self, from: &Path, to: &Path) -> Result<()>;
     fn list_files(&self) -> Result<Vec<PathBuf>>;
     fn exists(&self, relative_path: &Path) -> bool;
+    fn save_version(&self, note: &Note) -> Result<()>;
+    fn list_versions(&self, relative_path: &Path) -> Result<Vec<PathBuf>>;
+    fn get_version_content(&self, version_path: &Path) -> Result<String>;
+    fn delete_version(&self, version_path: &Path) -> Result<()>;
 }
 
 /// Filesystem-backed note storage with path traversal prevention.
@@ -131,6 +135,71 @@ impl NoteStorage for FilesystemStorage {
         self.safe_resolve(relative_path)
             .map(|p| p.exists())
             .unwrap_or(false)
+    }
+
+    fn save_version(&self, note: &Note) -> Result<()> {
+        let versions_dir = self.data_dir.join(".thynk").join("versions");
+        let note_versions_dir = versions_dir.join(
+            note.path
+                .file_stem()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .replace('/', "_"),
+        );
+        fs::create_dir_all(&note_versions_dir)?;
+
+        let timestamp = chrono::Utc::now().format("%Y%m%d_%H%M%S_%f").to_string();
+        let version_file = note_versions_dir.join(format!("{}.json", timestamp));
+
+        let version_data = serde_json::json!({
+            "content": note.content,
+            "path": note.path,
+            "timestamp": chrono::Utc::now().to_rfc3339(),
+            "hash": note.content_hash,
+        });
+
+        fs::write(&version_file, serde_json::to_string_pretty(&version_data)?)?;
+        Ok(())
+    }
+
+    fn list_versions(&self, relative_path: &Path) -> Result<Vec<PathBuf>> {
+        let versions_dir = self.data_dir.join(".thynk").join("versions");
+        let note_key = relative_path
+            .file_stem()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .replace('/', "_");
+        let note_versions_dir = versions_dir.join(&note_key);
+
+        if !note_versions_dir.exists() {
+            return Ok(Vec::new());
+        }
+
+        let mut versions = Vec::new();
+        for entry in fs::read_dir(&note_versions_dir)? {
+            let entry = entry?;
+            let path = entry.path();
+            if path.extension().is_some_and(|ext| ext == "json") {
+                versions.push(path);
+            }
+        }
+
+        versions.sort_by(|a, b| b.cmp(a));
+        Ok(versions)
+    }
+
+    fn get_version_content(&self, version_path: &Path) -> Result<String> {
+        let content = fs::read_to_string(version_path)?;
+        let version_data: serde_json::Value = serde_json::from_str(&content)?;
+        version_data["content"]
+            .as_str()
+            .map(|s| s.to_string())
+            .ok_or_else(|| ThynkError::InvalidPath(version_path.to_path_buf()))
+    }
+
+    fn delete_version(&self, version_path: &Path) -> Result<()> {
+        fs::remove_file(version_path)?;
+        Ok(())
     }
 }
 
@@ -280,5 +349,78 @@ mod tests {
 
         let result = storage.move_note(Path::new("a.md"), Path::new("b.md"));
         assert!(matches!(result.unwrap_err(), ThynkError::AlreadyExists(_)));
+    }
+
+    #[test]
+    fn test_save_and_list_versions() {
+        let dir = tempfile::tempdir().unwrap();
+        let storage = FilesystemStorage::new(dir.path().to_path_buf()).unwrap();
+
+        let note = Note::new(
+            "Test".into(),
+            "Original content".into(),
+            PathBuf::from("test.md"),
+        );
+        storage.write_note(&note).unwrap();
+
+        storage.save_version(&note).unwrap();
+
+        let versions = storage.list_versions(Path::new("test.md")).unwrap();
+        assert_eq!(versions.len(), 1);
+        assert!(versions[0].display().to_string().contains("test"));
+    }
+
+    #[test]
+    fn test_save_version_increments_count() {
+        let dir = tempfile::tempdir().unwrap();
+        let storage = FilesystemStorage::new(dir.path().to_path_buf()).unwrap();
+
+        let note = Note::new("Test".into(), "v1".into(), PathBuf::from("test.md"));
+        storage.write_note(&note).unwrap();
+        storage.save_version(&note).unwrap();
+
+        let mut note2 = note.clone();
+        note2.content = "v2".into();
+        storage.write_note(&note2).unwrap();
+        storage.save_version(&note2).unwrap();
+
+        let versions = storage.list_versions(Path::new("test.md")).unwrap();
+        assert_eq!(versions.len(), 2);
+    }
+
+    #[test]
+    fn test_get_version_content() {
+        let dir = tempfile::tempdir().unwrap();
+        let storage = FilesystemStorage::new(dir.path().to_path_buf()).unwrap();
+
+        let note = Note::new(
+            "Test".into(),
+            "Versioned content".into(),
+            PathBuf::from("test.md"),
+        );
+        storage.write_note(&note).unwrap();
+        storage.save_version(&note).unwrap();
+
+        let versions = storage.list_versions(Path::new("test.md")).unwrap();
+        let version_path = &versions[0];
+
+        let content = storage.get_version_content(version_path).unwrap();
+        assert_eq!(content, "Versioned content");
+    }
+
+    #[test]
+    fn test_delete_version() {
+        let dir = tempfile::tempdir().unwrap();
+        let storage = FilesystemStorage::new(dir.path().to_path_buf()).unwrap();
+
+        let note = Note::new("Test".into(), "To delete".into(), PathBuf::from("test.md"));
+        storage.write_note(&note).unwrap();
+        storage.save_version(&note).unwrap();
+
+        let versions = storage.list_versions(Path::new("test.md")).unwrap();
+        storage.delete_version(&versions[0]).unwrap();
+
+        let remaining = storage.list_versions(Path::new("test.md")).unwrap();
+        assert!(remaining.is_empty());
     }
 }

@@ -33,6 +33,8 @@ import { FileUploadExtension } from '../extensions/FileUploadExtension';
 import { useFileUpload } from '../hooks/useFileUpload';
 import { useLock } from '../hooks/useLock';
 import { useCollaboration } from '../hooks/useCollaboration';
+import { useAutoSave } from '../hooks/useAutoSave';
+import { contentBuffer } from '../hooks/useContentBuffer';
 import { LockIndicator } from './LockIndicator';
 import { PresenceIndicator } from './PresenceIndicator';
 import { WikiLinkExtension } from '../extensions/WikiLinkExtension';
@@ -277,6 +279,7 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
   const lineHeight = useSettingsStore((s) => s.lineHeight);
   const [vimMode, setVimMode] = useState<VimMode>('normal');
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const bufferDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const titleRef = useRef<HTMLInputElement>(null);
   const activeNoteRef = useRef(activeNote);
   const editorRef = useRef<TipTapEditor | null>(null);
@@ -427,9 +430,17 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
     onUpdate: ({ editor: e }) => {
       const note = activeNoteRef.current;
       if (!note) return;
+      
+      // Save to local buffer immediately (short debounce to avoid excessive writes)
+      const currentContent = getHTML(e);
+      if (bufferDebounceRef.current) clearTimeout(bufferDebounceRef.current);
+      bufferDebounceRef.current = setTimeout(() => {
+        contentBuffer.saveBuffer(note.id, currentContent);
+      }, 300);
+      
       if (debounceRef.current) clearTimeout(debounceRef.current);
       debounceRef.current = setTimeout(() => {
-        updateNote(note.id, { content: getHTML(e) });
+        updateNote(note.id, { content: currentContent });
       }, 1000);
 
       // Wiki-link autocomplete: detect [[  trigger
@@ -483,7 +494,10 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
       const note = activeNoteRef.current;
       if (!note) return;
       if (debounceRef.current) clearTimeout(debounceRef.current);
-      updateNote(note.id, { content: getHTML(e) });
+      if (bufferDebounceRef.current) clearTimeout(bufferDebounceRef.current);
+      const content = getHTML(e);
+      updateNote(note.id, { content });
+      contentBuffer.clearBuffer(note.id);
     },
     onTransaction: ({ editor: e }) => {
       if (vimModeEnabled) {
@@ -516,16 +530,35 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
   // Sync editor content when active note changes
   useEffect(() => {
     if (editor && activeNote) {
-      setMarkdownContent(editor, activeNote.content || '');
+      // Check for unsaved buffer and restore if it has newer content
+      const bufferedContent = contentBuffer.getBuffer(activeNote.id);
+      const serverContent = activeNote.content || '';
+      
+      if (bufferedContent && bufferedContent !== serverContent) {
+        // Buffer has unsaved changes - restore from buffer
+        setMarkdownContent(editor, bufferedContent);
+        addToast('info', 'Restored unsaved changes');
+      } else {
+        setMarkdownContent(editor, serverContent);
+      }
+      
+      // Clear the buffer after loading (it's now in the editor)
+      contentBuffer.clearBuffer(activeNote.id);
     }
   }, [editor, activeNote?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-save on page unload and visibility change
+  useAutoSave(editor);
 
   const forceSave = useCallback(() => {
     const note = activeNoteRef.current;
     const ed = editorRef.current;
     if (!note || !ed) return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    updateNote(note.id, { content: getHTML(ed) });
+    if (bufferDebounceRef.current) clearTimeout(bufferDebounceRef.current);
+    const content = getHTML(ed);
+    updateNote(note.id, { content });
+    contentBuffer.clearBuffer(note.id);
     if (titleRef.current) {
       const newTitle = titleRef.current.value.trim();
       if (newTitle && newTitle !== note.title) {
@@ -601,6 +634,7 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
   useEffect(() => {
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
+      if (bufferDebounceRef.current) clearTimeout(bufferDebounceRef.current);
     };
   }, []);
 

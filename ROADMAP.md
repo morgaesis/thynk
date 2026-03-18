@@ -217,7 +217,7 @@ See `STATE.md` for current blockers and active work.
 
 - **Wiki links** - `[[note-name]]` should create note if it doesn't exist
 - **Editor parity** - Match Obsidian feel with Notion slash-commands
-- **Code blocks** - Fix styling, add copy button, show language
+- ~~**Code blocks**~~ - Fix styling, add copy button, show language (DONE: copy button added, 2026-03-18)
 - ~~**Todo items**~~ - Support `- [ ]`, `- [/]`, `- [x]` states (DONE)
 - **Multi-tenancy** - Workspaces with user signup and invitations
 - **Cloud storage** - Sync notes to bucket, count towards quota

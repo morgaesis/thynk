@@ -97,6 +97,7 @@
 | Trash/Soft Delete   | Done (trash/restore/permanent-delete API, DB methods, tests, TrashSection UI in sidebar) | Phase 4 |
 | User Profiles        | Done (mutual work feature showing connected notes between users) | Phase 4 |
 | Todo Items          | Done (TaskList extension, - [ ], - [/], - [x] syntax) | Phase 4 |
+| Code Block Copy     | Done (copy button with clipboard API, hover state, tests) | Phase 4 |
 | Security Fix         | Done (notification ownership validation on mark read) | - |
 
 ### Phase 1 Exit Criteria (all met)
@@ -186,7 +187,8 @@
 18. ~~Todo Items~~ -- Support for - [ ], - [/], - [x] syntax in editor (TaskList + TaskItem extensions added, Markdown extension configured for proper parsing, tests added, 2026-03-18)
 19. ~~404 on Refresh~~ -- Fixed SPA routing so refreshing note pages returns index.html instead of 404 (spa_fallback handler added, tests added, 2026-03-18)
 20. ~~Wiki-Link Auto-Create~~ -- Clicking [[non-existent note]] now creates the note automatically (onNavigate callback updated to call createNote when target doesn't exist, tests added, 2026-03-18)
+21. ~~Code Block Copy Button~~ -- Copy button appears on hover, copies code to clipboard (CodeBlockCopyButton extension, click handler, CSS styling, tests added, 2026-03-18)
 
 ---
 
-Last Updated: 2026-03-18 (Wiki-Link Auto-Create: Clicking [[non-existent note]] now creates the note automatically)
+Last Updated: 2026-03-18 (Code Block Copy Button: Copy button appears on hover, copies code to clipboard)

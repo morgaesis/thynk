@@ -20,7 +20,10 @@ describe('TaskList markdown support', () => {
 
   it('renders unchecked task item from HTML', () => {
     const editor = createEditor();
-    editor.commands.setContent('<ul data-type="taskList"><li data-type="taskItem" data-checked="false">Buy groceries</li></ul>', { emitUpdate: false });
+    editor.commands.setContent(
+      '<ul data-type="taskList"><li data-type="taskItem" data-checked="false">Buy groceries</li></ul>',
+      { emitUpdate: false },
+    );
 
     expect(editor.getHTML()).toContain('data-type="taskItem"');
     expect(editor.getHTML()).toContain('data-checked="false"');
@@ -29,7 +32,10 @@ describe('TaskList markdown support', () => {
 
   it('renders checked task item from HTML', () => {
     const editor = createEditor();
-    editor.commands.setContent('<ul data-type="taskList"><li data-type="taskItem" data-checked="true">Buy groceries</li></ul>', { emitUpdate: false });
+    editor.commands.setContent(
+      '<ul data-type="taskList"><li data-type="taskItem" data-checked="true">Buy groceries</li></ul>',
+      { emitUpdate: false },
+    );
 
     expect(editor.getHTML()).toContain('data-type="taskItem"');
     expect(editor.getHTML()).toContain('data-checked="true"');
@@ -38,13 +44,16 @@ describe('TaskList markdown support', () => {
 
   it('renders task list with multiple items', () => {
     const editor = createEditor();
-    editor.commands.setContent(`
+    editor.commands.setContent(
+      `
       <ul data-type="taskList">
         <li data-type="taskItem" data-checked="false">Task 1</li>
         <li data-type="taskItem" data-checked="true">Task 2</li>
         <li data-type="taskItem" data-checked="false">Task 3</li>
       </ul>
-    `, { emitUpdate: false });
+    `,
+      { emitUpdate: false },
+    );
 
     const html = editor.getHTML();
     expect(html).toContain('data-type="taskItem"');
@@ -55,11 +64,14 @@ describe('TaskList markdown support', () => {
 
   it('can toggle task item checked state', () => {
     const editor = createEditor();
-    editor.commands.setContent('<ul data-type="taskList"><li data-type="taskItem" data-checked="false">Task</li></ul>', { emitUpdate: false });
+    editor.commands.setContent(
+      '<ul data-type="taskList"><li data-type="taskItem" data-checked="false">Task</li></ul>',
+      { emitUpdate: false },
+    );
 
     const taskItem = editor.state.doc.firstChild?.firstChild;
     expect(taskItem).toBeDefined();
-    
+
     // The TaskItem extension adds a toggle command
     expect(editor.can().toggleTaskList()).toBe(true);
     editor.destroy();

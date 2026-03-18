@@ -14,7 +14,6 @@ if [ -n "$ENV_CONTENT" ]; then
         export "$key=$value"
     done <<< "$ENV_CONTENT"
 fi
-echo "DEBUG: OPENCODE_MODEL=$OPENCODE_MODEL" >&2
 
 LOCKFILE="/tmp/thynk-worker.lock"
 LOG_DIR="$HOME/thynk-logs"

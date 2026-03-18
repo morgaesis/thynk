@@ -205,6 +205,25 @@ describe('noteStore.openNoteByPath', () => {
   });
 });
 
+describe('wiki-link auto-create behavior', () => {
+  it('creates note when clicking wiki-link to non-existent note', async () => {
+    const existingNote = makeMetadata({ id: 'existing-1', title: 'Existing Note' });
+    useNoteStore.setState({ notes: [existingNote] });
+
+    const newNote = makeNote({ id: 'new-wiki-1', title: 'Wiki Link Target' });
+    (api.createNote as ReturnType<typeof vi.fn>).mockResolvedValue(newNote);
+    (api.listNotes as ReturnType<typeof vi.fn>).mockResolvedValue([
+      existingNote,
+      makeMetadata({ id: 'new-wiki-1', title: 'Wiki Link Target' }),
+    ]);
+
+    await useNoteStore.getState().createNote('Wiki Link Target');
+
+    expect(api.createNote).toHaveBeenCalledWith({ title: 'Wiki Link Target', path: undefined });
+    expect(useNoteStore.getState().activeNote?.title).toBe('Wiki Link Target');
+  });
+});
+
 describe('parallel isolation', () => {
   it('each test starts with empty notes (isolation check A)', () => {
     expect(useNoteStore.getState().notes).toHaveLength(0);

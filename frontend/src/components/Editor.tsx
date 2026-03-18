@@ -337,12 +337,13 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
         },
       }),
       WikiLinkExtension.configure({
-        onNavigate: (title: string) => {
-          // notes ref needed – use closure over the store at call time
+        onNavigate: async (title: string) => {
           const currentNotes = useNoteStore.getState().notes;
           const n = currentNotes.find((x) => x.title === title);
           if (n) {
             void useNoteStore.getState().openNoteByPath(n.path);
+          } else {
+            await useNoteStore.getState().createNote(title);
           }
         },
       }),

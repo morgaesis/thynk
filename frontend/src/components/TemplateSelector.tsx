@@ -22,6 +22,17 @@ export function TemplateSelector({ onClose }: TemplateSelectorProps) {
   const addToast = useUIStore((s) => s.addToast);
 
   useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
+  useEffect(() => {
     listTemplates()
       .then(setTemplates)
       .catch(() => setTemplates([]))

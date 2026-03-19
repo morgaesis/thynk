@@ -2,11 +2,13 @@ name: Desktop Build
 
 on:
   push:
-    branches: [main]
     tags:
       - 'v*'
   pull_request:
     branches: [main]
+
+permissions:
+  contents: write
 
 jobs:
   build-desktop:
@@ -82,38 +84,3 @@ jobs:
           releaseDraft: true
           prerelease: false
 
-  build-msi:
-    name: Build MSI (Windows)
-    runs-on: windows-latest
-    needs: build-desktop
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Install Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Install frontend deps
-        working-directory: frontend
-        run: bun install --frozen-lockfile
-
-      - name: Build MSI
-        uses: tauri-apps/tauri-action@v0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tagName: v__VERSION__
-          releaseName: 'Thynk v__VERSION__'
-          releaseBody: 'See the assets to download this version and install.'
-          releaseDraft: true
-          prerelease: false

@@ -99,7 +99,8 @@
 | Todo Items              | Done (TaskList extension, - [ ], - [/], - [x] syntax)                                    | Phase 4 |
 | Code Block Copy         | Done (copy button with clipboard API, hover state, tests)                                | Phase 4 |
 | Security Fix            | Done (notification ownership validation on mark read)                                    | -       |
-| Desktop Icons           | Done (generated .ico/.icns/PNG sizes for all platforms from source PNG)                 | Phase 4 |
+| Desktop CI           | Done (cross-platform matrix, tauri-action with permissions fixed, 2026-03-19) | Phase 4 |
+| Desktop Icons         | Done (generated .ico/.icns/PNG sizes for all platforms from source PNG)    | Phase 4 |
 
 ### Phase 1 Exit Criteria (all met)
 
@@ -200,4 +201,4 @@
 
 ---
 
-Last Updated: 2026-03-19 (Desktop Icons: Generated all platform icons from source PNG using cargo tauri icon)
+Last Updated: 2026-03-19 (Desktop CI: Fixed workflow permissions, removed main-push trigger and redundant MSI job)

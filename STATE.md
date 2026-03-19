@@ -198,7 +198,8 @@
 26. ~~Desktop CI~~ -- Add cross-platform CI workflow for desktop builds (Windows/Linux/macOS, x86_64/arm64, tauri-action for releases, 2026-03-18)
 27. ~~Modal ESC Handling~~ -- Add ESC key listener to ImportModal and TemplateSelector to close modals on Escape key press (tests added, 2026-03-18)
 28. ~~Desktop Icons~~ -- Generate all required icons for macOS (.icns), Windows (.ico), Linux (PNG sizes), Android, and iOS from source PNG using cargo tauri icon (2026-03-19)
+29. ~~Slash Command Tests~~ -- Added comprehensive tests for SlashCommandExtension (regex detection, state management) and TipTap command execution (headings, tables, code blocks, blockquotes, horizontal rules, todo items, dates). 26 new frontend tests (2026-03-19)
 
 ---
 
-Last Updated: 2026-03-19 (Desktop CI: Fixed workflow permissions, removed main-push trigger and redundant MSI job)
+Last Updated: 2026-03-19 (Slash Command Tests: 26 new tests added, unused import removed from thynk-server/src/main.rs)

@@ -229,7 +229,7 @@ See `STATE.md` for current blockers and active work.
 
 ### UI/UX
 
-- **Settings** - Modal overlay, not separate page
+- **Settings** - Modal overlay, not separate page (DONE: centered modal with X button, ESC key, 2026-03-19)
 - **Notifications** - Bell icon, not full navbar line
 - ~~**Modal closing**~~ - ESC and click-outside should close modals (DONE: ImportModal and TemplateSelector now close on ESC, 2026-03-18)
 - **Theme support** - Custom CSS themes, selector in settings

@@ -8,10 +8,27 @@ services:
     environment:
       - THYNK_DATA_DIR=/data
       - RUST_LOG=info
+      - THYNK_STUN_URL=stun:coturn:3478
+      - THYNK_TURN_URL=turn:coturn:3478
+      - THYNK_TURN_USERNAME=thynk
+      - THYNK_TURN_CREDENTIAL=changeme
     volumes:
       - thynk-data:/data
+    depends_on:
+      - coturn
     labels:
       - 'com.centurylinklabs.watchtower.enable=true'
+
+  coturn:
+    image: instrumentisto/coturn:latest
+    restart: always
+    ports:
+      - '3478:3478/udp'
+      - '3478:3478/tcp'
+      - '5349:5349/tcp'
+    volumes:
+      - ./coturn/turnserver.conf:/etc/coturn/turnserver.conf:ro
+    command: -c /etc/coturn/turnserver.conf
 
   watchtower:
     image: containrrr/watchtower

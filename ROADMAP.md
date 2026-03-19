@@ -237,7 +237,7 @@ See `STATE.md` for current blockers and active work.
 ### Infrastructure
 
 - ~~**Desktop builds**~~ - CI for Windows/Linux (arm/x86) (DONE: .github/workflows/desktop.yml, 2026-03-18)
-- **Self-hosted signaling** - Add STUN/TURN/signal server to docker-compose
+- ~~**Self-hosted signaling**~~ - Add STUN/TURN/signal server to docker-compose (DONE: coturn added to docker-compose.prod.yml, /api/config endpoint, ICE servers in frontend, 2026-03-19)
 - **Model discovery** - Auto-fetch model list from API provider
 
 ### External Dependencies

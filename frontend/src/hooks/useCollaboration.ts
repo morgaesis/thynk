@@ -29,6 +29,31 @@ export interface CollabState {
   users: CollabUser[];
 }
 
+interface IceServer {
+  urls: string;
+  username?: string;
+  credential?: string;
+}
+
+let iceServersCache: IceServer[] | null = null;
+
+async function fetchIceServers(): Promise<IceServer[]> {
+  if (iceServersCache) return iceServersCache;
+  try {
+    const res = await fetch('/api/config');
+    if (res.ok) {
+      const data = await res.json() as { ice_servers: IceServer[] };
+      iceServersCache = data.ice_servers;
+      return iceServersCache;
+    }
+  } catch {
+    // fallback to public STUN
+  }
+  return [{ urls: 'stun:stun.l.google.com:19302' }];
+}
+
+export { fetchIceServers };
+
 export function useCollaboration(noteId: string | undefined) {
   const user = useAuthStore((s) => s.user);
   const [collabState, setCollabState] = useState<CollabState>({
@@ -89,6 +114,14 @@ export function useCollaboration(noteId: string | undefined) {
     provider.awareness.setLocalStateField('user', {
       name: username,
       color: userColor,
+    });
+
+    fetchIceServers().then((iceServers) => {
+      if (iceServers.length > 0) {
+        (provider as unknown as { peerOpts: { config: { iceServers: IceServer[] } } }).peerOpts = {
+          config: { iceServers },
+        };
+      }
     });
 
     const updateUsers = () => {

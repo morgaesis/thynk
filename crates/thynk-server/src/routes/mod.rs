@@ -1,5 +1,6 @@
 pub mod ai;
 pub mod auth;
+pub mod config;
 pub mod export;
 pub mod favorites;
 pub mod invitations;
@@ -39,6 +40,7 @@ pub fn router(state: AppState) -> Router {
         .route("/api/auth/register", post(auth::register))
         .route("/api/auth/logout", post(auth::logout))
         .route("/api/auth/me", get(auth::me))
+        .route("/api/config", get(config::get_config))
         .route(
             "/api/invitations/accept",
             post(invitations::accept_invitation),

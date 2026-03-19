@@ -43,7 +43,9 @@ jobs:
 
       - name: Extract version
         id: version
-        run: echo "version=$(node -e \"console.log(require('./frontend/package.json').version)\")" >> "$GITHUB_OUTPUT"
+        run: |
+          VERSION=$(node -e 'console.log(require("./frontend/package.json").version)')
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Build and push
         uses: docker/build-push-action@v5

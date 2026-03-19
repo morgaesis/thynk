@@ -41,69 +41,69 @@
 
 ### Code Progress
 
-| Component               | Status                                                                                   | Phase   |
-| ----------------------- | ---------------------------------------------------------------------------------------- | ------- |
-| Project Scaffold        | Done                                                                                     | Phase 1 |
-| Rust Backend (Axum)     | Done                                                                                     | Phase 1 |
-| SQLite Layer + FTS5     | Done                                                                                     | Phase 1 |
-| Note CRUD API           | Done                                                                                     | Phase 1 |
-| Content Hash (SHA-256)  | Done                                                                                     | Phase 1 |
-| If-Match concurrency    | Done                                                                                     | Phase 1 |
-| Startup file indexing   | Done                                                                                     | Phase 1 |
-| File watcher (notify)   | Done                                                                                     | Phase 1 |
-| WebSocket (/api/ws)     | Done                                                                                     | Phase 1 |
-| Static file serving     | Done                                                                                     | Phase 1 |
-| TipTap Editor           | Done                                                                                     | Phase 1 |
-| Sidebar + File tree     | Done                                                                                     | Phase 1 |
-| Command palette (FTS5)  | Done                                                                                     | Phase 1 |
-| Delete notes            | Done                                                                                     | Phase 1 |
-| Error toasts            | Done                                                                                     | Phase 1 |
-| Keyboard shortcuts      | Done                                                                                     | Phase 1 |
-| Dark/light theme        | Done                                                                                     | Phase 1 |
-| THYNK_DATA_DIR env var  | Done                                                                                     | Phase 1 |
-| Image uploads (inline)  | Done                                                                                     | Phase 1 |
-| Local file uploads      | Done                                                                                     | Phase 1 |
-| WS heartbeat            | Done                                                                                     | Phase 1 |
-| last_updated_by         | Done                                                                                     | Phase 1 |
-| Linking System          | Done                                                                                     | Phase 2 |
-| Graph View              | Done                                                                                     | Phase 2 |
-| Tags                    | Done                                                                                     | Phase 2 |
-| Templates / Daily Notes | Done                                                                                     | Phase 2 |
-| Database Views          | Done                                                                                     | Phase 2 |
-| Page Locking            | Done                                                                                     | Phase 2 |
-| Automations             | Done                                                                                     | Phase 2 |
-| Vim Mode                | Done                                                                                     | Phase 2 |
-| Import/Export           | Done                                                                                     | Phase 2 |
-| Favorites               | Done                                                                                     | Phase 2 |
-| Page Properties         | Done                                                                                     | Phase 2 |
-| AI Settings UI          | Done                                                                                     | Phase 3 |
-| AI API Routes           | Done                                                                                     | Phase 3 |
-| AI Completion API       | Done                                                                                     | Phase 3 |
-| AI Chat API             | Done                                                                                     | Phase 3 |
-| AI Inline Completions   | Done                                                                                     | Phase 3 |
-| AI Integration          | Done                                                                                     | Phase 3 |
-| Sync Engine             | Done                                                                                     | Phase 3 |
-| Unlinked Mentions       | Done                                                                                     | Phase 3 |
-| Cloud Deployment        | Not Started                                                                              | Phase 3 |
-| P2P Collaboration       | Done (hook + presence + dynamic cursor color)                                            | Phase 4 |
-| Desktop Apps            | Done (static file serving fixed)                                                         | Phase 4 |
-| Shared Workspaces       | Done (invitation system + Team Members UI)                                               | Phase 4 |
-| Signaling Server        | Done (WebSocket handler, room management, message routing)                               | Phase 4 |
-| CLI Interface           | Done (thynk-cli crate with list/search/cat/create/delete)                                | Phase 4 |
-| Mobile Apps             | Done (capabilities config, Android minSdk 24, iOS 14.0+)                                 | Phase 4 |
-| Search Tag Filtering    | Done (search_with_tags method, /api/search?tags= query)                                  | Phase 4 |
-| Search Pagination       | Done (limit/offset params, paginated results)                                            | Phase 4 |
-| Activity Feed           | Done (getAuditLog API, ActivityFeed component in sidebar)                                | Phase 4 |
-| Trash/Soft Delete       | Done (trash/restore/permanent-delete API, DB methods, tests, TrashSection UI in sidebar) | Phase 4 |
-| User Profiles           | Done (mutual work feature showing connected notes between users)                         | Phase 4 |
-| Todo Items              | Done (TaskList extension, - [ ], - [/], - [x] syntax)                                    | Phase 4 |
-| Code Block Copy         | Done (copy button with clipboard API, hover state, tests)                                | Phase 4 |
-| Security Fix            | Done (notification ownership validation on mark read)                                    | -       |
-| Desktop CI           | Done (cross-platform matrix, tauri-action with permissions fixed, 2026-03-19) | Phase 4 |
-| Desktop Icons         | Done (generated .ico/.icns/PNG sizes for all platforms from source PNG)    | Phase 4 |
-| Docker CI Validation  | Done (image validation job: build, health check, HTTP response, cleanup)  | Phase 4 |
-| Self-Hosted STUN/TURN | Done (coturn added to docker-compose.prod.yml, /api/config endpoint, ICE servers in frontend) | Phase 4 |
-| Settings Modal Overlay | Done (centered modal with X button, ESC handler, store-based, 4 new tests)        | Phase 4 |
+| Component               | Status                                                                                        | Phase   |
+| ----------------------- | --------------------------------------------------------------------------------------------- | ------- |
+| Project Scaffold        | Done                                                                                          | Phase 1 |
+| Rust Backend (Axum)     | Done                                                                                          | Phase 1 |
+| SQLite Layer + FTS5     | Done                                                                                          | Phase 1 |
+| Note CRUD API           | Done                                                                                          | Phase 1 |
+| Content Hash (SHA-256)  | Done                                                                                          | Phase 1 |
+| If-Match concurrency    | Done                                                                                          | Phase 1 |
+| Startup file indexing   | Done                                                                                          | Phase 1 |
+| File watcher (notify)   | Done                                                                                          | Phase 1 |
+| WebSocket (/api/ws)     | Done                                                                                          | Phase 1 |
+| Static file serving     | Done                                                                                          | Phase 1 |
+| TipTap Editor           | Done                                                                                          | Phase 1 |
+| Sidebar + File tree     | Done                                                                                          | Phase 1 |
+| Command palette (FTS5)  | Done                                                                                          | Phase 1 |
+| Delete notes            | Done                                                                                          | Phase 1 |
+| Error toasts            | Done                                                                                          | Phase 1 |
+| Keyboard shortcuts      | Done                                                                                          | Phase 1 |
+| Dark/light theme        | Done                                                                                          | Phase 1 |
+| THYNK_DATA_DIR env var  | Done                                                                                          | Phase 1 |
+| Image uploads (inline)  | Done                                                                                          | Phase 1 |
+| Local file uploads      | Done                                                                                          | Phase 1 |
+| WS heartbeat            | Done                                                                                          | Phase 1 |
+| last_updated_by         | Done                                                                                          | Phase 1 |
+| Linking System          | Done                                                                                          | Phase 2 |
+| Graph View              | Done                                                                                          | Phase 2 |
+| Tags                    | Done                                                                                          | Phase 2 |
+| Templates / Daily Notes | Done                                                                                          | Phase 2 |
+| Database Views          | Done                                                                                          | Phase 2 |
+| Page Locking            | Done                                                                                          | Phase 2 |
+| Automations             | Done                                                                                          | Phase 2 |
+| Vim Mode                | Done                                                                                          | Phase 2 |
+| Import/Export           | Done                                                                                          | Phase 2 |
+| Favorites               | Done                                                                                          | Phase 2 |
+| Page Properties         | Done                                                                                          | Phase 2 |
+| AI Settings UI          | Done                                                                                          | Phase 3 |
+| AI API Routes           | Done                                                                                          | Phase 3 |
+| AI Completion API       | Done                                                                                          | Phase 3 |
+| AI Chat API             | Done                                                                                          | Phase 3 |
+| AI Inline Completions   | Done                                                                                          | Phase 3 |
+| AI Integration          | Done                                                                                          | Phase 3 |
+| Sync Engine             | Done                                                                                          | Phase 3 |
+| Unlinked Mentions       | Done                                                                                          | Phase 3 |
+| Cloud Deployment        | Not Started                                                                                   | Phase 3 |
+| P2P Collaboration       | Done (hook + presence + dynamic cursor color)                                                 | Phase 4 |
+| Desktop Apps            | Done (static file serving fixed)                                                              | Phase 4 |
+| Shared Workspaces       | Done (invitation system + Team Members UI)                                                    | Phase 4 |
+| Signaling Server        | Done (WebSocket handler, room management, message routing)                                    | Phase 4 |
+| CLI Interface           | Done (thynk-cli crate with list/search/cat/create/delete)                                     | Phase 4 |
+| Mobile Apps             | Done (capabilities config, Android minSdk 24, iOS 14.0+)                                      | Phase 4 |
+| Search Tag Filtering    | Done (search_with_tags method, /api/search?tags= query)                                       | Phase 4 |
+| Search Pagination       | Done (limit/offset params, paginated results)                                                 | Phase 4 |
+| Activity Feed           | Done (getAuditLog API, ActivityFeed component in sidebar)                                     | Phase 4 |
+| Trash/Soft Delete       | Done (trash/restore/permanent-delete API, DB methods, tests, TrashSection UI in sidebar)      | Phase 4 |
+| User Profiles           | Done (mutual work feature showing connected notes between users)                              | Phase 4 |
+| Todo Items              | Done (TaskList extension, - [ ], - [/], - [x] syntax)                                         | Phase 4 |
+| Code Block Copy         | Done (copy button with clipboard API, hover state, tests)                                     | Phase 4 |
+| Security Fix            | Done (notification ownership validation on mark read)                                         | -       |
+| Desktop CI              | Done (cross-platform matrix, tauri-action with permissions fixed, 2026-03-19)                 | Phase 4 |
+| Desktop Icons           | Done (generated .ico/.icns/PNG sizes for all platforms from source PNG)                       | Phase 4 |
+| Docker CI Validation    | Done (image validation job: build, health check, HTTP response, cleanup)                      | Phase 4 |
+| Self-Hosted STUN/TURN   | Done (coturn added to docker-compose.prod.yml, /api/config endpoint, ICE servers in frontend) | Phase 4 |
+| Settings Modal Overlay  | Done (centered modal with X button, ESC handler, store-based, 4 new tests)                    | Phase 4 |
 
 ### Phase 1 Exit Criteria (all met)
 
@@ -203,7 +203,7 @@
 28. ~~Desktop Icons~~ -- Generate all required icons for macOS (.icns), Windows (.ico), Linux (PNG sizes), Android, and iOS from source PNG using cargo tauri icon (2026-03-19)
 29. ~~Slash Command Tests~~ -- Added comprehensive tests for SlashCommandExtension (regex detection, state management) and TipTap command execution (headings, tables, code blocks, blockquotes, horizontal rules, todo items, dates). 26 new frontend tests (2026-03-19)
 30. ~~Docker CI Validation~~ -- Added image validation job to docker.yml: builds image, starts container, waits for health check, validates HTTP response, cleans up. Also fixed release.yml explicit Dockerfile path (2026-03-19)
- 31. ~~Self-Hosted STUN/TURN~~ -- Added coturn STUN/TURN server to docker-compose.prod.yml, /api/config endpoint for ICE server configuration, frontend updated to fetch and use ICE servers for WebRTC (2026-03-19)
+31. ~~Self-Hosted STUN/TURN~~ -- Added coturn STUN/TURN server to docker-compose.prod.yml, /api/config endpoint for ICE server configuration, frontend updated to fetch and use ICE servers for WebRTC (2026-03-19)
 32. ~~Settings Modal Overlay~~ -- Settings page rendered as centered modal with backdrop instead of full-page overlay. X close button, ESC key to close, no URL navigation to /settings. uiStore.settingsOpen state controls visibility. 4 new frontend tests (2026-03-19)
 
 ---

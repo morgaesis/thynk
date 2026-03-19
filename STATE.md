@@ -101,6 +101,7 @@
 | Security Fix            | Done (notification ownership validation on mark read)                                    | -       |
 | Desktop CI           | Done (cross-platform matrix, tauri-action with permissions fixed, 2026-03-19) | Phase 4 |
 | Desktop Icons         | Done (generated .ico/.icns/PNG sizes for all platforms from source PNG)    | Phase 4 |
+| Docker CI Validation  | Done (image validation job: build, health check, HTTP response, cleanup)  | Phase 4 |
 
 ### Phase 1 Exit Criteria (all met)
 
@@ -199,7 +200,8 @@
 27. ~~Modal ESC Handling~~ -- Add ESC key listener to ImportModal and TemplateSelector to close modals on Escape key press (tests added, 2026-03-18)
 28. ~~Desktop Icons~~ -- Generate all required icons for macOS (.icns), Windows (.ico), Linux (PNG sizes), Android, and iOS from source PNG using cargo tauri icon (2026-03-19)
 29. ~~Slash Command Tests~~ -- Added comprehensive tests for SlashCommandExtension (regex detection, state management) and TipTap command execution (headings, tables, code blocks, blockquotes, horizontal rules, todo items, dates). 26 new frontend tests (2026-03-19)
+30. ~~Docker CI Validation~~ -- Added image validation job to docker.yml: builds image, starts container, waits for health check, validates HTTP response, cleans up. Also fixed release.yml explicit Dockerfile path (2026-03-19)
 
 ---
 
-Last Updated: 2026-03-19 (Slash Command Tests: 26 new tests added, unused import removed from thynk-server/src/main.rs)
+Last Updated: 2026-03-19 (Docker CI Validation: image validation job added, release.yml Dockerfile path fixed)

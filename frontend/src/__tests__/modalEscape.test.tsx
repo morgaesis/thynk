@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { ImportModal } from '../components/ImportModal';
 
 vi.mock('../api', () => ({
@@ -13,26 +13,30 @@ describe('ImportModal', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    cleanup();
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
+    cleanup();
   });
 
-  it('closes when pressing Escape key', () => {
+  it('closes when pressing Escape key', async () => {
     render(<ImportModal onClose={mockOnClose} onImported={mockOnImported} />);
     
-    fireEvent.keyDown(window, { key: 'Escape' });
+    await waitFor(() => {
+      fireEvent.keyDown(window, { key: 'Escape' });
+    });
     expect(mockOnClose).toHaveBeenCalledTimes(1);
   });
 
-  it('does not close when clicking inside the modal content', () => {
+  it('does not close when clicking inside the modal content', async () => {
     render(<ImportModal onClose={mockOnClose} onImported={mockOnImported} />);
     
-    const modalContent = screen.getByText('Import Notes').closest('div[class*="border"]');
-    expect(modalContent).toBeInTheDocument();
-    
-    fireEvent.click(modalContent!);
+    const uploadLabel = screen.getByText('Click to select a .zip file');
+    await waitFor(() => {
+      fireEvent.click(uploadLabel);
+    });
     expect(mockOnClose).not.toHaveBeenCalled();
   });
 });

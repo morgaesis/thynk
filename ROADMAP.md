@@ -206,9 +206,9 @@ See `STATE.md` for current blockers and active work.
 
 ### CI/CD (Priority)
 
-- **Desktop build icons** - macOS needs `.icns`, Windows needs `.ico`, Linux needs PNG sizes (currently failing)
-- **Docker image build** - Add to CI for watchtower auto-updates (docker-compose.prod.yml references image, needs GHCR/registry)
-- **Release permissions** - GitHub Actions needs `contents: write` permission to create releases
+- ~~**Desktop build icons**~~ - macOS needs `.icns`, Windows needs `.ico`, Linux needs PNG sizes (DONE: all icons generated, 2026-03-19)
+- ~~**Docker image build**~~ - Add to CI for watchtower auto-updates (DONE: docker.yml builds on main/tags, release.yml pushes on tags, validate job tests container health, 2026-03-19)
+- ~~**Release permissions**~~ - GitHub Actions needs `contents: write` permission to create releases (DONE: added to desktop.yml, 2026-03-18)
 
 ### Critical Bugs
 

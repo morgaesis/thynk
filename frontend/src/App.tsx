@@ -25,8 +25,9 @@ function App() {
   const fetchNotes = useNoteStore((s) => s.fetchNotes);
   const openNoteByPath = useNoteStore((s) => s.openNoteByPath);
 
+  const settingsOpen = useUIStore((s) => s.settingsOpen);
+  const setSettingsOpen = useUIStore((s) => s.setSettingsOpen);
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
-  const isSettingsPage = currentPath === '/settings';
   const isCalendarPage = currentPath === '/calendar';
 
   // Start as connected (no indicator shown). Only show indicator after an
@@ -200,7 +201,8 @@ function App() {
     const handlePopState = () => {
       const pathname = window.location.pathname;
       setCurrentPath(pathname);
-      if (pathname === '/settings' || pathname === '/calendar') return;
+      setSettingsOpen(pathname === '/settings');
+      if (pathname === '/calendar') return;
       const match = pathname.match(/^\/notes\/(.+)$/);
       if (match) {
         const path = decodeURIComponent(match[1]);
@@ -209,7 +211,7 @@ function App() {
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [openNoteByPath]);
+  }, [openNoteByPath, setSettingsOpen]);
 
   // Open note from URL on initial page load
   useEffect(() => {
@@ -218,7 +220,10 @@ function App() {
       const path = decodeURIComponent(match[1]);
       openNoteByPath(path);
     }
-  }, [openNoteByPath]);
+    if (window.location.pathname === '/settings') {
+      setSettingsOpen(true);
+    }
+  }, [openNoteByPath, setSettingsOpen]);
 
   // Show nothing while checking session to avoid flash.
   if (authLoading) {
@@ -244,9 +249,17 @@ function App() {
       />
       <CommandPalette />
       <ToastContainer />
-      {isSettingsPage && (
-        <div className="fixed inset-0 z-50 bg-surface dark:bg-surface-dark overflow-y-auto">
-          <SettingsPage onClose={() => window.history.back()} />
+      {settingsOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div
+            className="w-[640px] max-w-[95vw] max-h-[90vh] overflow-hidden rounded-xl shadow-xl
+                        border border-border dark:border-border-dark"
+          >
+            <SettingsPage onClose={() => {
+              setSettingsOpen(false);
+              window.history.back();
+            }} />
+          </div>
         </div>
       )}
       {isCalendarPage && (

@@ -1,5 +1,5 @@
 import { useCallback, useState, useEffect, useRef } from 'react';
-import { VscArrowLeft, VscAdd, VscTrash } from 'react-icons/vsc';
+import { VscAdd, VscTrash, VscClose } from 'react-icons/vsc';
 import { useUIStore } from '../stores/uiStore';
 import { useSettingsStore, DEFAULT_SHORTCUTS, type AIProvider } from '../stores/settingsStore';
 import { useAuthStore } from '../stores/authStore';
@@ -240,12 +240,38 @@ export function SettingsPage({ onClose }: SettingsPageProps) {
   const isAdmin = authUser?.role === 'owner' || authUser?.role === 'admin';
 
   useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && onClose) {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
+  useEffect(() => {
     if (isAdmin) {
       listInvitations()
         .then(setInvitations)
         .catch(console.error);
     }
   }, [isAdmin]);
+
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
+  useEffect(() => {
+    let didClose = false;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!didClose && e.key === 'Escape' && onCloseRef.current) {
+        e.preventDefault();
+        didClose = true;
+        onCloseRef.current();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const handleCreateInvitation = useCallback(async () => {
     if (!inviteEmail) return;
@@ -311,28 +337,25 @@ export function SettingsPage({ onClose }: SettingsPageProps) {
     }
   }, []);
 
-  const handleBack = () => {
-    if (onClose) onClose();
-    else window.history.back();
-  };
-
   return (
     <>
       <div className="h-full overflow-y-auto bg-surface dark:bg-surface-dark">
         <div className="max-w-2xl mx-auto px-8 py-10">
           {/* Header */}
-          <div className="flex items-center gap-3 mb-8">
-            <button
-              onClick={handleBack}
-              className="p-1.5 rounded-md text-text-muted dark:text-text-muted-dark
-                       hover:bg-border dark:hover:bg-border-dark transition-colors"
-              title="Back"
-            >
-              <VscArrowLeft size={16} />
-            </button>
+          <div className="flex items-center justify-between mb-8">
             <h1 className="text-2xl font-bold text-text dark:text-text-dark">
               Settings
             </h1>
+            {onClose && (
+              <button
+                onClick={onClose}
+                className="p-1.5 rounded-md text-text-muted dark:text-text-muted-dark
+                         hover:bg-border dark:hover:bg-border-dark transition-colors"
+                title="Close"
+              >
+                <VscClose size={16} />
+              </button>
+            )}
           </div>
 
           {/* Editor Section */}

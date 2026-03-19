@@ -505,6 +505,7 @@ export function Sidebar() {
   const sidebarOpen = useUIStore((s) => s.sidebarOpen);
   const toggleSidebar = useUIStore((s) => s.toggleSidebar);
   const setShowGraph = useUIStore((s) => s.setShowGraph);
+  const setSettingsOpen = useUIStore((s) => s.setSettingsOpen);
   const authUser = useAuthStore((s) => s.user);
   const automationEvents = useAutomationEvents();
 
@@ -797,10 +798,7 @@ export function Sidebar() {
               </span>
               <div className="flex items-center gap-0.5">
                 <button
-                  onClick={() => {
-                    window.history.pushState({}, '', '/settings');
-                    window.dispatchEvent(new PopStateEvent('popstate'));
-                  }}
+                  onClick={() => setSettingsOpen(true)}
                   title="Settings"
                   className="p-1 rounded text-text-muted dark:text-text-muted-dark
                              hover:bg-border dark:hover:bg-border-dark

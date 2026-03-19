@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { VscSearch, VscLoading, VscSettingsGear } from 'react-icons/vsc';
 import type { NoteMetadata, SearchResult } from '../types';
+import { useUIStore } from '../stores/uiStore';
 import * as api from '../api';
 
 interface Props {
@@ -114,17 +115,18 @@ export function CommandPaletteInner({ notes, onSelect, onClose }: Props) {
     [],
   );
 
+  const setSettingsOpen = useUIStore((s) => s.setSettingsOpen);
+
   const handleSelect = useCallback(
     (id: string, isSettings: boolean) => {
       if (isSettings) {
-        window.history.pushState({}, '', '/settings');
-        window.dispatchEvent(new PopStateEvent('popstate'));
+        setSettingsOpen(true);
         onClose();
       } else {
         onSelect(id);
       }
     },
-    [onSelect, onClose],
+    [onSelect, onClose, setSettingsOpen],
   );
 
   const handleKeyDown = useCallback(

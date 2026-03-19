@@ -15,6 +15,7 @@ interface UIStore {
   theme: Theme;
   toasts: Toast[];
   recentNoteIds: string[];
+  settingsOpen: boolean;
 
   toggleSidebar: () => void;
   setSidebarOpen: (open: boolean) => void;
@@ -26,6 +27,7 @@ interface UIStore {
   addToast: (type: Toast['type'], message: string) => void;
   removeToast: (id: string) => void;
   addRecentNote: (id: string) => void;
+  setSettingsOpen: (open: boolean) => void;
 }
 
 function getInitialTheme(): Theme {
@@ -44,6 +46,7 @@ export const useUIStore = create<UIStore>((set) => ({
   theme: getInitialTheme(),
   toasts: [],
   recentNoteIds: [],
+  settingsOpen: false,
 
   toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
   setSidebarOpen: (open) => set({ sidebarOpen: open }),
@@ -75,4 +78,5 @@ export const useUIStore = create<UIStore>((set) => ({
       const filtered = s.recentNoteIds.filter((r) => r !== id);
       return { recentNoteIds: [id, ...filtered].slice(0, 10) };
     }),
+  setSettingsOpen: (open) => set({ settingsOpen: open }),
 }));

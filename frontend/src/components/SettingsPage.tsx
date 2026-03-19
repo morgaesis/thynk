@@ -1,9 +1,19 @@
 import { useCallback, useState, useEffect, useRef } from 'react';
 import { VscAdd, VscTrash, VscClose } from 'react-icons/vsc';
 import { useUIStore } from '../stores/uiStore';
-import { useSettingsStore, DEFAULT_SHORTCUTS, type AIProvider } from '../stores/settingsStore';
+import {
+  useSettingsStore,
+  DEFAULT_SHORTCUTS,
+  type AIProvider,
+} from '../stores/settingsStore';
 import { useAuthStore } from '../stores/authStore';
-import { exportWorkspace, listInvitations, createInvitation, revokeInvitation, type Invitation } from '../api';
+import {
+  exportWorkspace,
+  listInvitations,
+  createInvitation,
+  revokeInvitation,
+  type Invitation,
+} from '../api';
 import { ImportModal } from './ImportModal';
 import type { User } from '../stores/authStore';
 
@@ -153,37 +163,44 @@ function ShortcutsSection({
     <section className="mb-8">
       <SectionTitle>Keyboard Shortcuts</SectionTitle>
       <div className="bg-sidebar dark:bg-sidebar-dark rounded-lg border border-border dark:border-border-dark px-4">
-        {Object.entries(DEFAULT_SHORTCUTS).map(([action, { label, defaultKey }]) => {
-          const currentKey = shortcuts[action] ?? defaultKey;
-          const isCustom = Boolean(shortcuts[action]);
-          const isRebinding = rebinding === action;
-          return (
-            <Row key={action} label={label}>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setRebinding(isRebinding ? null : action)}
-                  title={isRebinding ? 'Press new key combo (Esc to cancel)' : 'Click to rebind'}
-                  className={`px-2 py-0.5 text-xs rounded font-mono transition-colors
-                    ${isRebinding
-                      ? 'bg-accent text-white animate-pulse'
-                      : 'bg-border dark:bg-border-dark text-text dark:text-text-dark hover:bg-accent/20'
-                    }`}
-                >
-                  {isRebinding ? 'Press key…' : currentKey}
-                </button>
-                {isCustom && (
+        {Object.entries(DEFAULT_SHORTCUTS).map(
+          ([action, { label, defaultKey }]) => {
+            const currentKey = shortcuts[action] ?? defaultKey;
+            const isCustom = Boolean(shortcuts[action]);
+            const isRebinding = rebinding === action;
+            return (
+              <Row key={action} label={label}>
+                <div className="flex items-center gap-2">
                   <button
-                    onClick={() => onReset(action)}
-                    className="text-xs text-text-muted dark:text-text-muted-dark hover:text-text dark:hover:text-text-dark underline"
-                    title="Reset to default"
+                    onClick={() => setRebinding(isRebinding ? null : action)}
+                    title={
+                      isRebinding
+                        ? 'Press new key combo (Esc to cancel)'
+                        : 'Click to rebind'
+                    }
+                    className={`px-2 py-0.5 text-xs rounded font-mono transition-colors
+                    ${
+                      isRebinding
+                        ? 'bg-accent text-white animate-pulse'
+                        : 'bg-border dark:bg-border-dark text-text dark:text-text-dark hover:bg-accent/20'
+                    }`}
                   >
-                    Reset
+                    {isRebinding ? 'Press key…' : currentKey}
                   </button>
-                )}
-              </div>
-            </Row>
-          );
-        })}
+                  {isCustom && (
+                    <button
+                      onClick={() => onReset(action)}
+                      className="text-xs text-text-muted dark:text-text-muted-dark hover:text-text dark:hover:text-text-dark underline"
+                      title="Reset to default"
+                    >
+                      Reset
+                    </button>
+                  )}
+                </div>
+              </Row>
+            );
+          },
+        )}
       </div>
       <p className="mt-1 text-xs text-text-muted dark:text-text-muted-dark px-1">
         Click a shortcut to rebind it. Press Esc to cancel.
@@ -251,9 +268,7 @@ export function SettingsPage({ onClose }: SettingsPageProps) {
 
   useEffect(() => {
     if (isAdmin) {
-      listInvitations()
-        .then(setInvitations)
-        .catch(console.error);
+      listInvitations().then(setInvitations).catch(console.error);
     }
   }, [isAdmin]);
 
@@ -278,11 +293,16 @@ export function SettingsPage({ onClose }: SettingsPageProps) {
     setInviting(true);
     setInvitationError(null);
     try {
-      const inv = await createInvitation({ email: inviteEmail, role: inviteRole });
+      const inv = await createInvitation({
+        email: inviteEmail,
+        role: inviteRole,
+      });
       setInvitations((prev) => [inv, ...prev]);
       setInviteEmail('');
     } catch (e) {
-      setInvitationError(e instanceof Error ? e.message : 'Failed to create invitation');
+      setInvitationError(
+        e instanceof Error ? e.message : 'Failed to create invitation',
+      );
     } finally {
       setInviting(false);
     }
@@ -427,7 +447,9 @@ export function SettingsPage({ onClose }: SettingsPageProps) {
                   type="password"
                   value={aiApiKey}
                   onChange={(e) => setAiApiKey(e.target.value)}
-                  placeholder={aiProvider === 'ollama' ? 'Leave empty for local' : 'sk-...'}
+                  placeholder={
+                    aiProvider === 'ollama' ? 'Leave empty for local' : 'sk-...'
+                  }
                   className="w-48 px-2 py-1 text-sm rounded border border-border dark:border-border-dark
                            bg-surface dark:bg-surface-dark text-text dark:text-text-dark"
                 />
@@ -449,7 +471,8 @@ export function SettingsPage({ onClose }: SettingsPageProps) {
             </div>
             <p className="mt-1 text-xs text-text-muted dark:text-text-muted-dark px-1">
               Your API key is stored locally and never sent to our servers.
-              {aiProvider === 'ollama' && ' Ensure Ollama is running locally on port 11434.'}
+              {aiProvider === 'ollama' &&
+                ' Ensure Ollama is running locally on port 11434.'}
             </p>
           </section>
 
@@ -583,7 +606,9 @@ export function SettingsPage({ onClose }: SettingsPageProps) {
                     </button>
                   </div>
                   {invitationError && (
-                    <p className="text-xs text-red-500 mb-2">{invitationError}</p>
+                    <p className="text-xs text-red-500 mb-2">
+                      {invitationError}
+                    </p>
                   )}
                   {invitations.length > 0 && (
                     <div className="space-y-2 mt-3">
@@ -670,7 +695,7 @@ export function SettingsPage({ onClose }: SettingsPageProps) {
             <div className="bg-sidebar dark:bg-sidebar-dark rounded-lg border border-border dark:border-border-dark px-4">
               <Row label="Version">
                 <span className="text-sm text-text-muted dark:text-text-muted-dark font-mono">
-                  v0.2.0 ({__GIT_HASH__})
+                  v{__APP_VERSION__} ({__GIT_HASH__})
                 </span>
               </Row>
             </div>

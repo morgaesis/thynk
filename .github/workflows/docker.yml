@@ -41,6 +41,10 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
 
+      - name: Extract version
+        id: version
+        run: echo "version=$(node -p \"require('./frontend/package.json').version\")" >> "$GITHUB_OUTPUT"
+
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
@@ -51,6 +55,8 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          build-args: |
+            VITE_APP_VERSION=${{ steps.version.outputs.version }}
 
   validate:
     name: Validate Docker Image

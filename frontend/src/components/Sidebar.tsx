@@ -23,7 +23,7 @@ import { TagBrowser, TagFilteredNotes } from './TagBrowser';
 import { DailyNoteCalendar } from './DailyNoteCalendar';
 import { TemplateSelector } from './TemplateSelector';
 import { AutomationLog } from './AutomationLog';
-import { NotificationsPanel } from './NotificationsPanel';
+import { NotificationsBell } from './NotificationsBell';
 import { ActivityFeed } from './ActivityFeed';
 import { useAutomationEvents } from '../hooks/useAutomationEvents';
 import { BacklinksPanel } from './BacklinksPanel';
@@ -609,8 +609,9 @@ export function Sidebar() {
           <span className="text-sm font-semibold text-text dark:text-text-dark tracking-wide">
             Thynk
           </span>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-0.5">
             <ThemeToggle />
+            <NotificationsBell />
             <button
               onClick={toggleSidebar}
               className="p-2 rounded-md text-text-muted dark:text-text-muted-dark
@@ -720,9 +721,6 @@ export function Sidebar() {
 
           {/* Activity Feed */}
           <ActivityFeed />
-
-          {/* Notifications */}
-          <NotificationsPanel />
 
           {/* Tag Browser */}
           <TagBrowser onTagFilter={handleTagFilter} />

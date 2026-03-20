@@ -222,7 +222,7 @@ See `STATE.md` for current blockers and active work.
 ### Features Needed
 
 - ~~**Wiki links**~~ - `[[note-name]]` should create note if it doesn't exist (DONE: auto-create on click, 2026-03-18)
-- **Editor parity** - Match Obsidian feel with Notion slash-commands
+- **Editor parity** - Match Obsidian feel with Notion slash-commands (IN PROGRESS: added /bold, /italic, /inline-code, /strikethrough, /bullet, /numbered, /callout, /image commands, 2026-03-20)
 - ~~**Code blocks**~~ - Fix styling, add copy button, show language (DONE: copy button added, 2026-03-18)
 - ~~**Todo items**~~ - Support `- [ ]`, `- [/]`, `- [x]` states (DONE)
 - ~~**Document versioning**~~ - Version history for notes (DONE: list/get/restore APIs, auto-save on update, 2026-03-18)

@@ -205,7 +205,8 @@
 30. ~~Docker CI Validation~~ -- Added image validation job to docker.yml: builds image, starts container, waits for health check, validates HTTP response, cleans up. Also fixed release.yml explicit Dockerfile path (2026-03-19)
 31. ~~Self-Hosted STUN/TURN~~ -- Added coturn STUN/TURN server to docker-compose.prod.yml, /api/config endpoint for ICE server configuration, frontend updated to fetch and use ICE servers for WebRTC (2026-03-19)
 32. ~~Settings Modal Overlay~~ -- Settings page rendered as centered modal with backdrop instead of full-page overlay. X close button, ESC key to close, no URL navigation to /settings. uiStore.settingsOpen state controls visibility. 4 new frontend tests (2026-03-19)
+33. ~~Slash Command Expansion~~ -- Added 8 new slash commands: /bold, /italic, /inline-code, /strikethrough, /bullet, /numbered, /callout, /image. Also fixed vitest environment: downgraded jsdom to 27.4 (fixes Vitest 4 incompatibility with jsdom 28), added vitest.config.ts with jsdom environment and requestAnimationFrame polyfill, created vitest.setup.ts. 9 new frontend tests (2026-03-20)
 
 ---
 
-Last Updated: 2026-03-19 (Settings Modal Overlay: settings rendered as modal with X close button, ESC key handler, store-based open/close)
+Last Updated: 2026-03-20 (Slash Command Expansion: added formatting/list/callout/image commands, fixed vitest/jsdom environment)

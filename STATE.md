@@ -208,7 +208,8 @@
 32. ~~Settings Modal Overlay~~ -- Settings page rendered as centered modal with backdrop instead of full-page overlay. X close button, ESC key to close, no URL navigation to /settings. uiStore.settingsOpen state controls visibility. 4 new frontend tests (2026-03-19)
 33. ~~Slash Command Expansion~~ -- Added 8 new slash commands: /bold, /italic, /inline-code, /strikethrough, /bullet, /numbered, /callout, /image. Also fixed vitest environment: downgraded jsdom to 27.4 (fixes Vitest 4 incompatibility with jsdom 28), added vitest.config.ts with jsdom environment and requestAnimationFrame polyfill, created vitest.setup.ts. 9 new frontend tests (2026-03-20)
 34. ~~Model Discovery~~ -- Added POST /api/ai/models endpoint that auto-fetches available models from OpenAI (via /v1/models API), uses curated defaults for Anthropic, and queries Ollama's /api/tags endpoint. Frontend Settings page now fetches models when provider/API key changes, with refresh button and fallback to defaults. 4 new frontend tests (2026-03-20)
+35. ~~Jest-Dom Matchers~~ -- Fixed vitest.setup.ts to use `@testing-library/jest-dom/vitest` import path, enabling `toBeInTheDocument`, `toHaveStyle`, `toHaveAttribute` matchers. 4 previously-failing tests now pass (2026-03-20)
 
 ---
 
-Last Updated: 2026-03-20 (Model Discovery: auto-fetch models from OpenAI/Ollama API, fallback defaults, refresh button in Settings)
+Last Updated: 2026-03-20 (Jest-Dom Matchers: vitest.setup.ts now imports `@testing-library/jest-dom/vitest`, all 142 frontend tests pass)

@@ -58,6 +58,24 @@ describe('SlashCommandExtension regex detection', () => {
     const match = SLASH_REGEX.exec('/code python');
     expect(match).toBeNull();
   });
+
+  it('detects new formatting slash commands', () => {
+    const commands = ['/bold', '/italic', '/inline-code', '/strikethrough', '/bullet', '/numbered', '/callout', '/image'];
+    for (const cmd of commands) {
+      const match = SLASH_REGEX.exec(cmd);
+      expect(match).not.toBeNull();
+      expect(match![1]).toBe(cmd);
+    }
+  });
+
+  it('detects new commands after whitespace', () => {
+    const commands = ['/bold', '/italic', '/bullet', '/callout', '/image'];
+    for (const cmd of commands) {
+      const match = SLASH_REGEX.exec(`text ${cmd}`);
+      expect(match).not.toBeNull();
+      expect(match![1]).toBe(cmd);
+    }
+  });
 });
 
 describe('SlashCommandExtension state management', () => {
@@ -237,5 +255,53 @@ describe('SlashCommandMenu command execution', () => {
     editor.commands.setContent('');
     editor.chain().focus().setHeading({ level: 1 }).insertContent('My Title').run();
     expect(editor.getText()).toContain('My Title');
+  });
+
+  it('toggleBold wraps selected text in strong', () => {
+    editor.commands.setContent('<p>hello world</p>');
+    editor.commands.setTextSelection({ from: 1, to: 6 });
+    editor.chain().focus().toggleBold().run();
+    expect(editor.getHTML()).toContain('<strong>hello</strong>');
+  });
+
+  it('toggleItalic wraps selected text in em', () => {
+    editor.commands.setContent('<p>hello world</p>');
+    editor.commands.setTextSelection({ from: 1, to: 6 });
+    editor.chain().focus().toggleItalic().run();
+    expect(editor.getHTML()).toContain('<em>hello</em>');
+  });
+
+  it('toggleCode wraps selected text in code', () => {
+    editor.commands.setContent('<p>hello world</p>');
+    editor.commands.setTextSelection({ from: 1, to: 6 });
+    editor.chain().focus().toggleCode().run();
+    expect(editor.getHTML()).toContain('<code>hello</code>');
+  });
+
+  it('toggleStrike wraps selected text in s', () => {
+    editor.commands.setContent('<p>hello world</p>');
+    editor.commands.setTextSelection({ from: 1, to: 6 });
+    editor.chain().focus().toggleStrike().run();
+    expect(editor.getHTML()).toContain('<s>hello</s>');
+  });
+
+  it('toggleBulletList creates ul with li', () => {
+    editor.commands.setContent('<p>hello</p>');
+    editor.chain().focus().toggleBulletList().run();
+    expect(editor.getHTML()).toContain('<ul>');
+    expect(editor.getHTML()).toContain('<li>');
+  });
+
+  it('toggleOrderedList creates ol with li', () => {
+    editor.commands.setContent('<p>hello</p>');
+    editor.chain().focus().toggleOrderedList().run();
+    expect(editor.getHTML()).toContain('<ol>');
+    expect(editor.getHTML()).toContain('<li>');
+  });
+
+  it('setCallout creates blockquote with callout class', () => {
+    editor.commands.setContent('<p>hello</p>');
+    editor.chain().focus().setBlockquote().run();
+    expect(editor.getHTML()).toContain('<blockquote>');
   });
 });

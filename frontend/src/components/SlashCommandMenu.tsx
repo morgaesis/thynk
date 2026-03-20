@@ -20,6 +20,14 @@ const COMMANDS: CommandDef[] = [
   { trigger: '/hr', label: 'Horizontal rule', description: '/hr — horizontal rule' },
   { trigger: '/todo', label: 'Todo item', description: '/todo — checkbox task item' },
   { trigger: '/date', label: 'Date', description: "/date — insert today's date" },
+  { trigger: '/bold', label: 'Bold', description: '/bold — bold text' },
+  { trigger: '/italic', label: 'Italic', description: '/italic — italic text' },
+  { trigger: '/inline-code', label: 'Inline code', description: '/inline-code — inline code' },
+  { trigger: '/strikethrough', label: 'Strikethrough', description: '/strikethrough — strikethrough text' },
+  { trigger: '/bullet', label: 'Bullet list', description: '/bullet — bullet list' },
+  { trigger: '/numbered', label: 'Numbered list', description: '/numbered — numbered list' },
+  { trigger: '/callout', label: 'Callout', description: '/callout — callout blockquote' },
+  { trigger: '/image', label: 'Image', description: '/image [url] — insert image' },
 ];
 
 interface Props {
@@ -70,6 +78,37 @@ function executeCommand(editor: TipTapEditor, slashState: SlashCommandState, tri
       break;
     case '/date':
       editor.chain().focus().insertContent(dateStr).run();
+      break;
+    case '/bold':
+      editor.chain().focus().toggleBold().run();
+      break;
+    case '/italic':
+      editor.chain().focus().toggleItalic().run();
+      break;
+    case '/inline-code':
+      editor.chain().focus().toggleCode().run();
+      break;
+    case '/strikethrough':
+      editor.chain().focus().toggleStrike().run();
+      break;
+    case '/bullet':
+      editor.chain().focus().toggleBulletList().run();
+      break;
+    case '/numbered':
+      editor.chain().focus().toggleOrderedList().run();
+      break;
+    case '/callout':
+      editor.chain().focus().setBlockquote().run();
+      break;
+    case '/image':
+      if (args[0]) {
+        editor.chain().focus().setImage({ src: args[0] }).run();
+      } else {
+        const url = window.prompt('Enter image URL:');
+        if (url) {
+          editor.chain().focus().setImage({ src: url }).run();
+        }
+      }
       break;
   }
 }

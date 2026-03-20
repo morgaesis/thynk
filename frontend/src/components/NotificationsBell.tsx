@@ -2,7 +2,11 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { VscBell, VscCheck } from 'react-icons/vsc';
 import { useNoteStore } from '../stores/noteStore';
 import { useAuthStore } from '../stores/authStore';
-import { getNotifications, markNotificationRead, type Notification } from '../api';
+import {
+  getNotifications,
+  markNotificationRead,
+  type Notification,
+} from '../api';
 
 export function NotificationsBell() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -18,6 +22,7 @@ export function NotificationsBell() {
       const notifs = await getNotifications();
       setNotifications(notifs);
     } catch {
+      // silently ignore notification errors
     } finally {
       setLoading(false);
     }
@@ -32,7 +37,10 @@ export function NotificationsBell() {
   useEffect(() => {
     if (!open) return;
     function handleClickOutside(e: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node)
+      ) {
         setOpen(false);
       }
     }
@@ -53,7 +61,7 @@ export function NotificationsBell() {
     if (!notif.read) {
       await markNotificationRead(notif.id);
       setNotifications((prev) =>
-        prev.map((n) => (n.id === notif.id ? { ...n, read: true } : n))
+        prev.map((n) => (n.id === notif.id ? { ...n, read: true } : n)),
       );
     }
     setOpen(false);
@@ -72,18 +80,22 @@ export function NotificationsBell() {
       >
         <VscBell size={16} />
         {unreadCount > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 bg-accent text-white text-[10px] font-bold
-                           min-w-[16px] h-4 flex items-center justify-center rounded-full px-0.5">
+          <span
+            className="absolute -top-0.5 -right-0.5 bg-accent text-white text-[10px] font-bold
+                           min-w-[16px] h-4 flex items-center justify-center rounded-full px-0.5"
+          >
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-1 w-72 z-50
+        <div
+          className="absolute right-0 top-full mt-1 w-72 z-50
                         bg-sidebar dark:bg-sidebar-dark
                         border border-border dark:border-border-dark
-                        rounded-lg shadow-lg overflow-hidden">
+                        rounded-lg shadow-lg overflow-hidden"
+        >
           <div className="px-3 py-2 border-b border-border dark:border-border-dark">
             <span className="text-xs font-semibold text-text dark:text-text-dark uppercase tracking-wider">
               Notifications

@@ -1,6 +1,19 @@
 import { create } from 'zustand';
 
-type Theme = 'light' | 'dark';
+export type Theme = 'light' | 'dark' | 'catppuccin' | 'nord' | 'dracula' | 'solarized-light' | 'solarized-dark' | 'nord-light';
+
+export const THEMES: { value: Theme; label: string }[] = [
+  { value: 'light', label: 'Light' },
+  { value: 'dark', label: 'Dark' },
+  { value: 'catppuccin', label: 'Catppuccin' },
+  { value: 'nord', label: 'Nord' },
+  { value: 'dracula', label: 'Dracula' },
+  { value: 'solarized-light', label: 'Solarized Light' },
+  { value: 'solarized-dark', label: 'Solarized Dark' },
+  { value: 'nord-light', label: 'Nord Light' },
+];
+
+const VALID_THEMES = new Set(THEMES.map(t => t.value));
 
 export interface Toast {
   id: string;
@@ -33,7 +46,7 @@ interface UIStore {
 function getInitialTheme(): Theme {
   if (typeof window === 'undefined') return 'dark';
   const stored = localStorage.getItem('thynk-theme');
-  if (stored === 'light' || stored === 'dark') return stored;
+  if (stored && VALID_THEMES.has(stored as Theme)) return stored as Theme;
   return window.matchMedia('(prefers-color-scheme: dark)').matches
     ? 'dark'
     : 'light';

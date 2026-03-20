@@ -46,9 +46,9 @@ function App() {
     checkSession();
   }, [checkSession]);
 
-  // Apply theme class to document root
+  // Apply theme to document root via data-theme attribute
   useEffect(() => {
-    document.documentElement.classList.toggle('dark', theme === 'dark');
+    document.documentElement.dataset.theme = theme;
   }, [theme]);
 
   // Global keyboard shortcuts

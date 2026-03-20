@@ -1,6 +1,6 @@
 import { useCallback, useState, useEffect, useRef } from 'react';
 import { VscAdd, VscTrash, VscClose, VscRefresh } from 'react-icons/vsc';
-import { useUIStore } from '../stores/uiStore';
+import { useUIStore, THEMES } from '../stores/uiStore';
 import {
   useSettingsStore,
   DEFAULT_SHORTCUTS,
@@ -464,10 +464,7 @@ export function SettingsPage({ onClose }: SettingsPageProps) {
             <div className="bg-sidebar dark:bg-sidebar-dark rounded-lg border border-border dark:border-border-dark px-4">
               <Row label="Color theme">
                 <RadioGroup
-                  options={[
-                    { value: 'light', label: 'Light' },
-                    { value: 'dark', label: 'Dark' },
-                  ]}
+                  options={THEMES}
                   value={theme}
                   onChange={setTheme}
                 />

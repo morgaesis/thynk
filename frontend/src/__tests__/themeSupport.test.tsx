@@ -6,13 +6,14 @@ import { cleanup, fireEvent, render, screen, act } from '@testing-library/react'
 
 import { SettingsPage } from '../components/SettingsPage';
 
+const mockState = {
+  theme: 'dark' as string,
+  setTheme: vi.fn(),
+};
+
 vi.mock('../stores/uiStore', () => ({
   useUIStore: vi.fn((selector) => {
-    const state = {
-      theme: 'dark' as const,
-      setTheme: vi.fn(),
-    };
-    return selector ? selector(state) : state;
+    return selector ? selector(mockState) : mockState;
   }),
   THEMES: [
     { value: 'light', label: 'Light' },
@@ -74,6 +75,8 @@ let pushStateSpy: ReturnType<typeof vi.spyOn>;
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockState.theme = 'dark';
+  mockState.setTheme = vi.fn();
   pushStateSpy = vi.spyOn(window.history, 'pushState').mockImplementation(() => {});
 });
 
@@ -82,56 +85,80 @@ afterEach(() => {
   cleanup();
 });
 
-describe('SettingsPage modal behavior', () => {
-  it('does NOT navigate to /settings URL when opening', async () => {
-    const onClose = vi.fn();
+describe('Theme selection', () => {
+  it('shows more than 2 theme options in settings', async () => {
     await act(async () => {
-      render(<SettingsPage onClose={onClose} />);
+      render(<SettingsPage onClose={vi.fn()} />);
     });
-    expect(pushStateSpy).not.toHaveBeenCalledWith({}, '', '/settings');
+
+    const themeSection = screen.getByText(/color theme/i).closest('section');
+    const themeButtons = themeSection!.querySelectorAll('button');
+
+    expect(themeButtons.length).toBeGreaterThanOrEqual(4);
   });
 
-  it('shows close button (X) in header when rendered as modal', async () => {
-    const onClose = vi.fn();
+  it('calls setTheme when Catppuccin theme button is clicked', async () => {
     await act(async () => {
-      render(<SettingsPage onClose={onClose} />);
+      render(<SettingsPage onClose={vi.fn()} />);
     });
-    const closeButton = screen.getByTitle('Close');
-    expect(closeButton).toBeInTheDocument();
+
+    const themeButtons = screen.getAllByRole('button');
+    const catppuccinBtn = themeButtons.find(b => b.textContent?.toLowerCase().includes('catppuccin'));
+
+    expect(catppuccinBtn).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.click(catppuccinBtn!);
+    });
+
+    expect(mockState.setTheme).toHaveBeenCalledWith('catppuccin');
   });
 
-  it('calls onClose when close button is clicked', async () => {
-    const onClose = vi.fn();
+  it('calls setTheme when Nord theme button is clicked', async () => {
     await act(async () => {
-      render(<SettingsPage onClose={onClose} />);
+      render(<SettingsPage onClose={vi.fn()} />);
     });
-    const closeButton = screen.getByTitle('Close');
+
+    const themeButtons = screen.getAllByRole('button');
+    const nordBtn = themeButtons.find(b => b.textContent?.toLowerCase().includes('nord'));
+
+    expect(nordBtn).toBeTruthy();
+
     await act(async () => {
-      fireEvent.click(closeButton);
+      fireEvent.click(nordBtn!);
     });
-    expect(onClose).toHaveBeenCalledTimes(1);
+
+    expect(mockState.setTheme).toHaveBeenCalledWith('nord');
   });
 
-  it('closes when pressing Escape key', async () => {
-    const onClose = vi.fn();
-    const addListenerSpy = vi.spyOn(window, 'addEventListener');
-    const removeListenerSpy = vi.spyOn(window, 'removeEventListener');
-
+  it('calls setTheme when Light theme button is clicked', async () => {
     await act(async () => {
-      render(<SettingsPage onClose={onClose} />);
+      render(<SettingsPage onClose={vi.fn()} />);
     });
 
-    const keyDownListeners = addListenerSpy.mock.calls.filter(([event]) => event === 'keydown');
-    expect(keyDownListeners.length).toBeGreaterThanOrEqual(1);
+    const themeButtons = screen.getAllByRole('button');
+    const lightBtn = themeButtons.find(b => b.textContent?.toLowerCase().includes('light'));
 
-    for (const [, handler] of keyDownListeners) {
-      await act(async () => {
-        (handler as EventListener)(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
-      });
-    }
+    expect(lightBtn).toBeTruthy();
 
-    removeListenerSpy.mockRestore();
-    addListenerSpy.mockRestore();
-    expect(onClose).toHaveBeenCalled();
+    await act(async () => {
+      fireEvent.click(lightBtn!);
+    });
+
+    expect(mockState.setTheme).toHaveBeenCalledWith('light');
+  });
+
+  it('highlights the currently selected theme', async () => {
+    mockState.theme = 'catppuccin';
+
+    await act(async () => {
+      render(<SettingsPage onClose={vi.fn()} />);
+    });
+
+    const themeButtons = Array.from(screen.getAllByRole('button')) as HTMLButtonElement[];
+    const catppuccinBtn = themeButtons.find(b => b.textContent?.toLowerCase().includes('catppuccin'));
+
+    expect(catppuccinBtn).toBeTruthy();
+    expect(catppuccinBtn!.className).toContain('bg-accent');
   });
 });

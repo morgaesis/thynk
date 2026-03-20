@@ -94,6 +94,7 @@
 | Search Tag Filtering    | Done (search_with_tags method, /api/search?tags= query)                                       | Phase 4 |
 | Search Pagination       | Done (limit/offset params, paginated results)                                                 | Phase 4 |
 | Activity Feed           | Done (getAuditLog API, ActivityFeed component in sidebar)                                     | Phase 4 |
+| Model Discovery         | Done (POST /api/ai/models endpoint, auto-fetch models from OpenAI/Ollama, refresh button)     | Phase 4 |
 | Trash/Soft Delete       | Done (trash/restore/permanent-delete API, DB methods, tests, TrashSection UI in sidebar)      | Phase 4 |
 | User Profiles           | Done (mutual work feature showing connected notes between users)                              | Phase 4 |
 | Todo Items              | Done (TaskList extension, - [ ], - [/], - [x] syntax)                                         | Phase 4 |
@@ -206,7 +207,8 @@
 31. ~~Self-Hosted STUN/TURN~~ -- Added coturn STUN/TURN server to docker-compose.prod.yml, /api/config endpoint for ICE server configuration, frontend updated to fetch and use ICE servers for WebRTC (2026-03-19)
 32. ~~Settings Modal Overlay~~ -- Settings page rendered as centered modal with backdrop instead of full-page overlay. X close button, ESC key to close, no URL navigation to /settings. uiStore.settingsOpen state controls visibility. 4 new frontend tests (2026-03-19)
 33. ~~Slash Command Expansion~~ -- Added 8 new slash commands: /bold, /italic, /inline-code, /strikethrough, /bullet, /numbered, /callout, /image. Also fixed vitest environment: downgraded jsdom to 27.4 (fixes Vitest 4 incompatibility with jsdom 28), added vitest.config.ts with jsdom environment and requestAnimationFrame polyfill, created vitest.setup.ts. 9 new frontend tests (2026-03-20)
+34. ~~Model Discovery~~ -- Added POST /api/ai/models endpoint that auto-fetches available models from OpenAI (via /v1/models API), uses curated defaults for Anthropic, and queries Ollama's /api/tags endpoint. Frontend Settings page now fetches models when provider/API key changes, with refresh button and fallback to defaults. 4 new frontend tests (2026-03-20)
 
 ---
 
-Last Updated: 2026-03-20 (Slash Command Expansion: added formatting/list/callout/image commands, fixed vitest/jsdom environment)
+Last Updated: 2026-03-20 (Model Discovery: auto-fetch models from OpenAI/Ollama API, fallback defaults, refresh button in Settings)

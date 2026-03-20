@@ -1,5 +1,5 @@
 import { useCallback, useState, useEffect, useRef } from 'react';
-import { VscAdd, VscTrash, VscClose } from 'react-icons/vsc';
+import { VscAdd, VscTrash, VscClose, VscRefresh } from 'react-icons/vsc';
 import { useUIStore } from '../stores/uiStore';
 import {
   useSettingsStore,
@@ -12,7 +12,9 @@ import {
   listInvitations,
   createInvitation,
   revokeInvitation,
+  listAiModels,
   type Invitation,
+  type ModelInfo,
 } from '../api';
 import { ImportModal } from './ImportModal';
 import type { User } from '../stores/authStore';
@@ -99,7 +101,7 @@ const AI_PROVIDERS: { value: AIProvider; label: string }[] = [
   { value: 'ollama', label: 'Ollama (local)' },
 ];
 
-const AI_MODELS: Record<AIProvider, { value: string; label: string }[]> = {
+const FALLBACK_MODELS: Record<AIProvider, { value: string; label: string }[]> = {
   openai: [
     { value: 'gpt-4o', label: 'GPT-4o' },
     { value: 'gpt-4o-mini', label: 'GPT-4o Mini' },
@@ -253,6 +255,14 @@ export function SettingsPage({ onClose }: SettingsPageProps) {
   const [inviteRole, setInviteRole] = useState('viewer');
   const [inviting, setInviting] = useState(false);
   const [invitationError, setInvitationError] = useState<string | null>(null);
+  const [fetchedModels, setFetchedModels] = useState<Record<AIProvider, ModelInfo[]>>({
+    openai: [],
+    anthropic: [],
+    ollama: [],
+  });
+  const [modelsLoading, setModelsLoading] = useState(false);
+  const [modelsError, setModelsError] = useState<string | null>(null);
+  const lastFetchedRef = useRef<{ provider: AIProvider; apiKey: string } | null>(null);
 
   const isAdmin = authUser?.role === 'owner' || authUser?.role === 'admin';
 
@@ -287,6 +297,40 @@ export function SettingsPage({ onClose }: SettingsPageProps) {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  useEffect(() => {
+    const fetchModels = async () => {
+      if (lastFetchedRef.current?.provider === aiProvider && lastFetchedRef.current?.apiKey === aiApiKey) {
+        return;
+      }
+      setModelsLoading(true);
+      setModelsError(null);
+      try {
+        const models = await listAiModels(aiProvider, aiApiKey);
+        lastFetchedRef.current = { provider: aiProvider, apiKey: aiApiKey };
+        setFetchedModels((prev) => ({ ...prev, [aiProvider]: models }));
+      } catch (e) {
+        setModelsError(e instanceof Error ? e.message : 'Failed to fetch models');
+      } finally {
+        setModelsLoading(false);
+      }
+    };
+    void fetchModels();
+  }, [aiProvider, aiApiKey]);
+
+  const handleRefreshModels = useCallback(async () => {
+    setModelsLoading(true);
+    setModelsError(null);
+    try {
+      const models = await listAiModels(aiProvider, aiApiKey);
+      lastFetchedRef.current = { provider: aiProvider, apiKey: aiApiKey };
+      setFetchedModels((prev) => ({ ...prev, [aiProvider]: models }));
+    } catch (e) {
+      setModelsError(e instanceof Error ? e.message : 'Failed to fetch models');
+    } finally {
+      setModelsLoading(false);
+    }
+  }, [aiProvider, aiApiKey]);
 
   const handleCreateInvitation = useCallback(async () => {
     if (!inviteEmail) return;
@@ -455,24 +499,52 @@ export function SettingsPage({ onClose }: SettingsPageProps) {
                 />
               </Row>
               <Row label="Model">
-                <select
-                  value={aiModel}
-                  onChange={(e) => setAiModel(e.target.value)}
-                  className="px-2 py-1 text-sm rounded border border-border dark:border-border-dark
-                           bg-surface dark:bg-surface-dark text-text dark:text-text-dark"
-                >
-                  {AI_MODELS[aiProvider].map((m) => (
-                    <option key={m.value} value={m.value}>
-                      {m.label}
-                    </option>
-                  ))}
-                </select>
+                <div className="flex items-center gap-2">
+                  <select
+                    value={aiModel}
+                    onChange={(e) => setAiModel(e.target.value)}
+                    disabled={modelsLoading}
+                    className="px-2 py-1 text-sm rounded border border-border dark:border-border-dark
+                           bg-surface dark:bg-surface-dark text-text dark:text-text-dark disabled:opacity-50"
+                  >
+                    {modelsLoading ? (
+                      <option value="">Loading…</option>
+                    ) : (
+                      <>
+                        {(fetchedModels[aiProvider].length > 0
+                          ? fetchedModels[aiProvider].map((m) => ({
+                              value: m.id,
+                              label: m.name,
+                            }))
+                          : FALLBACK_MODELS[aiProvider]
+                        ).map((m) => (
+                          <option key={m.value} value={m.value}>
+                            {m.label}
+                          </option>
+                        ))}
+                      </>
+                    )}
+                  </select>
+                  <button
+                    onClick={() => void handleRefreshModels()}
+                    disabled={modelsLoading}
+                    className="p-1 text-text-muted dark:text-text-muted-dark hover:text-text dark:hover:text-text-dark disabled:opacity-50"
+                    title="Refresh model list"
+                  >
+                    <VscRefresh size={14} className={modelsLoading ? 'animate-spin' : ''} />
+                  </button>
+                </div>
               </Row>
             </div>
             <p className="mt-1 text-xs text-text-muted dark:text-text-muted-dark px-1">
               Your API key is stored locally and never sent to our servers.
               {aiProvider === 'ollama' &&
                 ' Ensure Ollama is running locally on port 11434.'}
+              {modelsError && (
+                <span className="block text-red-500 mt-1">
+                  Could not fetch models: {modelsError}. Using default list.
+                </span>
+              )}
             </p>
           </section>
 

@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { cleanup, fireEvent, render, screen, act } from '@testing-library/react';
 
 (globalThis as Record<string, unknown>).__GIT_HASH__ = 'test-hash';
+(globalThis as Record<string, unknown>).__APP_VERSION__ = '0.1.0';
 
 import { SettingsPage } from '../components/SettingsPage';
 
@@ -56,6 +57,7 @@ vi.mock('../api', () => ({
   listInvitations: vi.fn().mockResolvedValue([]),
   createInvitation: vi.fn(),
   revokeInvitation: vi.fn(),
+  listAiModels: vi.fn().mockResolvedValue([]),
 }));
 
 let pushStateSpy: ReturnType<typeof vi.spyOn>;

@@ -85,6 +85,11 @@ vi.mock('../api', () => {
       const qs = params.toString();
       return request(`/sync/audit${qs ? `?${qs}` : ''}`);
     },
+    listAiModels: (provider: string, apiKey: string) =>
+      request('/ai/models', {
+        method: 'POST',
+        body: JSON.stringify({ provider, api_key: apiKey }),
+      }),
   };
 });
 
@@ -366,5 +371,56 @@ describe('api.permanentDeleteNote', () => {
     mockFetch.mockResolvedValue(makeErrorResponse('Not Found', 404));
 
     await expect(api.permanentDeleteNote('bad-id')).rejects.toThrow('API 404: Not Found');
+  });
+});
+
+describe('api.listAiModels', () => {
+  it('calls POST /api/ai/models with provider and api_key', async () => {
+    mockFetch.mockResolvedValue(makeJsonResponse({ models: [] }));
+
+    await api.listAiModels('openai', 'sk-test-key');
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      '/api/ai/models',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ provider: 'openai', api_key: 'sk-test-key' }),
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+  });
+
+  it('calls POST /api/ai/models for anthropic provider', async () => {
+    mockFetch.mockResolvedValue(makeJsonResponse({ models: [] }));
+
+    await api.listAiModels('anthropic', 'sk-ant-test');
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      '/api/ai/models',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ provider: 'anthropic', api_key: 'sk-ant-test' }),
+      }),
+    );
+  });
+
+  it('calls POST /api/ai/models for ollama with empty api_key', async () => {
+    mockFetch.mockResolvedValue(makeJsonResponse({ models: [] }));
+
+    await api.listAiModels('ollama', '');
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      '/api/ai/models',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ provider: 'ollama', api_key: '' }),
+      }),
+    );
+  });
+
+  it('throws on non-ok response', async () => {
+    mockFetch.mockResolvedValue(makeErrorResponse('Unauthorized', 401));
+
+    await expect(api.listAiModels('openai', 'sk-bad')).rejects.toThrow('API 401: Unauthorized');
   });
 });

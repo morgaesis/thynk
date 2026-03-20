@@ -382,6 +382,23 @@ export async function aiChat(req: AiChatRequest): Promise<AiChatResponse> {
   });
 }
 
+export interface ModelInfo {
+  id: string;
+  name: string;
+}
+
+export interface ModelsResponse {
+  models: ModelInfo[];
+}
+
+export async function listAiModels(provider: string, apiKey: string): Promise<ModelInfo[]> {
+  const res = await request<ModelsResponse>('/ai/models', {
+    method: 'POST',
+    body: JSON.stringify({ provider, api_key: apiKey }),
+  });
+  return res.models;
+}
+
 // ── Unlinked Mentions ───────────────────────────────────────────────────────────
 
 export interface UnlinkedMention {

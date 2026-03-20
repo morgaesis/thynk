@@ -53,6 +53,7 @@ pub fn router(state: AppState) -> Router {
         .route("/api/users/{id}", patch(auth::update_user))
         .route("/api/ai/complete", post(ai::complete))
         .route("/api/ai/chat", post(ai::chat))
+        .route("/api/ai/models", post(ai::models))
         .route(
             "/api/notes",
             get(notes::list_notes).post(notes::create_note),

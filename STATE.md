@@ -106,6 +106,8 @@
 | Self-Hosted STUN/TURN   | Done (coturn added to docker-compose.prod.yml, /api/config endpoint, ICE servers in frontend) | Phase 4 |
 | Settings Modal Overlay  | Done (centered modal with X button, ESC handler, store-based, 4 new tests)                    | Phase 4 |
 | Notifications Bell Icon | Done (bell icon in sidebar header, dropdown panel, unread badge, click-outside/ESC close, 6 new tests) | Phase 4 |
+| Theme Support | Done (8 theme presets with custom CSS variables, data-theme attribute on HTML, theme selector in Settings, ThemeToggle cycles through themes, 5 new tests) | Phase 4 |
+| Theme Support | Done (8 theme presets: Light, Dark, Catppuccin, Nord, Dracula, Solarized Light/Dark, Nord Light, data-theme attribute on HTML, theme selector in Settings, ThemeToggle cycles through themes, 5 new tests, 2026-03-20) | Phase 4 |
 
 ### Phase 1 Exit Criteria (all met)
 
@@ -211,7 +213,8 @@
 34. ~~Model Discovery~~ -- Added POST /api/ai/models endpoint that auto-fetches available models from OpenAI (via /v1/models API), uses curated defaults for Anthropic, and queries Ollama's /api/tags endpoint. Frontend Settings page now fetches models when provider/API key changes, with refresh button and fallback to defaults. 4 new frontend tests (2026-03-20)
 35. ~~Jest-Dom Matchers~~ -- Fixed vitest.setup.ts to use `@testing-library/jest-dom/vitest` import path, enabling `toBeInTheDocument`, `toHaveStyle`, `toHaveAttribute` matchers. 4 previously-failing tests now pass (2026-03-20)
 36. ~~Notifications Bell Icon~~ -- Converted notifications from sidebar section to bell icon in header. NotificationsBell component with dropdown panel, unread badge, click-outside/ESC to close. Added window.matchMedia mock to vitest.setup.ts. 6 new frontend tests (2026-03-20)
+37. ~~Theme Support~~ -- Added 8 theme presets (Light, Dark, Catppuccin, Nord, Dracula, Solarized Light/Dark, Nord Light). Replaced `.dark` class approach with `data-theme` attribute on HTML element. CSS variables defined per theme in index.css using Tailwind v4 custom variant. THEMES constant exported from uiStore. Theme selector in Settings uses RadioGroup with all presets. ThemeToggle cycles through all themes on click. 5 new frontend tests. Fixed vitest.config.ts to properly load jsdom environment via src/test/setup.ts (2026-03-20)
 
 ---
 
-Last Updated: 2026-03-20 (Notifications Bell Icon: bell icon in sidebar header with dropdown panel, unread badge, click-outside/ESC close, all 148 frontend tests pass)
+Last Updated: 2026-03-20 (Theme Support: 8 theme presets with custom CSS variables, data-theme attribute on HTML, theme selector in Settings, ThemeToggle cycles through themes, all 153 frontend tests pass)

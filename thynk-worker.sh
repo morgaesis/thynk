@@ -57,12 +57,8 @@ fi
 PROMPT='Read STATE.md and ROADMAP.md for current status. Pick ONE high-impact task from ROADMAP.md backlog. Prioritize: CI/CD fixes for desktop build icons, Docker image build for watchtower, critical bugs. Write failing tests first, implement, verify with cargo build/test and bun build/test, commit with conventional format, push, update STATE.md.'
 
 # Run opencode with task
-log "Starting opencode worker (model: ${OPENCODE_MODEL:-default})..."
-if [ -n "$OPENCODE_MODEL" ]; then
-    timeout 3600 tooler run opencode run -m "$OPENCODE_MODEL" "$PROMPT" 2>&1 | tee -a "$LOG_FILE"
-else
-    timeout 3600 tooler run opencode run "$PROMPT" 2>&1 | tee -a "$LOG_FILE"
-fi
+log "Starting opencode worker (model: minimax-m2.7)..."
+timeout 3600 tooler run opencode run -m minimax-m2.7 "$PROMPT" 2>&1 | tee -a "$LOG_FILE"
 
 log "=== GSD Worker cycle complete ==="
 

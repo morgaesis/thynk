@@ -136,7 +136,6 @@ async fn main() -> anyhow::Result<()> {
             request: axum::http::Request<Body>,
         ) -> axum::response::Response<Body> {
             let path = request.uri().path();
-            let index_path = state.dist_path.join("index.html");
 
             // For API calls, we shouldn't be here - return 404
             if path.starts_with("/api/") {
@@ -146,18 +145,43 @@ async fn main() -> anyhow::Result<()> {
                     .unwrap();
             }
 
-            // For everything else (SPA routes), serve index.html
-            // This handles /notes/*, /settings, /calendar, etc.
-            match tokio::fs::read(&index_path).await {
-                Ok(body) => axum::response::Response::builder()
-                    .status(axum::http::StatusCode::OK)
-                    .header(axum::http::header::CONTENT_TYPE, "text/html")
-                    .body(Body::from(body))
-                    .unwrap(),
-                Err(_) => axum::response::Response::builder()
-                    .status(axum::http::StatusCode::NOT_FOUND)
-                    .body(Body::from("Not Found"))
-                    .unwrap(),
+            // Try to serve the actual file first (for /assets/*, /favicon.svg, etc.)
+            let file_path = state.dist_path.join(path.trim_start_matches('/'));
+            if file_path.exists() && file_path.is_file() {
+                let mime = match file_path.extension().and_then(|e| e.to_str()) {
+                    Some("js") => "application/javascript",
+                    Some("css") => "text/css",
+                    Some("svg") => "image/svg+xml",
+                    Some("png") => "image/png",
+                    Some("ico") => "image/x-icon",
+                    Some("json") => "application/json",
+                    _ => "application/octet-stream",
+                };
+                match tokio::fs::read(&file_path).await {
+                    Ok(body) => axum::response::Response::builder()
+                        .status(axum::http::StatusCode::OK)
+                        .header(axum::http::header::CONTENT_TYPE, mime)
+                        .body(Body::from(body))
+                        .unwrap(),
+                    Err(_) => axum::response::Response::builder()
+                        .status(axum::http::StatusCode::NOT_FOUND)
+                        .body(Body::from("Not Found"))
+                        .unwrap(),
+                }
+            } else {
+                // For SPA routes, serve index.html
+                let index_path = state.dist_path.join("index.html");
+                match tokio::fs::read(&index_path).await {
+                    Ok(body) => axum::response::Response::builder()
+                        .status(axum::http::StatusCode::OK)
+                        .header(axum::http::header::CONTENT_TYPE, "text/html")
+                        .body(Body::from(body))
+                        .unwrap(),
+                    Err(_) => axum::response::Response::builder()
+                        .status(axum::http::StatusCode::NOT_FOUND)
+                        .body(Body::from("Not Found"))
+                        .unwrap(),
+                }
             }
         }
 

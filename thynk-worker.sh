@@ -61,8 +61,8 @@ Pick ONE high-impact task from ROADMAP.md backlog. Priority order:
 
 Check .planning/ for design constraints before implementing. Write failing tests first, implement, verify with cargo build/test and bun build/test, commit with conventional format, push, update STATE.md.'
 
-log "Starting opencode worker (model: minimax-m2.5-free)..."
-timeout 3600 opencode run --model=minimax-m2.5-free "$PROMPT" 2>&1 | tee -a "$LOG_FILE"
+log "Starting opencode worker (model: opencode-go/minimax-m2.7)..."
+timeout 3600 opencode run --model=opencode-go/minimax-m2.7 "$PROMPT" 2>&1 | tee -a "$LOG_FILE"
 
 log "=== GSD Worker cycle complete ==="
 

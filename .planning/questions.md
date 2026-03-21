@@ -17,11 +17,25 @@ All priority questions have been resolved. See PROJECT.md and STATE.md for decis
 
 ## Open
 
-| #   | Question                  | Impact              |
-| --- | ------------------------- | ------------------- |
-| 1   | Domain name               | Branding, marketing |
-| 2   | Free tier team size limit | Pricing             |
+| #   | Question                          | Impact               |
+| --- | --------------------------------- | -------------------- |
+| 1   | Domain name                       | Branding, marketing  |
+| 2   | Free tier team size limit         | Pricing              |
+| 3   | Admin dashboard for lock/audit UI | Enterprise readiness |
+| 4   | Disable local storage UX          | Enterprise policy    |
 
 ---
 
-Updated: 2026-03-14
+## Enterprise RBAC Requirements
+
+For public cloud and enterprise deployments:
+
+1. **Authentication**: OAuth2/OIDC integration (Phase 4)
+2. **Authorization**: Role-based access control (owner, editor, viewer)
+3. **Locking**: Advisory (local) → Enforced (cloud)
+4. **Audit**: All mutations logged with user, timestamp, document ID
+5. **Data residency**: Enterprise may require specific region
+
+---
+
+Updated: 2026-03-21

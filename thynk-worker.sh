@@ -1,5 +1,6 @@
 #!/bin/bash
 # Thynk GSD worker - runs opencode to work on tasks
+# Schedule: hourly with jitter (0-10 min random delay)
 
 export PATH="$HOME/.local/share/tooler/bin:$HOME/.opencode/bin:$HOME/.cargo/bin:$HOME/.local/share/pnpm:/usr/local/bin:/usr/bin:/bin"
 
@@ -15,22 +16,13 @@ if [ -n "$ENV_CONTENT" ]; then
     done <<< "$ENV_CONTENT"
 fi
 
-LOCKFILE="/tmp/thynk-worker.lock"
-LOG_DIR="$HOME/thynk-logs"
-mkdir -p "$LOG_DIR"
-LOG_FILE="$LOG_DIR/worker-$(date +%Y%m%d-%H%M%S).log"
+# Random jitter: 0-10 minutes
+JITTER=$((RANDOM % 600))
+log "Sleeping ${JITTER}s before starting..."
+sleep "$JITTER"
 
-log() {
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOG_FILE"
-}
-
-# Acquire lock - exit if another instance is running
-if ! mkdir "$LOCKFILE" 2>/dev/null; then
-    log "Another worker instance is running, exiting"
-    exit 0
-fi
-trap "rmdir $LOCKFILE" EXIT
-
+# Kill any existing worker process (no lock, just restart)
+pkill -9 -f 'opencode run' 2>/dev/null || true
 log "=== GSD Worker cycle starting ==="
 
 cd ~/thynk
@@ -42,11 +34,8 @@ git pull origin main 2>&1 | tee -a "$LOG_FILE" || true
 log "Running QA checks..."
 if ! bash .hooks/pre-push 2>&1 | tee -a "$LOG_FILE"; then
     log "QA failed - attempting fixes..."
-    # Fix cargo fmt
     cargo fmt --all 2>&1 | tee -a "$LOG_FILE"
-    # Fix prettier
     command -v prettier && prettier --write "**/*.{md,json,yaml}" 2>&1 | tee -a "$LOG_FILE"
-    # Commit fixes if any
     if git diff --quiet; then
         log "No fixes needed"
     else
@@ -54,9 +43,16 @@ if ! bash .hooks/pre-push 2>&1 | tee -a "$LOG_FILE"; then
     fi
 fi
 
-PROMPT='Read STATE.md and ROADMAP.md for current status. Pick ONE high-impact task from ROADMAP.md backlog. Prioritize: CI/CD fixes for desktop build icons, Docker image build for watchtower, critical bugs. Write failing tests first, implement, verify with cargo build/test and bun build/test, commit with conventional format, push, update STATE.md.'
+PROMPT='You are the Thynk GSD worker. Read .planning/design-decisions.md, .planning/questions.md, STATE.md, and ROADMAP.md to understand current phase, design constraints, and priorities. 
 
-# Run opencode with task
+Pick ONE high-impact task from ROADMAP.md backlog. Priority order:
+1. Critical bugs (locking, websockets, content loss)
+2. CI/CD (desktop build icons)
+3. Infrastructure (watchtower, self-hosted signaling)
+4. Features from backlog
+
+Check .planning/ for design constraints before implementing. Write failing tests first, implement, verify with cargo build/test and bun build/test, commit with conventional format, push, update STATE.md.'
+
 log "Starting opencode worker (model: minimax-m2.5-free)..."
 timeout 3600 opencode run --model=minimax-m2.5-free "$PROMPT" 2>&1 | tee -a "$LOG_FILE"
 

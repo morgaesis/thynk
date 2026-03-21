@@ -57,8 +57,8 @@ fi
 PROMPT='Read STATE.md and ROADMAP.md for current status. Pick ONE high-impact task from ROADMAP.md backlog. Prioritize: CI/CD fixes for desktop build icons, Docker image build for watchtower, critical bugs. Write failing tests first, implement, verify with cargo build/test and bun build/test, commit with conventional format, push, update STATE.md.'
 
 # Run opencode with task
-log "Starting opencode worker (model: opencode-go/minimax-m2.7)..."
-timeout 3600 opencode run --model=opencode-go/minimax-m2.7 "$PROMPT" 2>&1 | tee -a "$LOG_FILE"
+log "Starting opencode worker (model: minimax-m2.5-free)..."
+timeout 3600 opencode run --model=minimax-m2.5-free "$PROMPT" 2>&1 | tee -a "$LOG_FILE"
 
 log "=== GSD Worker cycle complete ==="
 

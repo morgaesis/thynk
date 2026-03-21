@@ -15,6 +15,12 @@ else
   echo "  -> Markdown lint: skipped (no linter found)"
 fi
 
+# Infisical secret scan
+if command -v infisical &>/dev/null; then
+  echo "  -> Infisical scan"
+  infisical scan git-changes --verbose --silent --redact --log-level warn --exit-code 1 2>&1 || true
+fi
+
 # Rust checks (when Rust code exists)
 if [ -f Cargo.toml ]; then
   echo "  -> cargo check"

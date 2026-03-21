@@ -16,6 +16,14 @@ if [ -n "$ENV_CONTENT" ]; then
     done <<< "$ENV_CONTENT"
 fi
 
+LOG_DIR="$HOME/thynk-logs"
+mkdir -p "$LOG_DIR"
+LOG_FILE="$LOG_DIR/worker-$(date +%Y%m%d-%H%M%S).log"
+
+log() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOG_FILE"
+}
+
 # Random jitter: 0-10 minutes
 JITTER=$((RANDOM % 600))
 log "Sleeping ${JITTER}s before starting..."

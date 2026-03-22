@@ -813,6 +813,16 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
               </>
             )}
             <span className="ml-auto flex items-center gap-2">
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(activeNote.path);
+                  addToast('success', 'Path copied');
+                }}
+                title="Click to copy path"
+                className="font-mono text-text-muted dark:text-text-muted-dark hover:text-text dark:hover:text-text-dark transition-colors truncate max-w-[200px]"
+              >
+                {activeNote.path}
+              </button>
               <PresenceIndicator users={collabUsers} />
               <LockIndicator
                 locked={locked}

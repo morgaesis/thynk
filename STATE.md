@@ -222,7 +222,8 @@
 43. ~~WikiLink Suggestions Path~~ -- Wiki-link autocomplete dropdown now shows each note's folder path alongside the title (e.g. "Design Doc projects/work") to help disambiguate notes with similar names. All 159 frontend tests pass (2026-03-22)
 44. ~~Notification Detail~~ -- Notification items now show relative time ("2m ago", "1h ago") and the associated note title below the message, giving more context at a glance. All 159 frontend tests pass (2026-03-22)
 45. ~~Theme-Aware Code Blocks~~ -- Code block and inline code colors now use CSS variables (`--color-code-bg`, `--color-code-text`, `--color-code-inline-bg`) defined per theme instead of hardcoded hex values. Collaboration cursor colors also theme-aware. All 8 themes updated. All 159 frontend tests pass (2026-03-22)
+46. ~~Command Palette Recent Notes~~ -- Command palette now shows notes sorted by most recently modified (not alphabetical), capped at 20 when no query is active, so users immediately see their most recent notes. All 159 frontend tests pass (2026-03-22)
 
 ---
 
-Last Updated: 2026-03-22 (Theme-aware code blocks + collaboration cursors, all 159 frontend tests pass)
+Last Updated: 2026-03-22 (Command palette shows recent notes first, all 159 frontend tests pass)

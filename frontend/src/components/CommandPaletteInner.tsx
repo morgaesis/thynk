@@ -108,7 +108,7 @@ export function CommandPaletteInner({
     };
   }, [query]);
 
-  // Note items to display: search results when querying, all notes otherwise
+  // Note items to display: search results when querying, recent notes otherwise
   const noteItems = useMemo<
     Array<{ id: string; title: string; subtitle: string }>
   >(
@@ -119,11 +119,18 @@ export function CommandPaletteInner({
             title: r.title,
             subtitle: r.snippet.replace(/<\/?mark>/g, ''),
           }))
-        : notes.map((n) => ({
-            id: n.id,
-            title: n.title,
-            subtitle: typeof n.path === 'string' ? n.path : String(n.path),
-          })),
+        : [...notes]
+            .sort(
+              (a, b) =>
+                new Date(b.updated_at).getTime() -
+                new Date(a.updated_at).getTime(),
+            )
+            .slice(0, 20)
+            .map((n) => ({
+              id: n.id,
+              title: n.title,
+              subtitle: typeof n.path === 'string' ? n.path : String(n.path),
+            })),
     [query, searchResults, notes],
   );
 

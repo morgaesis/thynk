@@ -8,6 +8,18 @@ import {
   type Notification,
 } from '../api';
 
+function relativeTime(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const seconds = Math.floor(diff / 1000);
+  if (seconds < 60) return 'just now';
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}
+
 export function NotificationsBell() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -116,7 +128,7 @@ export function NotificationsBell() {
                   <li key={notif.id}>
                     <button
                       onClick={() => handleNotificationClick(notif)}
-                      className={`flex items-start gap-2 w-full px-3 py-2.5 text-left text-sm
+                      className={`flex items-start gap-2 w-full px-3 py-2.5 text-left
                         ${
                           notif.read
                             ? 'text-text-muted dark:text-text-muted-dark'
@@ -124,7 +136,14 @@ export function NotificationsBell() {
                         }
                         hover:bg-border dark:hover:bg-border-dark`}
                     >
-                      <span className="flex-1 truncate">{notif.message}</span>
+                      <div className="flex-1 min-w-0">
+                        <span className="block text-sm truncate">
+                          {notif.message}
+                        </span>
+                        <span className="block text-[10px] opacity-60 mt-0.5">
+                          {notif.noteTitle} · {relativeTime(notif.createdAt)}
+                        </span>
+                      </div>
                       {notif.read ? null : (
                         <VscCheck className="w-4 h-4 text-accent flex-shrink-0 mt-0.5" />
                       )}

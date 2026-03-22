@@ -651,14 +651,15 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     if (bufferDebounceRef.current) clearTimeout(bufferDebounceRef.current);
     const content = getHTML(ed);
-    updateNote(note.id, { content });
-    contentBuffer.clearBuffer(note.id);
+    const data: { content: string; title?: string } = { content };
     if (titleRef.current) {
       const newTitle = titleRef.current.value.trim();
       if (newTitle && newTitle !== note.title) {
-        updateNote(note.id, { title: newTitle });
+        data.title = newTitle;
       }
     }
+    updateNote(note.id, data);
+    contentBuffer.clearBuffer(note.id);
   }, [updateNote]);
 
   // Register save function with parent so Ctrl+S can trigger it

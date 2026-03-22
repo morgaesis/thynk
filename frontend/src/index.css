@@ -26,6 +26,9 @@
   --color-text-muted: #64748b;
   --color-accent: #6366f1;
   --color-accent-hover: #4f46e5;
+  --color-code-bg: #f1f5f9;
+  --color-code-text: #334155;
+  --color-code-inline-bg: #e2e8f0;
 }
 
 [data-theme='dark'],
@@ -37,6 +40,9 @@
   --color-text-muted: #6c7086;
   --color-accent: #cba6f7;
   --color-accent-hover: #89b4fa;
+  --color-code-bg: #181825;
+  --color-code-text: #cdd6f4;
+  --color-code-inline-bg: #313244;
 }
 
 [data-theme='nord'] {
@@ -47,6 +53,9 @@
   --color-text-muted: #d8dee9;
   --color-accent: #88c0d0;
   --color-accent-hover: #81a1c1;
+  --color-code-bg: #242933;
+  --color-code-text: #eceff4;
+  --color-code-inline-bg: #4c566a;
 }
 
 [data-theme='dracula'] {
@@ -57,6 +66,9 @@
   --color-text-muted: #6272a4;
   --color-accent: #bd93f9;
   --color-accent-hover: #ff79c6;
+  --color-code-bg: #21222c;
+  --color-code-text: #f8f8f2;
+  --color-code-inline-bg: #44475a;
 }
 
 [data-theme='solarized-light'] {
@@ -67,6 +79,9 @@
   --color-text-muted: #93a1a1;
   --color-accent: #268bd2;
   --color-accent-hover: #2aa198;
+  --color-code-bg: #eee8d5;
+  --color-code-text: #657b83;
+  --color-code-inline-bg: #e0dcc5;
 }
 
 [data-theme='solarized-dark'] {
@@ -77,6 +92,9 @@
   --color-text-muted: #657b83;
   --color-accent: #2aa198;
   --color-accent-hover: #268bd2;
+  --color-code-bg: #073642;
+  --color-code-text: #93a1a1;
+  --color-code-inline-bg: #586e75;
 }
 
 [data-theme='nord-light'] {
@@ -87,6 +105,9 @@
   --color-text-muted: #4c566a;
   --color-accent: #5e81ac;
   --color-accent-hover: #81a1c1;
+  --color-code-bg: #e5e9f0;
+  --color-code-text: #2e3440;
+  --color-code-inline-bg: #d8dee9;
 }
 
 html,
@@ -126,24 +147,20 @@ body {
 }
 
 .tiptap pre {
-  background: #1e293b;
+  background: var(--color-code-bg);
   border-radius: 0.375rem;
   padding: 0.75rem 1rem;
-  color: #e2e8f0;
+  color: var(--color-code-text);
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
   font-size: 0.875rem;
   overflow-x: auto;
 }
 
 .tiptap code {
-  background: #e2e8f0;
+  background: var(--color-code-inline-bg);
   border-radius: 0.25rem;
   padding: 0.125rem 0.25rem;
   font-size: 0.875em;
-}
-
-.dark .tiptap code {
-  background: #313244;
 }
 
 .tiptap pre code {
@@ -246,7 +263,10 @@ body {
   color: #94a3b8;
   cursor: pointer;
   opacity: 0;
-  transition: opacity 0.2s, background 0.2s, color 0.2s;
+  transition:
+    opacity 0.2s,
+    background 0.2s,
+    color 0.2s;
   z-index: 10;
 }
 
@@ -464,8 +484,8 @@ body {
 
 /* Collaboration cursor styles */
 .collaboration-cursor__caret {
-  border-left: 1px solid #0d0d0d;
-  border-right: 1px solid #0d0d0d;
+  border-left: 1px solid var(--color-text);
+  border-right: 1px solid var(--color-text);
   margin-left: -1px;
   margin-right: -1px;
   pointer-events: none;
@@ -475,7 +495,8 @@ body {
 
 .collaboration-cursor__label {
   border-radius: 3px 3px 3px 0;
-  color: #0d0d0d;
+  color: var(--color-surface);
+  background: var(--color-text);
   font-size: 12px;
   font-weight: 600;
   left: -1px;

@@ -221,7 +221,8 @@
 42. ~~Editor Empty State~~ -- Replaced plain text empty state with a polished welcome screen: document icon, "Welcome to Thynk" heading, descriptive subtitle, quick action buttons (New Note, Search), and keyboard shortcut hints (Ctrl+K, Ctrl+B). All 159 frontend tests pass (2026-03-22)
 43. ~~WikiLink Suggestions Path~~ -- Wiki-link autocomplete dropdown now shows each note's folder path alongside the title (e.g. "Design Doc projects/work") to help disambiguate notes with similar names. All 159 frontend tests pass (2026-03-22)
 44. ~~Notification Detail~~ -- Notification items now show relative time ("2m ago", "1h ago") and the associated note title below the message, giving more context at a glance. All 159 frontend tests pass (2026-03-22)
+45. ~~Theme-Aware Code Blocks~~ -- Code block and inline code colors now use CSS variables (`--color-code-bg`, `--color-code-text`, `--color-code-inline-bg`) defined per theme instead of hardcoded hex values. Collaboration cursor colors also theme-aware. All 8 themes updated. All 159 frontend tests pass (2026-03-22)
 
 ---
 
-Last Updated: 2026-03-22 (Notification relative time + note title, all 159 frontend tests pass)
+Last Updated: 2026-03-22 (Theme-aware code blocks + collaboration cursors, all 159 frontend tests pass)

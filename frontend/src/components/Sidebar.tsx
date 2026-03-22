@@ -29,7 +29,6 @@ import { useAutomationEvents } from '../hooks/useAutomationEvents';
 import { BacklinksPanel } from './BacklinksPanel';
 import type { TreeNode, NoteMetadata } from '../types';
 import {
-  getTree,
   toggleFavorite,
   getFavorites,
   moveNote,
@@ -39,6 +38,50 @@ import {
   permanentDeleteNote,
   type TrashedNote,
 } from '../api';
+
+// Build file tree locally from note paths (avoids API round-trip)
+function buildTreeFromPaths(notes: NoteMetadata[]): TreeNode[] {
+  const root: Record<string, TreeNode> = {};
+  for (const note of notes) {
+    const parts = note.path.replace(/\.md$/, '').split('/');
+    let current = root;
+    for (let i = 0; i < parts.length; i++) {
+      const part = parts[i];
+      if (i === parts.length - 1) {
+        // Leaf node (file)
+        current[part] = { name: `${part}.md` };
+      } else {
+        // Directory node
+        if (!current[part]) {
+          current[part] = { name: part, children: [] };
+        }
+        if (!current[part].children) {
+          current[part].children = [];
+        }
+        // Move into children
+        const childMap: Record<string, TreeNode> = {};
+        for (const child of current[part].children!) {
+          childMap[child.name] = child;
+        }
+        current = childMap;
+      }
+    }
+  }
+  // Convert root map to array, merging directories
+  function toNodes(map: Record<string, TreeNode>): TreeNode[] {
+    return Object.values(map).map((node) => {
+      if (node.children) {
+        const merged: Record<string, TreeNode> = {};
+        for (const child of node.children) {
+          merged[child.name] = child;
+        }
+        return { name: node.name, children: toNodes(merged) };
+      }
+      return node;
+    });
+  }
+  return toNodes(root);
+}
 
 // Count files in a directory node (hoisted outside TreeItem to avoid recreation)
 function countFiles(n: TreeNode): number {
@@ -572,16 +615,11 @@ export function Sidebar() {
         openNoteByPath(decodeURIComponent(match[1]));
       }
     });
-    getTree()
-      .then(setTree)
-      .catch(() => {});
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Re-fetch tree whenever notes list changes (e.g. after create/delete/WS event)
+  // Build tree locally whenever notes list changes
   useEffect(() => {
-    getTree()
-      .then(setTree)
-      .catch(() => {});
+    setTree(buildTreeFromPaths(notes));
   }, [notes]);
 
   const handleNewNoteButtonClick = useCallback(() => {

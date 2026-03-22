@@ -241,7 +241,8 @@
 62. ~~Clipboard Error Handling~~ -- Added .catch() handlers to code block copy and path copy clipboard operations. Path copy now also awaits the promise before showing toast. All 159 frontend tests pass (2026-03-22)
 63. ~~Relative Timestamps in UserProfile~~ -- User profile recent activity and mutual work notes now show relative timestamps ("2h ago") instead of locale date strings, consistent with editor status bar and activity feed. All 159 frontend tests pass (2026-03-22)
 64. ~~Optimistic Drag-and-Drop Move~~ -- Sidebar drag-and-drop move now updates the local notes list using the moveNote API response instead of refetching all notes from the server. All 159 frontend tests pass (2026-03-22)
+65. ~~Local File Tree Construction~~ -- File tree now built locally from notes paths via buildTreeFromPaths() instead of calling getTree() API on every notes change. Eliminates an API round-trip on every create/delete/move operation. All 159 frontend tests pass (2026-03-22)
 
 ---
 
-Last Updated: 2026-03-22 (Optimistic drag-and-drop move, all 159 frontend tests pass)
+Last Updated: 2026-03-22 (Local file tree construction, all 159 frontend tests pass)

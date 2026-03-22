@@ -486,41 +486,31 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
       const { $from } = selection;
       if (!selection.empty) {
         setWikiSuggest(null);
+        setMentionSuggest(null);
         setEditorVersion((v) => v + 1);
         return;
       }
       const textBefore = $from.parent.textContent.slice(0, $from.parentOffset);
+
+      // Compute cursor anchor rect once for both dropdowns
+      const cursorPos = e.view.coordsAtPos($from.pos);
+      const anchorRect = new DOMRect(
+        cursorPos.left,
+        cursorPos.top,
+        0,
+        cursorPos.bottom - cursorPos.top,
+      );
+
       const triggerMatch = /\[\[([^\][\n]*)$/.exec(textBefore);
-      if (triggerMatch) {
-        // Get cursor coordinates for positioning the dropdown
-        const view = e.view;
-        const cursorPos = view.coordsAtPos($from.pos);
-        const anchorRect = new DOMRect(
-          cursorPos.left,
-          cursorPos.top,
-          0,
-          cursorPos.bottom - cursorPos.top,
-        );
-        setWikiSuggest({ query: triggerMatch[1], anchorRect });
-      } else {
-        setWikiSuggest(null);
-      }
+      setWikiSuggest(
+        triggerMatch ? { query: triggerMatch[1], anchorRect } : null,
+      );
 
       // @mention autocomplete: detect @ trigger
       const mentionMatch = /@([a-zA-Z0-9_.[-]]*)$/.exec(textBefore);
-      if (mentionMatch) {
-        const view = e.view;
-        const cursorPos = view.coordsAtPos($from.pos);
-        const anchorRect = new DOMRect(
-          cursorPos.left,
-          cursorPos.top,
-          0,
-          cursorPos.bottom - cursorPos.top,
-        );
-        setMentionSuggest({ query: mentionMatch[1], anchorRect });
-      } else {
-        setMentionSuggest(null);
-      }
+      setMentionSuggest(
+        mentionMatch ? { query: mentionMatch[1], anchorRect } : null,
+      );
 
       setEditorVersion((v) => v + 1);
     },

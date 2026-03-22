@@ -231,7 +231,8 @@
 52. ~~Optimistic Local Updates in Note Store~~ -- createNote, deleteNote, and updateNote (title) now update the notes list locally instead of calling fetchNotes() to refetch all notes from the server. Eliminates unnecessary round-trips after single-note operations. Updated test to match new behavior. All 159 frontend tests pass (2026-03-22)
 53. ~~Robust HTML Detection in Editor~~ -- setMarkdownContent previously only detected `<p>`, `<h>`, `<ul>`, `<ol>` as HTML. Content with `<blockquote>`, `<table>`, `<div>`, `<pre>`, `<img>` was misclassified as markdown. Now uses regex to detect any HTML tag. All 159 frontend tests pass (2026-03-22)
 54. ~~Toast Progress Bar~~ -- Toasts now show a color-coded progress bar at the bottom indicating time until auto-dismiss. Pauses when hovered. All 159 frontend tests pass (2026-03-22)
+55. ~~Editor Autocomplete Cleanup~~ -- Deduplicated anchor rect computation for wiki-link and mention suggestions. Now computes cursor position once and reuses for both dropdowns. Also clears mention suggestions on non-empty selection. All 159 frontend tests pass (2026-03-22)
 
 ---
 
-Last Updated: 2026-03-22 (Toast progress bar, all 159 frontend tests pass)
+Last Updated: 2026-03-22 (Editor autocomplete cleanup, all 159 frontend tests pass)

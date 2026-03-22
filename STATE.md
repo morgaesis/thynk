@@ -217,7 +217,8 @@
 38. ~~Sidebar Toggle Shortcut & Toast UX~~ -- Added Ctrl+B keyboard shortcut to toggle sidebar (standard in Obsidian/VS Code/Notion), configurable via settings. Toasts now pause auto-dismiss on hover (5s timer, visual scale feedback). 4 new frontend tests. All 157 frontend tests pass (2026-03-22)
 39. ~~Word Count & Presence Overflow~~ -- Added word/character count to editor status bar (computed from editor text on each update). Fixed presence indicator to show max 5 avatars with +N overflow badge and stacked ring style. 2 new frontend tests. All 159 frontend tests pass (2026-03-22)
 40. ~~Command Palette Create & Settings ESC Fix~~ -- Command palette now shows a "Create `<query>`" quick action at the top when typing a query, so users can create notes directly from search. Fixed duplicate ESC key handler bug in SettingsPage (two handlers were registered, causing double-fire). All 159 frontend tests pass (2026-03-22)
+41. ~~Sidebar Note Count & Collapse All~~ -- Added note count badge to sidebar header next to "Thynk" title. Added "Collapse all" button above the file tree to collapse all expanded folders at once using a collapseSignal propagation pattern. All 159 frontend tests pass (2026-03-22)
 
 ---
 
-Last Updated: 2026-03-22 (Command palette create action + Settings ESC fix, all 159 frontend tests pass)
+Last Updated: 2026-03-22 (Sidebar note count + collapse all button, all 159 frontend tests pass)

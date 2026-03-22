@@ -44,10 +44,12 @@ function TreeItem({
   node,
   path,
   level = 0,
+  collapseSignal,
 }: {
   node: TreeNode;
   path: string;
   level?: number;
+  collapseSignal?: number;
 }) {
   const [expanded, setExpanded] = useState(true);
   const isDir = node.children !== undefined;
@@ -62,6 +64,13 @@ function TreeItem({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [favoriting, setFavoriting] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+
+  // Collapse when signal changes
+  useEffect(() => {
+    if (collapseSignal !== undefined && collapseSignal > 0) {
+      setExpanded(false);
+    }
+  }, [collapseSignal]);
 
   if (isDir) {
     return (
@@ -89,6 +98,7 @@ function TreeItem({
                 node={child}
                 path={path ? `${path}/${child.name}` : child.name}
                 level={level + 1}
+                collapseSignal={collapseSignal}
               />
             ))}
           </ul>
@@ -519,6 +529,7 @@ export function Sidebar() {
     null,
   );
   const [activeTag, setActiveTag] = useState<string | null>(null);
+  const [collapseSignal, setCollapseSignal] = useState(0);
 
   useEffect(() => {
     fetchNotes().then(() => {
@@ -608,6 +619,9 @@ export function Sidebar() {
         <div className="flex items-center justify-between px-4 py-3 border-b border-border dark:border-border-dark">
           <span className="text-sm font-semibold text-text dark:text-text-dark tracking-wide">
             Thynk
+            <span className="ml-1.5 text-xs font-normal text-text-muted dark:text-text-muted-dark">
+              {notes.length}
+            </span>
           </span>
           <div className="flex items-center gap-0.5">
             <ThemeToggle />
@@ -730,6 +744,20 @@ export function Sidebar() {
             <TagFilteredNotes notes={tagFilterNotes} tag={activeTag} />
           ) : (
             <div className="px-3">
+              {tree.length > 0 && (
+                <div className="flex items-center justify-between px-1 mb-1">
+                  <span className="text-xs font-semibold text-text-muted dark:text-text-muted-dark uppercase tracking-wider">
+                    Notes
+                  </span>
+                  <button
+                    onClick={() => setCollapseSignal((c) => c + 1)}
+                    className="text-[10px] text-text-muted dark:text-text-muted-dark hover:text-text dark:hover:text-text-dark transition-colors"
+                    title="Collapse all folders"
+                  >
+                    Collapse all
+                  </button>
+                </div>
+              )}
               {loading && notes.length === 0 && (
                 <p className="text-xs text-text-muted dark:text-text-muted-dark px-3 py-4">
                   Loading…
@@ -743,6 +771,7 @@ export function Sidebar() {
                       node={node}
                       path={node.name}
                       level={0}
+                      collapseSignal={collapseSignal}
                     />
                   ))}
                 </ul>

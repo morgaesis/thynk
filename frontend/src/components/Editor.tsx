@@ -836,6 +836,7 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
             onFocus={handleTitleFocus}
             onBlur={handleTitleBlur}
             onKeyDown={handleTitleKeyDown}
+            spellCheck={false}
             className="w-full text-3xl font-bold bg-transparent border-none outline-none
                      text-text dark:text-text-dark placeholder:text-text-muted
                      dark:placeholder:text-text-muted-dark mb-6"

@@ -532,30 +532,28 @@ export function Sidebar() {
   const createNote = useNoteStore((s) => s.createNote);
   const activeNote = useNoteStore((s) => s.activeNote);
   const sidebarOpen = useUIStore((s) => s.sidebarOpen);
+  const activeNote = useNoteStore((s) => s.activeNote);
   const toggleSidebar = useUIStore((s) => s.toggleSidebar);
-  const setShowGraph = useUIStore((s) => s.setShowGraph);
-  const setSettingsOpen = useUIStore((s) => s.setSettingsOpen);
-  const authUser = useAuthStore((s) => s.user);
-  const automationEvents = useAutomationEvents();
 
-  const [tree, setTree] = useState<TreeNode[]>([]);
-  const [showNewNote, setShowNewNote] = useState(false);
-  const [newNotePath, setNewNotePath] = useState('');
-  const [showTemplateSelector, setShowTemplateSelector] = useState(false);
-  const [showCalendar, setShowCalendar] = useState(false);
-  // Tag filter state: when a tag is selected, replace the file tree with filtered notes.
-  const [tagFilterNotes, setTagFilterNotes] = useState<NoteMetadata[] | null>(
-    null,
-  );
-  const [activeTag, setActiveTag] = useState<string | null>(null);
-  const [collapseSignal, setCollapseSignal] = useState(0);
-
-  useEffect(() => {
-    fetchNotes().then(() => {
-      const match = window.location.pathname.match(/^\/notes\/(.+)$/);
-      if (match) {
-        openNoteByPath(decodeURIComponent(match[1]));
-      }
+  if (!sidebarOpen) {
+    const noteInitial = activeNote?.title?.charAt(0)?.toUpperCase() || 'T';
+    return (
+      <button
+        onClick={toggleSidebar}
+        className="fixed top-3 left-3 z-10 p-2 rounded-lg
+                   bg-sidebar dark:bg-sidebar-dark
+                   border border-border dark:border-border-dark
+                   hover:bg-border dark:hover:bg-border-dark transition-colors
+                   flex items-center gap-1.5"
+        title={`Open sidebar · ${activeNote?.title || 'No note'}`}
+      >
+        <span className="w-6 h-6 rounded bg-accent/10 flex items-center justify-center text-xs font-semibold text-accent">
+          {noteInitial}
+        </span>
+        <VscChevronRight size={14} className="text-text-muted dark:text-text-muted-dark" />
+      </button>
+    );
+  }
     });
     getTree()
       .then(setTree)

@@ -570,6 +570,9 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
 
       // Clear the buffer after loading (it's now in the editor)
       contentBuffer.clearBuffer(activeNote.id);
+
+      // Auto-focus editor when note is opened
+      editor.commands.focus('end');
     }
   }, [editor, activeNote?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 

@@ -289,6 +289,7 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
   const fontSize = useSettingsStore((s) => s.fontSize);
   const lineHeight = useSettingsStore((s) => s.lineHeight);
   const [vimMode, setVimMode] = useState<VimMode>('normal');
+  const [justSaved, setJustSaved] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const bufferDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const titleRef = useRef<HTMLInputElement>(null);
@@ -537,6 +538,17 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
     }, 0);
     return () => clearTimeout(id);
   }, [activeNote?.id, vimModeEnabled]);
+
+  // Flash green on save complete
+  const prevSavingRef = useRef(saving);
+  useEffect(() => {
+    if (prevSavingRef.current && !saving) {
+      setJustSaved(true);
+      const timer = setTimeout(() => setJustSaved(false), 1000);
+      return () => clearTimeout(timer);
+    }
+    prevSavingRef.current = saving;
+  }, [saving]);
 
   // Sync editor content when active note changes
   useEffect(() => {
@@ -795,7 +807,15 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
 
           {/* Status bar */}
           <div className="flex items-center gap-3 mb-4 text-xs text-text-muted dark:text-text-muted-dark">
-            {saving ? <span>Saving…</span> : <span>Saved</span>}
+            {saving ? (
+              <span>Saving…</span>
+            ) : (
+              <span
+                className={`transition-colors duration-300 ${justSaved ? 'text-green-500' : ''}`}
+              >
+                Saved
+              </span>
+            )}
             <span>·</span>
             <span className="tabular-nums">
               {new Date(activeNote.updated_at).toLocaleString()}

@@ -230,7 +230,8 @@
 51. ~~O(1) Note Lookup in File Tree~~ -- TreeItem previously called notes.find() (O(n)) on every render for every file node. Built a useMemo Map in Sidebar for O(1) path-to-note lookup, passed as prop through the tree. All 159 frontend tests pass (2026-03-22)
 52. ~~Optimistic Local Updates in Note Store~~ -- createNote, deleteNote, and updateNote (title) now update the notes list locally instead of calling fetchNotes() to refetch all notes from the server. Eliminates unnecessary round-trips after single-note operations. Updated test to match new behavior. All 159 frontend tests pass (2026-03-22)
 53. ~~Robust HTML Detection in Editor~~ -- setMarkdownContent previously only detected `<p>`, `<h>`, `<ul>`, `<ol>` as HTML. Content with `<blockquote>`, `<table>`, `<div>`, `<pre>`, `<img>` was misclassified as markdown. Now uses regex to detect any HTML tag. All 159 frontend tests pass (2026-03-22)
+54. ~~Toast Progress Bar~~ -- Toasts now show a color-coded progress bar at the bottom indicating time until auto-dismiss. Pauses when hovered. All 159 frontend tests pass (2026-03-22)
 
 ---
 
-Last Updated: 2026-03-22 (Robust HTML detection in editor, all 159 frontend tests pass)
+Last Updated: 2026-03-22 (Toast progress bar, all 159 frontend tests pass)

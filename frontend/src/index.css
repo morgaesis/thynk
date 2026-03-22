@@ -607,3 +607,21 @@ body {
   white-space: nowrap;
   z-index: 10;
 }
+
+/* Toast progress bar animation */
+@keyframes toast-progress-shrink {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
+}
+.toast-progress {
+  width: 100%;
+  animation: toast-progress-shrink linear forwards;
+}
+.toast-progress-paused {
+  animation: toast-progress-shrink linear forwards;
+  animation-play-state: paused;
+}

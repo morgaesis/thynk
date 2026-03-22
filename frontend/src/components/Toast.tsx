@@ -76,11 +76,17 @@ function ToastItem({
     info: 'bg-accent/10 border-accent/30 text-accent',
   };
 
+  const barColors = {
+    success: 'bg-green-500',
+    error: 'bg-red-500',
+    info: 'bg-accent',
+  };
+
   return (
     <div
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      className={`flex items-center gap-3 px-4 py-3 rounded-lg border shadow-lg
+      className={`relative flex items-center gap-3 px-4 py-3 rounded-lg border shadow-lg
                   pointer-events-auto max-w-sm text-sm transition-all duration-200
                   ${paused ? 'scale-[1.02]' : ''}
                   bg-surface dark:bg-surface-dark
@@ -94,6 +100,11 @@ function ToastItem({
       >
         <VscClose size={14} />
       </button>
+      {/* Progress bar */}
+      <div
+        className={`absolute bottom-0 left-0 h-0.5 rounded-b-lg ${barColors[toast.type]} ${paused ? 'toast-progress-paused' : 'toast-progress'}`}
+        style={{ animationDuration: `${DISMISS_MS}ms` }}
+      />
     </div>
   );
 }

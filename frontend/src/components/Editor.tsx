@@ -717,13 +717,18 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
           const codeContent =
             node?.type.name === 'codeBlock' ? node.textContent : '';
           if (codeContent) {
-            navigator.clipboard.writeText(codeContent).then(() => {
-              addToast('success', 'Code copied to clipboard');
-              copyButton.classList.add('copied');
-              setTimeout(() => {
-                copyButton.classList.remove('copied');
-              }, 2000);
-            });
+            navigator.clipboard
+              .writeText(codeContent)
+              .then(() => {
+                addToast('success', 'Code copied to clipboard');
+                copyButton.classList.add('copied');
+                setTimeout(() => {
+                  copyButton.classList.remove('copied');
+                }, 2000);
+              })
+              .catch(() => {
+                addToast('error', 'Failed to copy code');
+              });
           }
         }
       }
@@ -933,8 +938,14 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
             <span className="ml-auto flex items-center gap-2">
               <button
                 onClick={() => {
-                  navigator.clipboard.writeText(activeNote.path);
-                  addToast('success', 'Path copied');
+                  navigator.clipboard
+                    .writeText(activeNote.path)
+                    .then(() => {
+                      addToast('success', 'Path copied');
+                    })
+                    .catch(() => {
+                      addToast('error', 'Failed to copy path');
+                    });
                 }}
                 title="Click to copy path"
                 className="font-mono text-text-muted dark:text-text-muted-dark hover:text-text dark:hover:text-text-dark transition-colors truncate max-w-[200px]"

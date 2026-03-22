@@ -91,6 +91,15 @@ function App() {
         e.preventDefault();
         focusTitleRef.current?.();
       } else if (pressed === boundKey('toggle-sidebar')) {
+        // Don't intercept Ctrl+B when inside editor or input fields
+        const target = e.target as HTMLElement;
+        if (
+          target.isContentEditable ||
+          target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA'
+        ) {
+          return;
+        }
         e.preventDefault();
         toggleSidebar();
       }

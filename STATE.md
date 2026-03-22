@@ -227,7 +227,8 @@
 48. ~~Consolidate Relative Time Utility~~ -- ActivityFeed had a duplicate formatTimestamp function. Consolidated into shared relativeTime utility with optional maxDays parameter for date-fallback display. All 159 frontend tests pass (2026-03-22)
 49. ~~Theme-Aware Graph & Syntax Highlighting~~ -- GraphView link/arrow colors now read from --color-accent CSS variable instead of hardcoded #6366f1. Syntax highlighting colors converted to CSS variables (--color-hl-keyword, --color-hl-string, etc.) defined per theme. Code block fence markers, language labels, and copy button also theme-aware. Removed stale .dark class selector. All 159 frontend tests pass (2026-03-22)
 50. ~~Editor & Sidebar Performance~~ -- Word count now computed in onUpdate callback and stored in state instead of running editor.getText() via IIFE on every render. Sidebar countFiles function hoisted outside TreeItem to avoid recreation on each render. All 159 frontend tests pass (2026-03-22)
+51. ~~O(1) Note Lookup in File Tree~~ -- TreeItem previously called notes.find() (O(n)) on every render for every file node. Built a useMemo Map in Sidebar for O(1) path-to-note lookup, passed as prop through the tree. All 159 frontend tests pass (2026-03-22)
 
 ---
 
-Last Updated: 2026-03-22 (Editor/sidebar performance optimizations, all 159 frontend tests pass)
+Last Updated: 2026-03-22 (O(1) note lookup in file tree, all 159 frontend tests pass)

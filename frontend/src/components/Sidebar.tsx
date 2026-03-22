@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useState } from 'react';
+import { useEffect, useCallback, useState, useMemo } from 'react';
 import {
   VscNewFile,
   VscFile,
@@ -51,15 +51,16 @@ function TreeItem({
   path,
   level = 0,
   collapseSignal,
+  notesByPath,
 }: {
   node: TreeNode;
   path: string;
   level?: number;
   collapseSignal?: number;
+  notesByPath: Map<string, NoteMetadata>;
 }) {
   const [expanded, setExpanded] = useState(true);
   const isDir = node.children !== undefined;
-  const notes = useNoteStore((s) => s.notes);
   const activeNote = useNoteStore((s) => s.activeNote);
   const openNoteByPath = useNoteStore((s) => s.openNoteByPath);
   const deleteNote = useNoteStore((s) => s.deleteNote);
@@ -108,6 +109,7 @@ function TreeItem({
                 path={path ? `${path}/${child.name}` : child.name}
                 level={level + 1}
                 collapseSignal={collapseSignal}
+                notesByPath={notesByPath}
               />
             ))}
           </ul>
@@ -117,7 +119,7 @@ function TreeItem({
   }
 
   // File node
-  const noteMeta = notes.find((n) => n.path === path);
+  const noteMeta = notesByPath.get(path);
   const isActive = activeNote?.path === path;
   const isFavorited = noteMeta?.favorited ?? false;
 
@@ -549,6 +551,13 @@ export function Sidebar() {
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [collapseSignal, setCollapseSignal] = useState(0);
 
+  // Build O(1) lookup Map for tree items
+  const notesByPath = useMemo(() => {
+    const map = new Map<string, NoteMetadata>();
+    for (const n of notes) map.set(n.path, n);
+    return map;
+  }, [notes]);
+
   useEffect(() => {
     fetchNotes().then(() => {
       const match = window.location.pathname.match(/^\/notes\/(.+)$/);
@@ -797,6 +806,7 @@ export function Sidebar() {
                       path={node.name}
                       level={0}
                       collapseSignal={collapseSignal}
+                      notesByPath={notesByPath}
                     />
                   ))}
                 </ul>

@@ -282,6 +282,7 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
   const activeNote = useNoteStore((s) => s.activeNote);
   const updateNote = useNoteStore((s) => s.updateNote);
   const saving = useNoteStore((s) => s.saving);
+  const loading = useNoteStore((s) => s.loading);
   const addToast = useUIStore((s) => s.addToast);
   const authUser = useAuthStore((s) => s.user);
   const vimModeEnabled = useSettingsStore((s) => s.vimMode);
@@ -691,6 +692,19 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
     },
     [editor, mentionSuggest],
   );
+
+  if (loading && !activeNote) {
+    return (
+      <div className="flex-1 flex items-center justify-center bg-surface dark:bg-surface-dark">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-sm text-text-muted dark:text-text-muted-dark">
+            Loading note…
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (!activeNote) {
     return (

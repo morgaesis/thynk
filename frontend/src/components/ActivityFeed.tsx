@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { VscHistory } from 'react-icons/vsc';
 import { useAuthStore } from '../stores/authStore';
+import { useNoteStore } from '../stores/noteStore';
 import { getAuditLog, type AuditEntry } from '../api';
 
 function formatTimestamp(timestamp: string): string {
@@ -49,6 +50,7 @@ export function ActivityFeed() {
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(false);
   const user = useAuthStore((s) => s.user);
+  const notes = useNoteStore((s) => s.notes);
 
   const fetchActivities = useCallback(async () => {
     if (!user) return;
@@ -95,22 +97,27 @@ export function ActivityFeed() {
             </div>
           ) : (
             <ul>
-              {activities.map((entry) => (
-                <li
-                  key={entry.id}
-                  className="px-3 py-2 text-xs text-text-muted dark:text-text-muted-dark"
-                >
-                  <span className={getActionColor(entry.action)}>
-                    {getActionLabel(entry.action)}
-                  </span>{' '}
-                  <span className="text-text dark:text-text-dark">
-                    {entry.note_id}
-                  </span>
-                  <span className="ml-2 opacity-60">
-                    {formatTimestamp(entry.timestamp)}
-                  </span>
-                </li>
-              ))}
+              {activities.map((entry) => {
+                const noteTitle =
+                  notes.find((n) => n.id === entry.note_id)?.title ??
+                  entry.note_id;
+                return (
+                  <li
+                    key={entry.id}
+                    className="px-3 py-2 text-xs text-text-muted dark:text-text-muted-dark"
+                  >
+                    <span className={getActionColor(entry.action)}>
+                      {getActionLabel(entry.action)}
+                    </span>{' '}
+                    <span className="text-text dark:text-text-dark truncate">
+                      {noteTitle}
+                    </span>
+                    <span className="ml-2 opacity-60 shrink-0">
+                      {formatTimestamp(entry.timestamp)}
+                    </span>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>

@@ -348,26 +348,36 @@ function RecentNotesSection() {
       </button>
       {expanded && (
         <ul className="space-y-0.5 px-3 mb-2">
-          {recentNotes.map((n) => (
-            <li key={n.id}>
-              <button
-                onClick={() => {
-                  setShowGraph(false);
-                  void openNote(n.id);
-                }}
-                className={`flex items-center gap-2 w-full px-2 py-1.5 text-sm rounded-md
-                  transition-colors text-left
-                  ${
-                    activeNote?.id === n.id
-                      ? 'bg-accent/10 text-accent dark:text-accent'
-                      : 'text-text dark:text-text-dark hover:bg-border dark:hover:bg-border-dark'
-                  }`}
-              >
-                <VscFile size={12} className="shrink-0" />
-                <span className="truncate">{n.title}</span>
-              </button>
-            </li>
-          ))}
+          {recentNotes.map((n) => {
+            const folder = n.path.includes('/')
+              ? n.path.split('/').slice(0, -1).join('/')
+              : '';
+            return (
+              <li key={n.id}>
+                <button
+                  onClick={() => {
+                    setShowGraph(false);
+                    void openNote(n.id);
+                  }}
+                  className={`flex items-center gap-2 w-full px-2 py-1.5 text-sm rounded-md
+                      transition-colors text-left
+                      ${
+                        activeNote?.id === n.id
+                          ? 'bg-accent/10 text-accent dark:text-accent'
+                          : 'text-text dark:text-text-dark hover:bg-border dark:hover:bg-border-dark'
+                      }`}
+                >
+                  <VscFile size={12} className="shrink-0" />
+                  <span className="truncate">{n.title}</span>
+                  {folder && (
+                    <span className="ml-auto text-[10px] text-text-muted dark:text-text-muted-dark opacity-50 truncate shrink-0">
+                      {folder}
+                    </span>
+                  )}
+                </button>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>

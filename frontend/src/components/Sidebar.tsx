@@ -42,6 +42,8 @@ import {
 // Build file tree locally from note paths (avoids API round-trip)
 function buildTreeFromPaths(notes: NoteMetadata[]): TreeNode[] {
   const root: TreeNode[] = [];
+  const childMap = new Map<TreeNode[], Map<string, TreeNode>>();
+  childMap.set(root, new Map());
 
   for (const note of notes) {
     const parts = note.path.replace(/\.md$/, '').split('/');
@@ -49,7 +51,12 @@ function buildTreeFromPaths(notes: NoteMetadata[]): TreeNode[] {
 
     for (let i = 0; i < parts.length; i++) {
       const isLeaf = i === parts.length - 1;
-      const existing = children.find((n) => n.name === parts[i]);
+      let map = childMap.get(children);
+      if (!map) {
+        map = new Map();
+        childMap.set(children, map);
+      }
+      let existing = map.get(parts[i]);
 
       if (existing) {
         if (!isLeaf) {
@@ -58,10 +65,13 @@ function buildTreeFromPaths(notes: NoteMetadata[]): TreeNode[] {
         }
       } else {
         if (isLeaf) {
-          children.push({ name: `${parts[i]}.md` });
+          const node: TreeNode = { name: `${parts[i]}.md` };
+          children.push(node);
+          map.set(parts[i], node);
         } else {
           const dir: TreeNode = { name: parts[i], children: [] };
           children.push(dir);
+          map.set(parts[i], dir);
           children = dir.children;
         }
       }

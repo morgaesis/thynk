@@ -65,6 +65,12 @@ function TreeItem({
   const [favoriting, setFavoriting] = useState(false);
   const [dragOver, setDragOver] = useState(false);
 
+  // Count files in a directory node
+  function countFiles(n: TreeNode): number {
+    if (!n.children) return 1;
+    return n.children.reduce((sum, c) => sum + countFiles(c), 0);
+  }
+
   // Collapse when signal changes
   useEffect(() => {
     if (collapseSignal !== undefined && collapseSignal > 0) {
@@ -89,6 +95,9 @@ function TreeItem({
           )}
           <VscFolder size={13} className="shrink-0" />
           <span className="truncate">{node.name}</span>
+          <span className="ml-auto text-[10px] text-text-muted dark:text-text-muted-dark opacity-60">
+            {countFiles(node)}
+          </span>
         </button>
         {expanded && (
           <ul>

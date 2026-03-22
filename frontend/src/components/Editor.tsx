@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback, useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
+import { VscAdd, VscSearch, VscEdit } from 'react-icons/vsc';
 import {
   useEditor,
   EditorContent,
@@ -694,21 +695,57 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
   if (!activeNote) {
     return (
       <div className="flex-1 flex items-center justify-center bg-surface dark:bg-surface-dark">
-        <div className="text-center">
-          <p className="text-lg text-text-muted dark:text-text-muted-dark">
-            Select a note or create a new one
+        <div className="text-center max-w-sm">
+          <div className="mb-4 flex justify-center">
+            <div className="w-16 h-16 rounded-2xl bg-border dark:bg-border-dark flex items-center justify-center">
+              <VscEdit
+                size={28}
+                className="text-text-muted dark:text-text-muted-dark"
+              />
+            </div>
+          </div>
+          <p className="text-lg font-medium text-text dark:text-text-dark mb-1">
+            Welcome to Thynk
           </p>
-          <p className="text-sm text-text-muted dark:text-text-muted-dark mt-2">
-            Press{' '}
-            <kbd className="px-1.5 py-0.5 rounded bg-border dark:bg-border-dark text-xs">
-              Ctrl+Shift+N
-            </kbd>{' '}
-            to create a note or{' '}
-            <kbd className="px-1.5 py-0.5 rounded bg-border dark:bg-border-dark text-xs">
-              Ctrl+K
-            </kbd>{' '}
-            to search
+          <p className="text-sm text-text-muted dark:text-text-muted-dark mb-6">
+            Your thoughts, organized. Pick a note or start fresh.
           </p>
+          <div className="flex items-center justify-center gap-3">
+            <button
+              onClick={() => {
+                const title = `Untitled ${new Date().toISOString().slice(0, 10)}`;
+                useNoteStore.getState().createNote(title);
+              }}
+              className="flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg
+                         bg-accent text-white hover:bg-accent-hover transition-colors"
+            >
+              <VscAdd size={14} />
+              New Note
+            </button>
+            <button
+              onClick={() => useUIStore.getState().toggleCommandPalette()}
+              className="flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg
+                         bg-border dark:bg-border-dark text-text dark:text-text-dark
+                         hover:bg-border-dark dark:hover:bg-border transition-colors"
+            >
+              <VscSearch size={14} />
+              Search
+            </button>
+          </div>
+          <div className="mt-6 flex items-center justify-center gap-4 text-xs text-text-muted dark:text-text-muted-dark">
+            <span>
+              <kbd className="px-1.5 py-0.5 rounded bg-border dark:bg-border-dark text-[10px]">
+                Ctrl+K
+              </kbd>{' '}
+              Search
+            </span>
+            <span>
+              <kbd className="px-1.5 py-0.5 rounded bg-border dark:bg-border-dark text-[10px]">
+                Ctrl+B
+              </kbd>{' '}
+              Sidebar
+            </span>
+          </div>
         </div>
       </div>
     );

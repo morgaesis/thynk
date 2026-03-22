@@ -218,7 +218,8 @@
 39. ~~Word Count & Presence Overflow~~ -- Added word/character count to editor status bar (computed from editor text on each update). Fixed presence indicator to show max 5 avatars with +N overflow badge and stacked ring style. 2 new frontend tests. All 159 frontend tests pass (2026-03-22)
 40. ~~Command Palette Create & Settings ESC Fix~~ -- Command palette now shows a "Create `<query>`" quick action at the top when typing a query, so users can create notes directly from search. Fixed duplicate ESC key handler bug in SettingsPage (two handlers were registered, causing double-fire). All 159 frontend tests pass (2026-03-22)
 41. ~~Sidebar Note Count & Collapse All~~ -- Added note count badge to sidebar header next to "Thynk" title. Added "Collapse all" button above the file tree to collapse all expanded folders at once using a collapseSignal propagation pattern. All 159 frontend tests pass (2026-03-22)
+42. ~~Editor Empty State~~ -- Replaced plain text empty state with a polished welcome screen: document icon, "Welcome to Thynk" heading, descriptive subtitle, quick action buttons (New Note, Search), and keyboard shortcut hints (Ctrl+K, Ctrl+B). All 159 frontend tests pass (2026-03-22)
 
 ---
 
-Last Updated: 2026-03-22 (Sidebar note count + collapse all button, all 159 frontend tests pass)
+Last Updated: 2026-03-22 (Editor empty state redesign, all 159 frontend tests pass)

@@ -310,6 +310,7 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
   });
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const bufferDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastDocVersionRef = useRef(0);
   const titleRef = useRef<HTMLInputElement>(null);
   const activeNoteRef = useRef(activeNote);
   const editorRef = useRef<TipTapEditor | null>(null);
@@ -457,9 +458,50 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
           'prose dark:prose-invert max-w-none focus:outline-none min-h-[300px]',
       },
     },
-    onUpdate: ({ editor: e }) => {
+    onUpdate: ({ editor: e, transaction }) => {
       const note = activeNoteRef.current;
       if (!note) return;
+
+      // Skip HTML serialization and save if only selection changed (not content)
+      const docVersion = transaction.doc.version;
+      if (docVersion === lastDocVersionRef.current) {
+        // Still update autocomplete and editor version on selection changes
+        const { state } = e;
+        const { selection } = state;
+        const { $from } = selection;
+        if (selection.empty) {
+          const textBefore = $from.parent.textContent.slice(
+            0,
+            $from.parentOffset,
+          );
+          const triggerMatch = /\[\[([^\][\n]*)$/.exec(textBefore);
+          const mentionMatch = /@([a-zA-Z0-9_.[-]]*)$/.exec(textBefore);
+          if (triggerMatch || mentionMatch) {
+            const cursorPos = e.view.coordsAtPos($from.pos);
+            const anchorRect = new DOMRect(
+              cursorPos.left,
+              cursorPos.top,
+              0,
+              cursorPos.bottom - cursorPos.top,
+            );
+            setWikiSuggest(
+              triggerMatch ? { query: triggerMatch[1], anchorRect } : null,
+            );
+            setMentionSuggest(
+              mentionMatch ? { query: mentionMatch[1], anchorRect } : null,
+            );
+          } else {
+            setWikiSuggest(null);
+            setMentionSuggest(null);
+          }
+        } else {
+          setWikiSuggest(null);
+          setMentionSuggest(null);
+        }
+        setEditorVersion((v) => v + 1);
+        return;
+      }
+      lastDocVersionRef.current = docVersion;
 
       // Save to local buffer immediately (short debounce to avoid excessive writes)
       const currentContent = getHTML(e);

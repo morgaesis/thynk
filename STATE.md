@@ -235,7 +235,8 @@
 56. ~~O(1) Code Block Copy~~ -- Code block copy handler previously iterated all doc nodes via forEach to find the block at a known position. Now uses doc.nodeAt(pos) for O(1) lookup. All 159 frontend tests pass (2026-03-22)
 57. ~~New Keyboard Shortcuts~~ -- Added Ctrl+G to toggle graph view and Ctrl+, to open settings. Both configurable via Settings > Keyboard shortcuts. All 159 frontend tests pass (2026-03-22)
 58. ~~Disable Spellcheck on Title~~ -- Note title input now has spellCheck={false} since titles are often filenames/technical terms where browser spellcheck red squiggles are unhelpful. All 159 frontend tests pass (2026-03-22)
+59. ~~Skip Serialization on Selection-Only Changes~~ -- Editor onUpdate now tracks document version to skip getHTML() serialization and buffer save when only the selection moved (not the content). Autocomplete still triggers on selection changes. Also disabled spellcheck on sidebar new note input. All 159 frontend tests pass (2026-03-22)
 
 ---
 
-Last Updated: 2026-03-22 (Disable spellcheck on title, all 159 frontend tests pass)
+Last Updated: 2026-03-22 (Skip serialization on selection-only changes, all 159 frontend tests pass)

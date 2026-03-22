@@ -738,6 +738,7 @@ export function Sidebar() {
               onKeyDown={handleNewNoteKeyDown}
               onBlur={handleNewNoteBlur}
               placeholder="filename or path/to/note"
+              spellCheck={false}
               className="w-full px-2 py-1 text-sm rounded-md border border-accent
                          bg-surface dark:bg-surface-dark
                          text-text dark:text-text-dark

@@ -829,9 +829,19 @@ export function Sidebar() {
           {/* User info + settings + logout */}
           {authUser && (
             <div className="flex items-center justify-between">
-              <span className="text-xs text-text-muted dark:text-text-muted-dark truncate max-w-[110px]">
-                {authUser.display_name ?? authUser.username}
-              </span>
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-6 h-6 rounded-full bg-accent flex items-center justify-center text-white text-[10px] font-semibold shrink-0">
+                  {(authUser.display_name ?? authUser.username)
+                    .split(' ')
+                    .map((w) => w[0])
+                    .join('')
+                    .toUpperCase()
+                    .slice(0, 2)}
+                </div>
+                <span className="text-xs text-text-muted dark:text-text-muted-dark truncate">
+                  {authUser.display_name ?? authUser.username}
+                </span>
+              </div>
               <div className="flex items-center gap-0.5">
                 <button
                   onClick={() => setSettingsOpen(true)}

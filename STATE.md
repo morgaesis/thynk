@@ -249,7 +249,8 @@
 70. ~~Remove Dead Code~~ -- Removed unused useContentBuffer hook function (only the contentBuffer singleton is used). All 159 frontend tests pass (2026-03-22)
 71. ~~Theme-Aware Table Selection~~ -- Table selected cell overlay now uses color-mix with --color-accent instead of hardcoded rgba(99, 102, 241, 0.25). All 159 frontend tests pass (2026-03-22)
 72. ~~Single API Call for Force Save~~ -- forceSave now combines content and title updates into a single updateNote call instead of making two separate API calls when both changed. All 159 frontend tests pass (2026-03-22)
+73. ~~Relative Timestamps in Automation Log~~ -- Automation events now show relative timestamps ("2m ago") so users can see how recently automations ran. All 159 frontend tests pass (2026-03-22)
 
 ---
 
-Last Updated: 2026-03-22 (Single API call for force save, all 159 frontend tests pass)
+Last Updated: 2026-03-22 (Relative timestamps in automation log, all 159 frontend tests pass)

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { VscSymbolEvent } from 'react-icons/vsc';
+import { relativeTime } from '../utils/relativeTime';
 
 export interface AutomationEvent {
   id: string;
@@ -53,6 +54,9 @@ export function AutomationLog({ events }: Props) {
                   {ev.title}
                 </span>{' '}
                 → {ev.status}
+                <span className="ml-1 text-[10px] text-text-muted dark:text-text-muted-dark">
+                  {relativeTime(new Date(ev.timestamp).toISOString())}
+                </span>
               </span>
             </li>
           ))}

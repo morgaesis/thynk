@@ -36,7 +36,7 @@ function ToastItem({
 }) {
   const [paused, setPaused] = useState(false);
   const remainingRef = useRef(DISMISS_MS);
-  const startRef = useRef(Date.now());
+  const startRef = useRef(0);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const scheduleDismiss = useCallback(() => {

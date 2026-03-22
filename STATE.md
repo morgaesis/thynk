@@ -233,7 +233,8 @@
 54. ~~Toast Progress Bar~~ -- Toasts now show a color-coded progress bar at the bottom indicating time until auto-dismiss. Pauses when hovered. All 159 frontend tests pass (2026-03-22)
 55. ~~Editor Autocomplete Cleanup~~ -- Deduplicated anchor rect computation for wiki-link and mention suggestions. Now computes cursor position once and reuses for both dropdowns. Also clears mention suggestions on non-empty selection. All 159 frontend tests pass (2026-03-22)
 56. ~~O(1) Code Block Copy~~ -- Code block copy handler previously iterated all doc nodes via forEach to find the block at a known position. Now uses doc.nodeAt(pos) for O(1) lookup. All 159 frontend tests pass (2026-03-22)
+57. ~~New Keyboard Shortcuts~~ -- Added Ctrl+G to toggle graph view and Ctrl+, to open settings. Both configurable via Settings > Keyboard shortcuts. All 159 frontend tests pass (2026-03-22)
 
 ---
 
-Last Updated: 2026-03-22 (O(1) code block copy, all 159 frontend tests pass)
+Last Updated: 2026-03-22 (Graph and settings keyboard shortcuts, all 159 frontend tests pass)

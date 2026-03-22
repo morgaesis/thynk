@@ -28,6 +28,8 @@ function App() {
 
   const settingsOpen = useUIStore((s) => s.settingsOpen);
   const setSettingsOpen = useUIStore((s) => s.setSettingsOpen);
+  const showGraph = useUIStore((s) => s.showGraph);
+  const setShowGraph = useUIStore((s) => s.setShowGraph);
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
   const isCalendarPage = currentPath === '/calendar';
 
@@ -106,6 +108,13 @@ function App() {
         }
         e.preventDefault();
         toggleSidebar();
+      } else if (pressed === boundKey('toggle-graph')) {
+        e.preventDefault();
+        setShowGraph(!showGraph);
+      } else if (pressed === boundKey('open-settings')) {
+        e.preventDefault();
+        setSettingsOpen(true);
+        window.history.pushState({}, '', '/settings');
       }
     }
     window.addEventListener('keydown', handleKeyDown);
@@ -117,6 +126,9 @@ function App() {
     activeNote,
     updateNote,
     shortcuts,
+    showGraph,
+    setShowGraph,
+    setSettingsOpen,
   ]);
 
   // WebSocket connection — auto-reconnects via ReconnectingWebSocket.

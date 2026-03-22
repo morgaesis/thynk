@@ -19,6 +19,8 @@ export const DEFAULT_SHORTCUTS: Record<string, ShortcutAction> = {
   save: { label: 'Save', defaultKey: 'Ctrl+S' },
   'focus-title': { label: 'Focus title', defaultKey: 'F2' },
   'toggle-sidebar': { label: 'Toggle sidebar', defaultKey: 'Ctrl+B' },
+  'toggle-graph': { label: 'Toggle graph view', defaultKey: 'Ctrl+G' },
+  'open-settings': { label: 'Open settings', defaultKey: 'Ctrl+,' },
 };
 
 export interface SettingsStore {

@@ -1,5 +1,10 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { VscSearch, VscLoading, VscSettingsGear } from 'react-icons/vsc';
+import {
+  VscSearch,
+  VscLoading,
+  VscSettingsGear,
+  VscAdd,
+} from 'react-icons/vsc';
 import type { NoteMetadata, SearchResult } from '../types';
 import { useUIStore } from '../stores/uiStore';
 import * as api from '../api';
@@ -7,25 +12,63 @@ import * as api from '../api';
 interface Props {
   notes: NoteMetadata[];
   onSelect: (id: string) => void;
+  onCreate: (title: string) => void;
   onClose: () => void;
 }
 
 const SETTINGS_ITEMS = [
-  { id: 'settings:theme', label: 'Settings: Color theme', subtitle: 'Change light/dark theme' },
-  { id: 'settings:font-size', label: 'Settings: Font size', subtitle: 'Editor font size in pixels' },
-  { id: 'settings:vim-mode', label: 'Settings: Vim mode', subtitle: 'Toggle vim keybindings' },
-  { id: 'settings:spell-check', label: 'Settings: Spell check', subtitle: 'Toggle spell check' },
-  { id: 'settings:line-height', label: 'Settings: Line height', subtitle: 'Editor line height' },
-  { id: 'settings:export', label: 'Settings: Export workspace', subtitle: 'Export all notes as ZIP' },
-  { id: 'settings:import', label: 'Settings: Import notes', subtitle: 'Import markdown or Obsidian vault' },
-  { id: 'settings:account', label: 'Settings: Account', subtitle: 'Username, display name, storage' },
+  {
+    id: 'settings:theme',
+    label: 'Settings: Color theme',
+    subtitle: 'Change light/dark theme',
+  },
+  {
+    id: 'settings:font-size',
+    label: 'Settings: Font size',
+    subtitle: 'Editor font size in pixels',
+  },
+  {
+    id: 'settings:vim-mode',
+    label: 'Settings: Vim mode',
+    subtitle: 'Toggle vim keybindings',
+  },
+  {
+    id: 'settings:spell-check',
+    label: 'Settings: Spell check',
+    subtitle: 'Toggle spell check',
+  },
+  {
+    id: 'settings:line-height',
+    label: 'Settings: Line height',
+    subtitle: 'Editor line height',
+  },
+  {
+    id: 'settings:export',
+    label: 'Settings: Export workspace',
+    subtitle: 'Export all notes as ZIP',
+  },
+  {
+    id: 'settings:import',
+    label: 'Settings: Import notes',
+    subtitle: 'Import markdown or Obsidian vault',
+  },
+  {
+    id: 'settings:account',
+    label: 'Settings: Account',
+    subtitle: 'Username, display name, storage',
+  },
 ];
 
 /**
  * Inner component for the command palette. Mounts fresh each time the palette
  * opens, so initial state is always reset without needing effects.
  */
-export function CommandPaletteInner({ notes, onSelect, onClose }: Props) {
+export function CommandPaletteInner({
+  notes,
+  onSelect,
+  onCreate,
+  onClose,
+}: Props) {
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
@@ -66,7 +109,9 @@ export function CommandPaletteInner({ notes, onSelect, onClose }: Props) {
   }, [query]);
 
   // Note items to display: search results when querying, all notes otherwise
-  const noteItems = useMemo<Array<{ id: string; title: string; subtitle: string }>>(
+  const noteItems = useMemo<
+    Array<{ id: string; title: string; subtitle: string }>
+  >(
     () =>
       query.trim()
         ? searchResults.map((r) => ({
@@ -88,21 +133,50 @@ export function CommandPaletteInner({ notes, onSelect, onClose }: Props) {
       query.trim()
         ? SETTINGS_ITEMS.filter((item) => {
             const q = query.toLowerCase();
-            return item.label.toLowerCase().includes(q) || item.subtitle.toLowerCase().includes(q);
+            return (
+              item.label.toLowerCase().includes(q) ||
+              item.subtitle.toLowerCase().includes(q)
+            );
           })
         : [],
     [query],
   );
 
-  const allItems = useMemo(() => [
-    ...noteItems.map((item) => ({ ...item, isSettings: false })),
-    ...filteredSettingsItems.map((item) => ({
-      id: item.id,
-      title: item.label,
-      subtitle: item.subtitle,
-      isSettings: true,
-    })),
-  ], [noteItems, filteredSettingsItems]);
+  // Show create-note action when there's a query
+  const showCreate = query.trim().length > 0;
+  const createTitle = query.trim();
+
+  const allItems = useMemo(() => {
+    const items: Array<{
+      id: string;
+      title: string;
+      subtitle: string;
+      isSettings: boolean;
+      isCreate: boolean;
+    }> = [];
+    if (showCreate) {
+      items.push({
+        id: '__create__',
+        title: `Create "${createTitle}"`,
+        subtitle: 'Create a new note with this title',
+        isSettings: false,
+        isCreate: true,
+      });
+    }
+    for (const item of noteItems) {
+      items.push({ ...item, isSettings: false, isCreate: false });
+    }
+    for (const item of filteredSettingsItems) {
+      items.push({
+        id: item.id,
+        title: item.label,
+        subtitle: item.subtitle,
+        isSettings: true,
+        isCreate: false,
+      });
+    }
+    return items;
+  }, [showCreate, createTitle, noteItems, filteredSettingsItems]);
 
   useEffect(() => {
     setSelectedIndex(0);
@@ -118,15 +192,17 @@ export function CommandPaletteInner({ notes, onSelect, onClose }: Props) {
   const setSettingsOpen = useUIStore((s) => s.setSettingsOpen);
 
   const handleSelect = useCallback(
-    (id: string, isSettings: boolean) => {
-      if (isSettings) {
+    (id: string, isSettings: boolean, isCreate: boolean) => {
+      if (isCreate) {
+        onCreate(createTitle);
+      } else if (isSettings) {
         setSettingsOpen(true);
         onClose();
       } else {
         onSelect(id);
       }
     },
-    [onSelect, onClose, setSettingsOpen],
+    [onSelect, onCreate, onClose, setSettingsOpen, createTitle],
   );
 
   const handleKeyDown = useCallback(
@@ -143,7 +219,11 @@ export function CommandPaletteInner({ notes, onSelect, onClose }: Props) {
         case 'Enter':
           e.preventDefault();
           if (allItems[selectedIndex]) {
-            handleSelect(allItems[selectedIndex].id, allItems[selectedIndex].isSettings);
+            handleSelect(
+              allItems[selectedIndex].id,
+              allItems[selectedIndex].isSettings,
+              allItems[selectedIndex].isCreate,
+            );
           }
           break;
         case 'Escape':
@@ -207,8 +287,34 @@ export function CommandPaletteInner({ notes, onSelect, onClose }: Props) {
         <div className="max-h-64 overflow-y-auto py-2">
           {allItems.length === 0 && !searching && (
             <div className="px-4 py-3 text-sm text-text-muted dark:text-text-muted-dark">
-              {query ? 'No matching notes found.' : 'No notes available.'}
+              No notes available.
             </div>
+          )}
+          {/* Create-note item */}
+          {showCreate && noteItems.length === 0 && !searching && (
+            <ul>
+              <li>
+                <button
+                  onClick={() => handleSelect('__create__', false, true)}
+                  className={`w-full text-left px-4 py-2 text-sm transition-colors flex items-center gap-2
+                    ${
+                      selectedIndex === 0
+                        ? 'bg-accent/10 text-accent'
+                        : 'text-text dark:text-text-dark hover:bg-border dark:hover:bg-border-dark'
+                    }`}
+                >
+                  <VscAdd size={14} className="shrink-0" />
+                  <span className="flex-1 min-w-0">
+                    <span className="block truncate font-medium">
+                      Create &ldquo;{createTitle}&rdquo;
+                    </span>
+                    <span className="block text-xs text-text-muted dark:text-text-muted-dark truncate mt-0.5">
+                      Create a new note
+                    </span>
+                  </span>
+                </button>
+              </li>
+            </ul>
           )}
           {/* Note items */}
           {noteItems.length > 0 && (
@@ -216,7 +322,7 @@ export function CommandPaletteInner({ notes, onSelect, onClose }: Props) {
               {noteItems.map((item, i) => (
                 <li key={item.id}>
                   <button
-                    onClick={() => handleSelect(item.id, false)}
+                    onClick={() => handleSelect(item.id, false, false)}
                     className={`w-full text-left px-4 py-2 text-sm transition-colors
                       ${
                         i === selectedIndex
@@ -224,7 +330,9 @@ export function CommandPaletteInner({ notes, onSelect, onClose }: Props) {
                           : 'text-text dark:text-text-dark hover:bg-border dark:hover:bg-border-dark'
                       }`}
                   >
-                    <span className="block truncate font-medium">{item.title}</span>
+                    <span className="block truncate font-medium">
+                      {item.title}
+                    </span>
                     {item.subtitle && (
                       <span className="block text-xs text-text-muted dark:text-text-muted-dark truncate mt-0.5">
                         {item.subtitle}
@@ -254,7 +362,7 @@ export function CommandPaletteInner({ notes, onSelect, onClose }: Props) {
                   return (
                     <li key={item.id}>
                       <button
-                        onClick={() => handleSelect(item.id, true)}
+                        onClick={() => handleSelect(item.id, true, false)}
                         className={`w-full text-left px-4 py-2 text-sm transition-colors flex items-center gap-2
                           ${
                             globalIndex === selectedIndex
@@ -262,9 +370,14 @@ export function CommandPaletteInner({ notes, onSelect, onClose }: Props) {
                               : 'text-text dark:text-text-dark hover:bg-border dark:hover:bg-border-dark'
                           }`}
                       >
-                        <VscSettingsGear size={13} className="shrink-0 text-text-muted dark:text-text-muted-dark" />
+                        <VscSettingsGear
+                          size={13}
+                          className="shrink-0 text-text-muted dark:text-text-muted-dark"
+                        />
                         <span className="flex-1 min-w-0">
-                          <span className="block truncate font-medium">{item.label}</span>
+                          <span className="block truncate font-medium">
+                            {item.label}
+                          </span>
                           <span className="block text-xs text-text-muted dark:text-text-muted-dark truncate mt-0.5">
                             {item.subtitle}
                           </span>

@@ -12,6 +12,7 @@ export function CommandPalette() {
   const setOpen = useUIStore((s) => s.setCommandPaletteOpen);
   const notes = useNoteStore((s) => s.notes);
   const openNote = useNoteStore((s) => s.openNote);
+  const createNote = useNoteStore((s) => s.createNote);
 
   const handleSelect = useCallback(
     (id: string) => {
@@ -19,6 +20,14 @@ export function CommandPalette() {
       setOpen(false);
     },
     [openNote, setOpen],
+  );
+
+  const handleCreate = useCallback(
+    (title: string) => {
+      createNote(title);
+      setOpen(false);
+    },
+    [createNote, setOpen],
   );
 
   const handleClose = useCallback(() => {
@@ -44,6 +53,7 @@ export function CommandPalette() {
     <CommandPaletteInner
       notes={notes}
       onSelect={handleSelect}
+      onCreate={handleCreate}
       onClose={handleClose}
     />
   );

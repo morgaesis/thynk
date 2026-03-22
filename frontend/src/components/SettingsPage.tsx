@@ -101,23 +101,24 @@ const AI_PROVIDERS: { value: AIProvider; label: string }[] = [
   { value: 'ollama', label: 'Ollama (local)' },
 ];
 
-const FALLBACK_MODELS: Record<AIProvider, { value: string; label: string }[]> = {
-  openai: [
-    { value: 'gpt-4o', label: 'GPT-4o' },
-    { value: 'gpt-4o-mini', label: 'GPT-4o Mini' },
-    { value: 'gpt-4-turbo', label: 'GPT-4 Turbo' },
-  ],
-  anthropic: [
-    { value: 'claude-3-5-sonnet-20241022', label: 'Claude 3.5 Sonnet' },
-    { value: 'claude-3-opus-20240229', label: 'Claude 3 Opus' },
-    { value: 'claude-3-haiku-20240307', label: 'Claude 3 Haiku' },
-  ],
-  ollama: [
-    { value: 'llama3.2', label: 'Llama 3.2' },
-    { value: 'mistral', label: 'Mistral' },
-    { value: 'codellama', label: 'CodeLlama' },
-  ],
-};
+const FALLBACK_MODELS: Record<AIProvider, { value: string; label: string }[]> =
+  {
+    openai: [
+      { value: 'gpt-4o', label: 'GPT-4o' },
+      { value: 'gpt-4o-mini', label: 'GPT-4o Mini' },
+      { value: 'gpt-4-turbo', label: 'GPT-4 Turbo' },
+    ],
+    anthropic: [
+      { value: 'claude-3-5-sonnet-20241022', label: 'Claude 3.5 Sonnet' },
+      { value: 'claude-3-opus-20240229', label: 'Claude 3 Opus' },
+      { value: 'claude-3-haiku-20240307', label: 'Claude 3 Haiku' },
+    ],
+    ollama: [
+      { value: 'llama3.2', label: 'Llama 3.2' },
+      { value: 'mistral', label: 'Mistral' },
+      { value: 'codellama', label: 'CodeLlama' },
+    ],
+  };
 
 // ── Keyboard Shortcuts rebinding ─────────────────────────────────────────────
 
@@ -255,26 +256,21 @@ export function SettingsPage({ onClose }: SettingsPageProps) {
   const [inviteRole, setInviteRole] = useState('viewer');
   const [inviting, setInviting] = useState(false);
   const [invitationError, setInvitationError] = useState<string | null>(null);
-  const [fetchedModels, setFetchedModels] = useState<Record<AIProvider, ModelInfo[]>>({
+  const [fetchedModels, setFetchedModels] = useState<
+    Record<AIProvider, ModelInfo[]>
+  >({
     openai: [],
     anthropic: [],
     ollama: [],
   });
   const [modelsLoading, setModelsLoading] = useState(false);
   const [modelsError, setModelsError] = useState<string | null>(null);
-  const lastFetchedRef = useRef<{ provider: AIProvider; apiKey: string } | null>(null);
+  const lastFetchedRef = useRef<{
+    provider: AIProvider;
+    apiKey: string;
+  } | null>(null);
 
   const isAdmin = authUser?.role === 'owner' || authUser?.role === 'admin';
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && onClose) {
-        onClose();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onClose]);
 
   useEffect(() => {
     if (isAdmin) {
@@ -300,7 +296,10 @@ export function SettingsPage({ onClose }: SettingsPageProps) {
 
   useEffect(() => {
     const fetchModels = async () => {
-      if (lastFetchedRef.current?.provider === aiProvider && lastFetchedRef.current?.apiKey === aiApiKey) {
+      if (
+        lastFetchedRef.current?.provider === aiProvider &&
+        lastFetchedRef.current?.apiKey === aiApiKey
+      ) {
         return;
       }
       setModelsLoading(true);
@@ -310,7 +309,9 @@ export function SettingsPage({ onClose }: SettingsPageProps) {
         lastFetchedRef.current = { provider: aiProvider, apiKey: aiApiKey };
         setFetchedModels((prev) => ({ ...prev, [aiProvider]: models }));
       } catch (e) {
-        setModelsError(e instanceof Error ? e.message : 'Failed to fetch models');
+        setModelsError(
+          e instanceof Error ? e.message : 'Failed to fetch models',
+        );
       } finally {
         setModelsLoading(false);
       }
@@ -528,7 +529,10 @@ export function SettingsPage({ onClose }: SettingsPageProps) {
                     className="p-1 text-text-muted dark:text-text-muted-dark hover:text-text dark:hover:text-text-dark disabled:opacity-50"
                     title="Refresh model list"
                   >
-                    <VscRefresh size={14} className={modelsLoading ? 'animate-spin' : ''} />
+                    <VscRefresh
+                      size={14}
+                      className={modelsLoading ? 'animate-spin' : ''}
+                    />
                   </button>
                 </div>
               </Row>

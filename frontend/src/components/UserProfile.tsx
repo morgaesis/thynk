@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { VscClose, VscAccount } from 'react-icons/vsc';
 import { useNoteStore } from '../stores/noteStore';
+import { relativeTime } from '../utils/relativeTime';
 
 interface NoteActivity {
   id: string;
@@ -65,10 +66,7 @@ export function UserProfile({ username, onClose }: Props) {
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-end">
       {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/30"
-        onClick={onClose}
-      />
+      <div className="absolute inset-0 bg-black/30" onClick={onClose} />
       {/* Panel — slides in from right */}
       <div
         className="relative z-10 h-full w-80 bg-surface dark:bg-surface-dark
@@ -77,7 +75,9 @@ export function UserProfile({ username, onClose }: Props) {
       >
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-border dark:border-border-dark">
-          <h2 className="text-sm font-semibold text-text dark:text-text-dark">User Profile</h2>
+          <h2 className="text-sm font-semibold text-text dark:text-text-dark">
+            User Profile
+          </h2>
           <button
             onClick={onClose}
             className="p-1 rounded text-text-muted dark:text-text-muted-dark hover:bg-border dark:hover:bg-border-dark"
@@ -88,11 +88,15 @@ export function UserProfile({ username, onClose }: Props) {
 
         {loading ? (
           <div className="flex-1 flex items-center justify-center">
-            <span className="text-sm text-text-muted dark:text-text-muted-dark">Loading…</span>
+            <span className="text-sm text-text-muted dark:text-text-muted-dark">
+              Loading…
+            </span>
           </div>
         ) : !profile ? (
           <div className="flex-1 flex items-center justify-center">
-            <span className="text-sm text-text-muted dark:text-text-muted-dark">User not found.</span>
+            <span className="text-sm text-text-muted dark:text-text-muted-dark">
+              User not found.
+            </span>
           </div>
         ) : (
           <div className="flex-1 overflow-y-auto p-4">
@@ -105,7 +109,9 @@ export function UserProfile({ username, onClose }: Props) {
                 <p className="text-sm font-semibold text-text dark:text-text-dark">
                   {profile.display_name ?? profile.username}
                 </p>
-                <p className="text-xs text-text-muted dark:text-text-muted-dark">@{profile.username}</p>
+                <p className="text-xs text-text-muted dark:text-text-muted-dark">
+                  @{profile.username}
+                </p>
               </div>
             </div>
 
@@ -114,19 +120,24 @@ export function UserProfile({ username, onClose }: Props) {
               Recent Activity
             </h3>
             {profile.recent_notes.length === 0 ? (
-              <p className="text-xs text-text-muted dark:text-text-muted-dark mb-4">No recent activity.</p>
+              <p className="text-xs text-text-muted dark:text-text-muted-dark mb-4">
+                No recent activity.
+              </p>
             ) : (
               <ul className="space-y-1 mb-6">
                 {profile.recent_notes.map((note) => (
                   <li key={note.id}>
                     <button
-                      onClick={() => { openNote(note.id); onClose(); }}
+                      onClick={() => {
+                        openNote(note.id);
+                        onClose();
+                      }}
                       className="w-full text-left px-2 py-1.5 rounded text-sm text-text dark:text-text-dark
                                  hover:bg-sidebar dark:hover:bg-sidebar-dark transition-colors"
                     >
                       <span className="truncate block">{note.title}</span>
                       <span className="text-xs text-text-muted dark:text-text-muted-dark">
-                        {new Date(note.updated_at).toLocaleDateString()}
+                        {relativeTime(note.updated_at)}
                       </span>
                     </button>
                   </li>
@@ -139,19 +150,24 @@ export function UserProfile({ username, onClose }: Props) {
               Connected Through
             </h3>
             {profile.mutual_work.length === 0 ? (
-              <p className="text-xs text-text-muted dark:text-text-muted-dark">No connected notes.</p>
+              <p className="text-xs text-text-muted dark:text-text-muted-dark">
+                No connected notes.
+              </p>
             ) : (
               <ul className="space-y-1">
                 {profile.mutual_work.map((note) => (
                   <li key={note.id}>
                     <button
-                      onClick={() => { openNote(note.id); onClose(); }}
+                      onClick={() => {
+                        openNote(note.id);
+                        onClose();
+                      }}
                       className="w-full text-left px-2 py-1.5 rounded text-sm text-text dark:text-text-dark
                                  hover:bg-sidebar dark:hover:bg-sidebar-dark transition-colors"
                     >
                       <span className="truncate block">{note.title}</span>
                       <span className="text-xs text-text-muted dark:text-text-muted-dark">
-                        {new Date(note.updated_at).toLocaleDateString()}
+                        {relativeTime(note.updated_at)}
                       </span>
                     </button>
                   </li>

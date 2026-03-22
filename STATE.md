@@ -239,7 +239,8 @@
 60. ~~Command Palette Input Polish~~ -- Search input now has spellCheck={false} and autoCapitalize="off" to avoid browser interference with search queries. All 159 frontend tests pass (2026-03-22)
 61. ~~Welcome Screen Shortcut Hints~~ -- Updated empty state keyboard shortcut hints to show Ctrl+Shift+N (New Note) and Ctrl+G (Graph) instead of the less useful Ctrl+B. All 159 frontend tests pass (2026-03-22)
 62. ~~Clipboard Error Handling~~ -- Added .catch() handlers to code block copy and path copy clipboard operations. Path copy now also awaits the promise before showing toast. All 159 frontend tests pass (2026-03-22)
+63. ~~Relative Timestamps in UserProfile~~ -- User profile recent activity and mutual work notes now show relative timestamps ("2h ago") instead of locale date strings, consistent with editor status bar and activity feed. All 159 frontend tests pass (2026-03-22)
 
 ---
 
-Last Updated: 2026-03-22 (Clipboard error handling, all 159 frontend tests pass)
+Last Updated: 2026-03-22 (Relative timestamps in UserProfile, all 159 frontend tests pass)

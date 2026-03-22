@@ -304,6 +304,11 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
   const lineHeight = useSettingsStore((s) => s.lineHeight);
   const [vimMode, setVimMode] = useState<VimMode>('normal');
   const [justSaved, setJustSaved] = useState(false);
+  const [wordCount, setWordCount] = useState({
+    words: 0,
+    chars: 0,
+    readMin: 1,
+  });
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const bufferDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const titleRef = useRef<HTMLInputElement>(null);
@@ -469,6 +474,13 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
         updateNote(note.id, { content: currentContent });
       }, 1000);
 
+      // Update word count
+      const text = e.getText();
+      const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+      const chars = text.length;
+      const readMin = Math.max(1, Math.ceil(words / 200));
+      setWordCount({ words, chars, readMin });
+
       // Wiki-link autocomplete: detect [[  trigger
       const { state } = e;
       const { selection } = state;
@@ -584,6 +596,13 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
 
       // Clear the buffer after loading (it's now in the editor)
       contentBuffer.clearBuffer(activeNote.id);
+
+      // Compute initial word count
+      const text = editor.getText();
+      const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+      const chars = text.length;
+      const readMin = Math.max(1, Math.ceil(words / 200));
+      setWordCount({ words, chars, readMin });
 
       // Auto-focus editor when note is opened
       editor.commands.focus('end');
@@ -857,13 +876,8 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
             </span>
             <span>·</span>
             <span className="tabular-nums">
-              {(() => {
-                const text = editor?.getText() ?? '';
-                const words = text.trim() ? text.trim().split(/\s+/).length : 0;
-                const chars = text.length;
-                const readMin = Math.max(1, Math.ceil(words / 200));
-                return `${words} words · ${chars} chars · ${readMin} min read`;
-              })()}
+              {wordCount.words} words · {wordCount.chars} chars ·{' '}
+              {wordCount.readMin} min read
             </span>
             {activeNote.last_updated_by && (
               <>

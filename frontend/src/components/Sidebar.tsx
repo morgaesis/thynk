@@ -40,6 +40,12 @@ import {
   type TrashedNote,
 } from '../api';
 
+// Count files in a directory node (hoisted outside TreeItem to avoid recreation)
+function countFiles(n: TreeNode): number {
+  if (!n.children) return 1;
+  return n.children.reduce((sum, c) => sum + countFiles(c), 0);
+}
+
 function TreeItem({
   node,
   path,
@@ -64,12 +70,6 @@ function TreeItem({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [favoriting, setFavoriting] = useState(false);
   const [dragOver, setDragOver] = useState(false);
-
-  // Count files in a directory node
-  function countFiles(n: TreeNode): number {
-    if (!n.children) return 1;
-    return n.children.reduce((sum, c) => sum + countFiles(c), 0);
-  }
 
   // Collapse when signal changes
   useEffect(() => {

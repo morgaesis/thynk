@@ -543,9 +543,12 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
   const prevSavingRef = useRef(saving);
   useEffect(() => {
     if (prevSavingRef.current && !saving) {
-      setJustSaved(true);
-      const timer = setTimeout(() => setJustSaved(false), 1000);
-      return () => clearTimeout(timer);
+      const start = setTimeout(() => setJustSaved(true), 0);
+      const end = setTimeout(() => setJustSaved(false), 1000);
+      return () => {
+        clearTimeout(start);
+        clearTimeout(end);
+      };
     }
     prevSavingRef.current = saving;
   }, [saving]);

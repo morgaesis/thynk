@@ -56,7 +56,7 @@ function buildTreeFromPaths(notes: NoteMetadata[]): TreeNode[] {
         map = new Map();
         childMap.set(children, map);
       }
-      let existing = map.get(parts[i]);
+      const existing = map.get(parts[i]);
 
       if (existing) {
         if (!isLeaf) {

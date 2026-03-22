@@ -617,6 +617,13 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
     }
   }, [updateNote]);
 
+  const handleTitleFocus = useCallback(
+    (e: React.FocusEvent<HTMLInputElement>) => {
+      e.target.select();
+    },
+    [],
+  );
+
   const handleTitleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (e.key === 'Enter' || e.key === 'Tab') {
@@ -804,6 +811,7 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
             ref={titleRef}
             key={activeNote.id}
             defaultValue={activeNote.title}
+            onFocus={handleTitleFocus}
             onBlur={handleTitleBlur}
             onKeyDown={handleTitleKeyDown}
             className="w-full text-3xl font-bold bg-transparent border-none outline-none

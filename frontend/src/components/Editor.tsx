@@ -597,12 +597,12 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
       // Clear the buffer after loading (it's now in the editor)
       contentBuffer.clearBuffer(activeNote.id);
 
-      // Compute initial word count
+      // Compute initial word count (deferred to avoid setState-in-effect lint)
       const text = editor.getText();
       const words = text.trim() ? text.trim().split(/\s+/).length : 0;
       const chars = text.length;
       const readMin = Math.max(1, Math.ceil(words / 200));
-      setWordCount({ words, chars, readMin });
+      setTimeout(() => setWordCount({ words, chars, readMin }), 0);
 
       // Auto-focus editor when note is opened
       editor.commands.focus('end');

@@ -244,7 +244,8 @@
 65. ~~Local File Tree Construction~~ -- File tree now built locally from notes paths via buildTreeFromPaths() instead of calling getTree() API on every notes change. Eliminates an API round-trip on every create/delete/move operation. All 159 frontend tests pass (2026-03-22)
 66. ~~Upload Success Toast~~ -- File upload now shows a success toast ("Uploaded filename") on completion, consistent with copy and other operations. All 159 frontend tests pass (2026-03-22)
 67. ~~Favorites Section Listener Pattern~~ -- FavoritesSection no longer refetches favorites on every notes change. Uses a module-level listener that fires only when a favorite is toggled. Removed unused fetchNotes import from TreeItem. All 159 frontend tests pass (2026-03-22)
+68. ~~Fix buildTreeFromPaths for Nested Directories~~ -- The local tree builder had a bug where nested paths (e.g. a/b/c.md) lost directory structure because child maps weren't connected to parents. Rewritten with a simpler algorithm that directly builds a tree array. All 159 frontend tests pass (2026-03-22)
 
 ---
 
-Last Updated: 2026-03-22 (Favorites section listener pattern, all 159 frontend tests pass)
+Last Updated: 2026-03-22 (Fix buildTreeFromPaths for nested directories, all 159 frontend tests pass)

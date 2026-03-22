@@ -41,46 +41,35 @@ import {
 
 // Build file tree locally from note paths (avoids API round-trip)
 function buildTreeFromPaths(notes: NoteMetadata[]): TreeNode[] {
-  const root: Record<string, TreeNode> = {};
+  const root: TreeNode[] = [];
+  const dirMap = new Map<string, TreeNode>();
+
   for (const note of notes) {
     const parts = note.path.replace(/\.md$/, '').split('/');
-    let current = root;
+    let children = root;
+
     for (let i = 0; i < parts.length; i++) {
-      const part = parts[i];
-      if (i === parts.length - 1) {
-        // Leaf node (file)
-        current[part] = { name: `${part}.md` };
+      const isLeaf = i === parts.length - 1;
+      const existing = children.find((n) => n.name === parts[i]);
+
+      if (existing) {
+        if (!isLeaf) {
+          if (!existing.children) existing.children = [];
+          children = existing.children;
+        }
       } else {
-        // Directory node
-        if (!current[part]) {
-          current[part] = { name: part, children: [] };
+        if (isLeaf) {
+          children.push({ name: `${parts[i]}.md` });
+        } else {
+          const dir: TreeNode = { name: parts[i], children: [] };
+          children.push(dir);
+          children = dir.children;
         }
-        if (!current[part].children) {
-          current[part].children = [];
-        }
-        // Move into children
-        const childMap: Record<string, TreeNode> = {};
-        for (const child of current[part].children!) {
-          childMap[child.name] = child;
-        }
-        current = childMap;
       }
     }
   }
-  // Convert root map to array, merging directories
-  function toNodes(map: Record<string, TreeNode>): TreeNode[] {
-    return Object.values(map).map((node) => {
-      if (node.children) {
-        const merged: Record<string, TreeNode> = {};
-        for (const child of node.children) {
-          merged[child.name] = child;
-        }
-        return { name: node.name, children: toNodes(merged) };
-      }
-      return node;
-    });
-  }
-  return toNodes(root);
+
+  return root;
 }
 
 // Module-level listener to signal favorites changes without depending on notes

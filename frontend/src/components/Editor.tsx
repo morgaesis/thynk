@@ -412,6 +412,7 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
         onUpload: async (file: File) => {
           try {
             const result = await upload(file);
+            addToast('success', `Uploaded ${file.name}`);
             return { url: result.url, filename: result.filename };
           } catch (e) {
             const msg = (e as Error).message;

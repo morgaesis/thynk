@@ -224,7 +224,8 @@
 45. ~~Theme-Aware Code Blocks~~ -- Code block and inline code colors now use CSS variables (`--color-code-bg`, `--color-code-text`, `--color-code-inline-bg`) defined per theme instead of hardcoded hex values. Collaboration cursor colors also theme-aware. All 8 themes updated. All 159 frontend tests pass (2026-03-22)
 46. ~~Command Palette Recent Notes~~ -- Command palette now shows notes sorted by most recently modified (not alphabetical), capped at 20 when no query is active, so users immediately see their most recent notes. All 159 frontend tests pass (2026-03-22)
 47. ~~Command Palette Index Fix & Relative Timestamps~~ -- Fixed command palette selected-index bug where settings items were highlighted one position off when the create-note item was visible. Extracted shared relativeTime utility. Editor status bar now shows relative time ("2m ago") with full timestamp on hover. All 159 frontend tests pass (2026-03-22)
+48. ~~Consolidate Relative Time Utility~~ -- ActivityFeed had a duplicate formatTimestamp function. Consolidated into shared relativeTime utility with optional maxDays parameter for date-fallback display. All 159 frontend tests pass (2026-03-22)
 
 ---
 
-Last Updated: 2026-03-22 (Command palette index fix, relative timestamps in editor status bar, all 159 frontend tests pass)
+Last Updated: 2026-03-22 (Consolidated relativeTime utility, all 159 frontend tests pass)

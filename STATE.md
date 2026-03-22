@@ -247,7 +247,8 @@
 68. ~~Fix buildTreeFromPaths for Nested Directories~~ -- The local tree builder had a bug where nested paths (e.g. a/b/c.md) lost directory structure because child maps weren't connected to parents. Rewritten with a simpler algorithm that directly builds a tree array. All 159 frontend tests pass (2026-03-22)
 69. ~~O(1) Child Lookup in File Tree Builder~~ -- buildTreeFromPaths now uses per-directory Maps for O(1) child lookup instead of O(n) children.find(). All 159 frontend tests pass (2026-03-22)
 70. ~~Remove Dead Code~~ -- Removed unused useContentBuffer hook function (only the contentBuffer singleton is used). All 159 frontend tests pass (2026-03-22)
+71. ~~Theme-Aware Table Selection~~ -- Table selected cell overlay now uses color-mix with --color-accent instead of hardcoded rgba(99, 102, 241, 0.25). All 159 frontend tests pass (2026-03-22)
 
 ---
 
-Last Updated: 2026-03-22 (Remove dead code, all 159 frontend tests pass)
+Last Updated: 2026-03-22 (Theme-aware table selection, all 159 frontend tests pass)

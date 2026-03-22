@@ -492,7 +492,7 @@ body {
   content: '';
   position: absolute;
   inset: 0;
-  background: rgba(99, 102, 241, 0.25);
+  background: color-mix(in srgb, var(--color-accent) 25%, transparent);
   pointer-events: none;
   z-index: 1;
 }

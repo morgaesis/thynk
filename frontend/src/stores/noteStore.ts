@@ -80,8 +80,20 @@ export const useNoteStore = create<NoteStore>((set, get) => ({
     set({ loading: true, error: null });
     try {
       const note = await api.createNote({ title, path });
-      set({ activeNote: note, loading: false });
-      await get().fetchNotes();
+      const meta: NoteMetadata = {
+        id: note.id,
+        path: note.path,
+        title: note.title,
+        content_hash: note.content_hash,
+        created_at: note.created_at,
+        updated_at: note.updated_at,
+      };
+      set((s) => ({
+        activeNote: note,
+        loading: false,
+        notes: [meta, ...s.notes],
+      }));
+      useUIStore.getState().addRecentNote(note.id);
     } catch (e) {
       const msg = (e as Error).message;
       set({ error: msg, loading: false });
@@ -96,10 +108,15 @@ export const useNoteStore = create<NoteStore>((set, get) => ({
     set({ saving: true, error: null });
     try {
       const note = await api.updateNote(id, data);
-      set({ activeNote: note, saving: false });
+      const updates: Partial<NoteStore> = { activeNote: note, saving: false };
       if (data.title) {
-        await get().fetchNotes();
+        updates.notes = get().notes.map((n) =>
+          n.id === id
+            ? { ...n, title: note.title, updated_at: note.updated_at }
+            : n,
+        );
       }
+      set(updates);
     } catch (e) {
       const msg = (e as Error).message;
       set({ error: msg, saving: false });
@@ -112,12 +129,15 @@ export const useNoteStore = create<NoteStore>((set, get) => ({
     try {
       await api.deleteNote(id);
       const { activeNote } = get();
+      const updates: Partial<NoteStore> = {
+        loading: false,
+        notes: get().notes.filter((n) => n.id !== id),
+      };
       if (activeNote?.id === id) {
-        set({ activeNote: null });
+        updates.activeNote = null;
         window.history.pushState({}, '', '/');
       }
-      set({ loading: false });
-      await get().fetchNotes();
+      set(updates);
     } catch (e) {
       const msg = (e as Error).message;
       set({ error: msg, loading: false });

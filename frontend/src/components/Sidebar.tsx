@@ -179,9 +179,16 @@ function TreeItem({
             const newPath = targetDir
               ? `${targetDir}/${sourceName}.md`
               : `${sourceName}.md`;
-            await moveNote(sourceNote.id, newPath);
+            const result = await moveNote(sourceNote.id, newPath);
             addToast('success', `Moved "${sourcePath}" → "${newPath}"`);
-            await fetchNotes();
+            // Update local notes list instead of refetching
+            useNoteStore.setState((s) => ({
+              notes: s.notes.map((n) =>
+                n.id === result.id
+                  ? { ...n, path: result.path, title: result.title }
+                  : n,
+              ),
+            }));
           } catch (err) {
             const msg = err instanceof Error ? err.message : 'Unknown error';
             if (msg.includes('409') || msg.includes('already_exists')) {

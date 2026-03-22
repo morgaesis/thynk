@@ -78,23 +78,33 @@ export function WikiLinkSuggestions({
                  rounded-lg shadow-lg overflow-hidden min-w-[200px] max-w-[320px]"
     >
       <ul role="listbox" aria-label="Note suggestions">
-        {filtered.map((note, i) => (
-          <li
-            key={note.id}
-            role="option"
-            aria-selected={i === safeIndex}
-            onMouseEnter={() => setSelectedIndex(i)}
-            onClick={() => onSelect(note.title)}
-            className={`px-3 py-2 text-sm cursor-pointer select-none
-              ${
-                i === safeIndex
-                  ? 'bg-accent/10 text-accent'
-                  : 'text-text dark:text-text-dark hover:bg-border dark:hover:bg-border-dark'
-              }`}
-          >
-            {note.title}
-          </li>
-        ))}
+        {filtered.map((note, i) => {
+          const folder = note.path.includes('/')
+            ? note.path.split('/').slice(0, -1).join('/')
+            : '';
+          return (
+            <li
+              key={note.id}
+              role="option"
+              aria-selected={i === safeIndex}
+              onMouseEnter={() => setSelectedIndex(i)}
+              onClick={() => onSelect(note.title)}
+              className={`px-3 py-2 text-sm cursor-pointer select-none
+                ${
+                  i === safeIndex
+                    ? 'bg-accent/10 text-accent'
+                    : 'text-text dark:text-text-dark hover:bg-border dark:hover:bg-border-dark'
+                }`}
+            >
+              <span className="truncate">{note.title}</span>
+              {folder && (
+                <span className="ml-1.5 text-[10px] opacity-50 truncate">
+                  {folder}
+                </span>
+              )}
+            </li>
+          );
+        })}
       </ul>
     </div>
   );

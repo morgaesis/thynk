@@ -219,7 +219,8 @@
 40. ~~Command Palette Create & Settings ESC Fix~~ -- Command palette now shows a "Create `<query>`" quick action at the top when typing a query, so users can create notes directly from search. Fixed duplicate ESC key handler bug in SettingsPage (two handlers were registered, causing double-fire). All 159 frontend tests pass (2026-03-22)
 41. ~~Sidebar Note Count & Collapse All~~ -- Added note count badge to sidebar header next to "Thynk" title. Added "Collapse all" button above the file tree to collapse all expanded folders at once using a collapseSignal propagation pattern. All 159 frontend tests pass (2026-03-22)
 42. ~~Editor Empty State~~ -- Replaced plain text empty state with a polished welcome screen: document icon, "Welcome to Thynk" heading, descriptive subtitle, quick action buttons (New Note, Search), and keyboard shortcut hints (Ctrl+K, Ctrl+B). All 159 frontend tests pass (2026-03-22)
+43. ~~WikiLink Suggestions Path~~ -- Wiki-link autocomplete dropdown now shows each note's folder path alongside the title (e.g. "Design Doc projects/work") to help disambiguate notes with similar names. All 159 frontend tests pass (2026-03-22)
 
 ---
 
-Last Updated: 2026-03-22 (Editor empty state redesign, all 159 frontend tests pass)
+Last Updated: 2026-03-22 (WikiLink suggestions show folder paths, all 159 frontend tests pass)

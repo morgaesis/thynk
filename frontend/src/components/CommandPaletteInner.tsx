@@ -365,7 +365,8 @@ export function CommandPaletteInner({
               )}
               <ul>
                 {filteredSettingsItems.map((item, si) => {
-                  const globalIndex = noteItems.length + si;
+                  const createOffset = showCreate ? 1 : 0;
+                  const globalIndex = createOffset + noteItems.length + si;
                   return (
                     <li key={item.id}>
                       <button

@@ -223,7 +223,8 @@
 44. ~~Notification Detail~~ -- Notification items now show relative time ("2m ago", "1h ago") and the associated note title below the message, giving more context at a glance. All 159 frontend tests pass (2026-03-22)
 45. ~~Theme-Aware Code Blocks~~ -- Code block and inline code colors now use CSS variables (`--color-code-bg`, `--color-code-text`, `--color-code-inline-bg`) defined per theme instead of hardcoded hex values. Collaboration cursor colors also theme-aware. All 8 themes updated. All 159 frontend tests pass (2026-03-22)
 46. ~~Command Palette Recent Notes~~ -- Command palette now shows notes sorted by most recently modified (not alphabetical), capped at 20 when no query is active, so users immediately see their most recent notes. All 159 frontend tests pass (2026-03-22)
+47. ~~Command Palette Index Fix & Relative Timestamps~~ -- Fixed command palette selected-index bug where settings items were highlighted one position off when the create-note item was visible. Extracted shared relativeTime utility. Editor status bar now shows relative time ("2m ago") with full timestamp on hover. All 159 frontend tests pass (2026-03-22)
 
 ---
 
-Last Updated: 2026-03-22 (Command palette shows recent notes first, all 159 frontend tests pass)
+Last Updated: 2026-03-22 (Command palette index fix, relative timestamps in editor status bar, all 159 frontend tests pass)

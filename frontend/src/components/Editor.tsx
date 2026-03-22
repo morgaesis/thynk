@@ -36,6 +36,7 @@ import { useLock } from '../hooks/useLock';
 import { useCollaboration } from '../hooks/useCollaboration';
 import { useAutoSave } from '../hooks/useAutoSave';
 import { contentBuffer } from '../hooks/useContentBuffer';
+import { relativeTime } from '../utils/relativeTime';
 import { LockIndicator } from './LockIndicator';
 import { PresenceIndicator } from './PresenceIndicator';
 import { WikiLinkExtension } from '../extensions/WikiLinkExtension';
@@ -848,8 +849,11 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
               </span>
             )}
             <span>·</span>
-            <span className="tabular-nums">
-              {new Date(activeNote.updated_at).toLocaleString()}
+            <span
+              className="tabular-nums"
+              title={new Date(activeNote.updated_at).toLocaleString()}
+            >
+              {relativeTime(activeNote.updated_at)}
             </span>
             <span>·</span>
             <span className="tabular-nums">

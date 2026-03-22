@@ -792,7 +792,8 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
                 const text = editor?.getText() ?? '';
                 const words = text.trim() ? text.trim().split(/\s+/).length : 0;
                 const chars = text.length;
-                return `${words} words · ${chars} chars`;
+                const readMin = Math.max(1, Math.ceil(words / 200));
+                return `${words} words · ${chars} chars · ${readMin} min read`;
               })()}
             </span>
             {activeNote.last_updated_by && (

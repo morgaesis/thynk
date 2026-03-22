@@ -42,7 +42,6 @@ import {
 // Build file tree locally from note paths (avoids API round-trip)
 function buildTreeFromPaths(notes: NoteMetadata[]): TreeNode[] {
   const root: TreeNode[] = [];
-  const dirMap = new Map<string, TreeNode>();
 
   for (const note of notes) {
     const parts = note.path.replace(/\.md$/, '').split('/');

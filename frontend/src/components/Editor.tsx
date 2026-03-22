@@ -622,6 +622,10 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
       if (e.key === 'Enter' || e.key === 'Tab') {
         e.preventDefault();
         editor?.commands.focus();
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        (e.target as HTMLInputElement).blur();
+        editor?.commands.focus();
       }
     },
     [editor],

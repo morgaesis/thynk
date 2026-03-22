@@ -603,7 +603,7 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
 
   const handleTitleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      if (e.key === 'Enter') {
+      if (e.key === 'Enter' || e.key === 'Tab') {
         e.preventDefault();
         editor?.commands.focus();
       }

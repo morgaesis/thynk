@@ -835,7 +835,7 @@ export function Sidebar() {
         {/* Footer */}
         <div className="px-4 py-2 border-t border-border dark:border-border-dark space-y-1.5">
           {/* Keyboard shortcuts */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <p className="text-xs text-text-muted dark:text-text-muted-dark">
               <kbd className="px-1 py-0.5 rounded bg-border dark:bg-border-dark text-[10px]">
                 Ctrl+K
@@ -850,6 +850,15 @@ export function Sidebar() {
                 Ctrl+B
               </kbd>{' '}
               Sidebar
+            </p>
+            <span className="text-text-muted dark:text-text-muted-dark text-xs">
+              ·
+            </span>
+            <p className="text-xs text-text-muted dark:text-text-muted-dark">
+              <kbd className="px-1 py-0.5 rounded bg-border dark:bg-border-dark text-[10px]">
+                Ctrl+G
+              </kbd>{' '}
+              Graph
             </p>
           </div>
           {/* User info + settings + logout */}

@@ -78,11 +78,10 @@ function setMarkdownContent(ed: TipTapEditor, content: string) {
     return;
   }
 
+  // Detect HTML content: starts with a tag or contains block-level tags
   if (
-    content.includes('<p>') ||
-    content.includes('<h') ||
-    content.includes('<ul>') ||
-    content.includes('<ol>')
+    /^\s*</.test(content) ||
+    /<(p|h[1-6]|ul|ol|li|blockquote|table|div|pre|hr|img)\b/i.test(content)
   ) {
     ed.commands.setContent(content, { emitUpdate: false });
   } else {

@@ -225,7 +225,8 @@
 46. ~~Command Palette Recent Notes~~ -- Command palette now shows notes sorted by most recently modified (not alphabetical), capped at 20 when no query is active, so users immediately see their most recent notes. All 159 frontend tests pass (2026-03-22)
 47. ~~Command Palette Index Fix & Relative Timestamps~~ -- Fixed command palette selected-index bug where settings items were highlighted one position off when the create-note item was visible. Extracted shared relativeTime utility. Editor status bar now shows relative time ("2m ago") with full timestamp on hover. All 159 frontend tests pass (2026-03-22)
 48. ~~Consolidate Relative Time Utility~~ -- ActivityFeed had a duplicate formatTimestamp function. Consolidated into shared relativeTime utility with optional maxDays parameter for date-fallback display. All 159 frontend tests pass (2026-03-22)
+49. ~~Theme-Aware Graph & Syntax Highlighting~~ -- GraphView link/arrow colors now read from --color-accent CSS variable instead of hardcoded #6366f1. Syntax highlighting colors converted to CSS variables (--color-hl-keyword, --color-hl-string, etc.) defined per theme. Code block fence markers, language labels, and copy button also theme-aware. Removed stale .dark class selector. All 159 frontend tests pass (2026-03-22)
 
 ---
 
-Last Updated: 2026-03-22 (Consolidated relativeTime utility, all 159 frontend tests pass)
+Last Updated: 2026-03-22 (Theme-aware graph and syntax highlighting, all 159 frontend tests pass)

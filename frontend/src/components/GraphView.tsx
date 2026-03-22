@@ -102,6 +102,14 @@ export function GraphView() {
     // Container group (for zoom/pan)
     const g = svg.append('g');
 
+    // Read theme-aware accent color from CSS variables
+    const computedStyle = getComputedStyle(document.documentElement);
+    const accentColor =
+      computedStyle.getPropertyValue('--color-accent').trim() || '#6366f1';
+    const nodeStrokeColor =
+      computedStyle.getPropertyValue('--color-text-muted').trim() ||
+      'rgba(255,255,255,0.3)';
+
     // Zoom behaviour
     const zoom = d3
       .zoom<SVGSVGElement, unknown>()
@@ -124,7 +132,7 @@ export function GraphView() {
       .attr('orient', 'auto')
       .append('path')
       .attr('d', 'M0,-4L8,0L0,4')
-      .attr('fill', '#6366f1')
+      .attr('fill', accentColor)
       .attr('opacity', 0.6);
 
     // Links
@@ -133,7 +141,7 @@ export function GraphView() {
       .selectAll<SVGLineElement, SimLink>('line')
       .data(links)
       .join('line')
-      .attr('stroke', '#6366f1')
+      .attr('stroke', accentColor)
       .attr('stroke-opacity', 0.4)
       .attr('stroke-width', 1.5)
       .attr('marker-end', 'url(#arrow)');
@@ -146,7 +154,7 @@ export function GraphView() {
       .join('circle')
       .attr('r', (d) => radiusScale(d.degree))
       .attr('fill', (d) => colorScale(d.degree))
-      .attr('stroke', 'rgba(255,255,255,0.3)')
+      .attr('stroke', nodeStrokeColor)
       .attr('stroke-width', 1.5)
       .attr('cursor', 'pointer')
       .on('click', (_event, d) => {

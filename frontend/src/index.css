@@ -29,6 +29,17 @@
   --color-code-bg: #f1f5f9;
   --color-code-text: #334155;
   --color-code-inline-bg: #e2e8f0;
+  /* Syntax highlighting */
+  --color-hl-comment: #6a9955;
+  --color-hl-keyword: #0000ff;
+  --color-hl-string: #a31515;
+  --color-hl-deletion: #d7ba7d;
+  --color-hl-attr: #0451a5;
+  --color-hl-symbol: #0451a5;
+  --color-hl-number: #098658;
+  --color-hl-class: #267f99;
+  --color-hl-function: #795e26;
+  --color-hl-params: #334155;
 }
 
 [data-theme='dark'],
@@ -43,6 +54,16 @@
   --color-code-bg: #181825;
   --color-code-text: #cdd6f4;
   --color-code-inline-bg: #313244;
+  --color-hl-comment: #6a9955;
+  --color-hl-keyword: #569cd6;
+  --color-hl-string: #ce9178;
+  --color-hl-deletion: #d7ba7d;
+  --color-hl-attr: #9cdcfe;
+  --color-hl-symbol: #4fc1ff;
+  --color-hl-number: #b5cea8;
+  --color-hl-class: #4ec9b0;
+  --color-hl-function: #dcdcaa;
+  --color-hl-params: #cdd6f4;
 }
 
 [data-theme='nord'] {
@@ -56,6 +77,16 @@
   --color-code-bg: #242933;
   --color-code-text: #eceff4;
   --color-code-inline-bg: #4c566a;
+  --color-hl-comment: #616e88;
+  --color-hl-keyword: #81a1c1;
+  --color-hl-string: #a3be8c;
+  --color-hl-deletion: #bf616a;
+  --color-hl-attr: #88c0d0;
+  --color-hl-symbol: #8fbcbb;
+  --color-hl-number: #b48ead;
+  --color-hl-class: #8fbcbb;
+  --color-hl-function: #88c0d0;
+  --color-hl-params: #d8dee9;
 }
 
 [data-theme='dracula'] {
@@ -69,6 +100,16 @@
   --color-code-bg: #21222c;
   --color-code-text: #f8f8f2;
   --color-code-inline-bg: #44475a;
+  --color-hl-comment: #6272a4;
+  --color-hl-keyword: #ff79c6;
+  --color-hl-string: #f1fa8c;
+  --color-hl-deletion: #ff5555;
+  --color-hl-attr: #50fa7b;
+  --color-hl-symbol: #8be9fd;
+  --color-hl-number: #bd93f9;
+  --color-hl-class: #8be9fd;
+  --color-hl-function: #50fa7b;
+  --color-hl-params: #f8f8f2;
 }
 
 [data-theme='solarized-light'] {
@@ -82,6 +123,16 @@
   --color-code-bg: #eee8d5;
   --color-code-text: #657b83;
   --color-code-inline-bg: #e0dcc5;
+  --color-hl-comment: #93a1a1;
+  --color-hl-keyword: #859900;
+  --color-hl-string: #2aa198;
+  --color-hl-deletion: #dc322f;
+  --color-hl-attr: #268bd2;
+  --color-hl-symbol: #6c71c4;
+  --color-hl-number: #d33682;
+  --color-hl-class: #b58900;
+  --color-hl-function: #268bd2;
+  --color-hl-params: #657b83;
 }
 
 [data-theme='solarized-dark'] {
@@ -95,6 +146,16 @@
   --color-code-bg: #073642;
   --color-code-text: #93a1a1;
   --color-code-inline-bg: #586e75;
+  --color-hl-comment: #586e75;
+  --color-hl-keyword: #859900;
+  --color-hl-string: #2aa198;
+  --color-hl-deletion: #dc322f;
+  --color-hl-attr: #268bd2;
+  --color-hl-symbol: #6c71c4;
+  --color-hl-number: #d33682;
+  --color-hl-class: #b58900;
+  --color-hl-function: #268bd2;
+  --color-hl-params: #93a1a1;
 }
 
 [data-theme='nord-light'] {
@@ -108,6 +169,16 @@
   --color-code-bg: #e5e9f0;
   --color-code-text: #2e3440;
   --color-code-inline-bg: #d8dee9;
+  --color-hl-comment: #616e88;
+  --color-hl-keyword: #81a1c1;
+  --color-hl-string: #a3be8c;
+  --color-hl-deletion: #bf616a;
+  --color-hl-attr: #5e81ac;
+  --color-hl-symbol: #88c0d0;
+  --color-hl-number: #b48ead;
+  --color-hl-class: #8fbcbb;
+  --color-hl-function: #5e81ac;
+  --color-hl-params: #2e3440;
 }
 
 html,
@@ -140,10 +211,6 @@ body {
   color: var(--color-text-muted);
   pointer-events: none;
   height: 0;
-}
-
-.dark .tiptap p.is-editor-empty:first-child::before {
-  color: var(--color-text-muted-dark);
 }
 
 .tiptap pre {
@@ -250,12 +317,12 @@ body {
 /* When the code block is active (cursor inside), show the markers */
 .tiptap pre[data-active='true']::before {
   content: attr(data-language, '```');
-  color: #94a3b8;
+  color: var(--color-text-muted);
   opacity: 0.7;
 }
 
 .tiptap pre[data-active='true']::after {
-  color: #94a3b8;
+  color: var(--color-text-muted);
   opacity: 0.7;
 }
 
@@ -284,7 +351,7 @@ body {
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #94a3b8;
+  color: var(--color-text-muted);
   pointer-events: none;
 }
 
@@ -294,7 +361,7 @@ body {
   background: rgba(100, 116, 139, 0.1);
   border: none;
   border-radius: 0.25rem;
-  color: #94a3b8;
+  color: var(--color-text-muted);
   cursor: pointer;
   transition:
     background 0.2s,
@@ -303,13 +370,13 @@ body {
 
 .code-block-copy-button:hover {
   background: rgba(100, 116, 139, 0.2);
-  color: #cbd5e1;
+  color: var(--color-text);
 }
 
 .code-block-copy-button:focus {
   outline: none;
   background: rgba(100, 116, 139, 0.2);
-  color: #cbd5e1;
+  color: var(--color-text);
 }
 
 .code-block-copy-button.copied {
@@ -333,7 +400,7 @@ body {
 /* Syntax highlighting token colors (lowlight/highlight.js classes) */
 .tiptap pre .hljs-comment,
 .tiptap pre .hljs-quote {
-  color: #6a9955;
+  color: var(--color-hl-comment);
   font-style: italic;
 }
 .tiptap pre .hljs-keyword,
@@ -341,7 +408,7 @@ body {
 .tiptap pre .hljs-built_in,
 .tiptap pre .hljs-name,
 .tiptap pre .hljs-tag {
-  color: #569cd6;
+  color: var(--color-hl-keyword);
 }
 .tiptap pre .hljs-string,
 .tiptap pre .hljs-title,
@@ -352,17 +419,17 @@ body {
 .tiptap pre .hljs-template-variable,
 .tiptap pre .hljs-type,
 .tiptap pre .hljs-addition {
-  color: #ce9178;
+  color: var(--color-hl-string);
 }
 .tiptap pre .hljs-deletion,
 .tiptap pre .hljs-selector-attr,
 .tiptap pre .hljs-selector-pseudo,
 .tiptap pre .hljs-meta {
-  color: #d7ba7d;
+  color: var(--color-hl-deletion);
 }
 .tiptap pre .hljs-doctag,
 .tiptap pre .hljs-attr {
-  color: #9cdcfe;
+  color: var(--color-hl-attr);
 }
 .tiptap pre .hljs-symbol,
 .tiptap pre .hljs-bullet,
@@ -370,22 +437,22 @@ body {
 .tiptap pre .hljs-variable,
 .tiptap pre .hljs-template-variable,
 .tiptap pre .hljs-selector-id {
-  color: #4fc1ff;
+  color: var(--color-hl-symbol);
 }
 .tiptap pre .hljs-number,
 .tiptap pre .hljs-regexp {
-  color: #b5cea8;
+  color: var(--color-hl-number);
 }
 .tiptap pre .hljs-class .hljs-title,
 .tiptap pre .hljs-title.class_ {
-  color: #4ec9b0;
+  color: var(--color-hl-class);
 }
 .tiptap pre .hljs-function .hljs-title,
 .tiptap pre .hljs-title.function_ {
-  color: #dcdcaa;
+  color: var(--color-hl-function);
 }
 .tiptap pre .hljs-params {
-  color: #cdd6f4;
+  color: var(--color-hl-params);
 }
 .tiptap pre .hljs-emphasis {
   font-style: italic;

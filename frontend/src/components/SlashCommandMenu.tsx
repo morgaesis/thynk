@@ -10,24 +10,88 @@ interface CommandDef {
 }
 
 const COMMANDS: CommandDef[] = [
-  { trigger: '/table', label: 'Table', description: '/table [rows] [cols] — insert table' },
-  { trigger: '/h1', label: 'Heading 1', description: '/h1 [text] — large heading' },
-  { trigger: '/h2', label: 'Heading 2', description: '/h2 [text] — medium heading' },
-  { trigger: '/h3', label: 'Heading 3', description: '/h3 [text] — small heading' },
-  { trigger: '/code', label: 'Code block', description: '/code [lang] — code block' },
-  { trigger: '/quote', label: 'Blockquote', description: '/quote — blockquote' },
-  { trigger: '/divider', label: 'Divider', description: '/divider or /hr — horizontal rule' },
-  { trigger: '/hr', label: 'Horizontal rule', description: '/hr — horizontal rule' },
-  { trigger: '/todo', label: 'Todo item', description: '/todo — checkbox task item' },
-  { trigger: '/date', label: 'Date', description: "/date — insert today's date" },
+  {
+    trigger: '/table',
+    label: 'Table',
+    description: '/table [rows] [cols] — insert table',
+  },
+  {
+    trigger: '/h1',
+    label: 'Heading 1',
+    description: '/h1 [text] — large heading',
+  },
+  {
+    trigger: '/h2',
+    label: 'Heading 2',
+    description: '/h2 [text] — medium heading',
+  },
+  {
+    trigger: '/h3',
+    label: 'Heading 3',
+    description: '/h3 [text] — small heading',
+  },
+  {
+    trigger: '/code',
+    label: 'Code block',
+    description: '/code [lang] — code block',
+  },
+  {
+    trigger: '/quote',
+    label: 'Blockquote',
+    description: '/quote — blockquote',
+  },
+  {
+    trigger: '/divider',
+    label: 'Divider',
+    description: '/divider or /hr — horizontal rule',
+  },
+  {
+    trigger: '/hr',
+    label: 'Horizontal rule',
+    description: '/hr — horizontal rule',
+  },
+  {
+    trigger: '/todo',
+    label: 'Todo item',
+    description: '/todo — checkbox task item',
+  },
+  {
+    trigger: '/date',
+    label: 'Date',
+    description: "/date — insert today's date",
+  },
   { trigger: '/bold', label: 'Bold', description: '/bold — bold text' },
   { trigger: '/italic', label: 'Italic', description: '/italic — italic text' },
-  { trigger: '/inline-code', label: 'Inline code', description: '/inline-code — inline code' },
-  { trigger: '/strikethrough', label: 'Strikethrough', description: '/strikethrough — strikethrough text' },
-  { trigger: '/bullet', label: 'Bullet list', description: '/bullet — bullet list' },
-  { trigger: '/numbered', label: 'Numbered list', description: '/numbered — numbered list' },
-  { trigger: '/callout', label: 'Callout', description: '/callout — callout blockquote' },
-  { trigger: '/image', label: 'Image', description: '/image [url] — insert image' },
+  {
+    trigger: '/inline-code',
+    label: 'Inline code',
+    description: '/inline-code — inline code',
+  },
+  {
+    trigger: '/strikethrough',
+    label: 'Strikethrough',
+    description: '/strikethrough — strikethrough text',
+  },
+  {
+    trigger: '/bullet',
+    label: 'Bullet list',
+    description: '/bullet — bullet list',
+  },
+  {
+    trigger: '/numbered',
+    label: 'Numbered list',
+    description: '/numbered — numbered list',
+  },
+  {
+    trigger: '/callout',
+    label: 'Callout',
+    description: '/callout — callout blockquote',
+  },
+  {
+    trigger: '/image',
+    label: 'Image',
+    description: '/image [url] — insert image',
+  },
 ];
 
 interface Props {
@@ -36,7 +100,11 @@ interface Props {
   onClose: () => void;
 }
 
-function executeCommand(editor: TipTapEditor, slashState: SlashCommandState, trigger: string) {
+function executeCommand(
+  editor: TipTapEditor,
+  slashState: SlashCommandState,
+  trigger: string,
+) {
   const { from, to, query } = slashState;
   const parts = query.trim().split(/\s+/);
   const args = parts.slice(1);
@@ -51,20 +119,43 @@ function executeCommand(editor: TipTapEditor, slashState: SlashCommandState, tri
     case '/table': {
       const rows = parseInt(args[0] ?? '3', 10) || 3;
       const cols = parseInt(args[1] ?? '3', 10) || 3;
-      editor.chain().focus().insertTable({ rows, cols, withHeaderRow: true }).run();
+      editor
+        .chain()
+        .focus()
+        .insertTable({ rows, cols, withHeaderRow: true })
+        .run();
       break;
     }
     case '/h1':
-      editor.chain().focus().setHeading({ level: 1 }).insertContent(args.join(' ') || '').run();
+      editor
+        .chain()
+        .focus()
+        .setHeading({ level: 1 })
+        .insertContent(args.join(' ') || '')
+        .run();
       break;
     case '/h2':
-      editor.chain().focus().setHeading({ level: 2 }).insertContent(args.join(' ') || '').run();
+      editor
+        .chain()
+        .focus()
+        .setHeading({ level: 2 })
+        .insertContent(args.join(' ') || '')
+        .run();
       break;
     case '/h3':
-      editor.chain().focus().setHeading({ level: 3 }).insertContent(args.join(' ') || '').run();
+      editor
+        .chain()
+        .focus()
+        .setHeading({ level: 3 })
+        .insertContent(args.join(' ') || '')
+        .run();
       break;
     case '/code':
-      editor.chain().focus().setCodeBlock({ language: args[0] ?? '' }).run();
+      editor
+        .chain()
+        .focus()
+        .setCodeBlock({ language: args[0] ?? '' })
+        .run();
       break;
     case '/quote':
       editor.chain().focus().setBlockquote().run();
@@ -74,7 +165,7 @@ function executeCommand(editor: TipTapEditor, slashState: SlashCommandState, tri
       editor.chain().focus().setHorizontalRule().run();
       break;
     case '/todo':
-      editor.chain().focus().insertContent('[ ] ').run();
+      editor.chain().focus().toggleTaskList().run();
       break;
     case '/date':
       editor.chain().focus().insertContent(dateStr).run();
@@ -118,11 +209,14 @@ export function SlashCommandMenu({ slashState, editor, onClose }: Props) {
 
   const query = slashState.query.toLowerCase();
   const filtered = COMMANDS.filter(
-    (c) => c.trigger.startsWith(query) || c.label.toLowerCase().includes(query.slice(1)),
+    (c) =>
+      c.trigger.startsWith(query) ||
+      c.label.toLowerCase().includes(query.slice(1)),
   );
 
   // Clamp to valid range — handles query changes shrinking the filtered list
-  const safeSelected = filtered.length > 0 ? Math.min(selected, filtered.length - 1) : 0;
+  const safeSelected =
+    filtered.length > 0 ? Math.min(selected, filtered.length - 1) : 0;
 
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
@@ -136,7 +230,10 @@ export function SlashCommandMenu({ slashState, editor, onClose }: Props) {
       } else if (e.key === 'Enter' || e.key === 'Tab') {
         e.preventDefault();
         const cmd = filtered[safeSelected];
-        if (cmd) { executeCommand(editor, slashState, cmd.trigger); onClose(); }
+        if (cmd) {
+          executeCommand(editor, slashState, cmd.trigger);
+          onClose();
+        }
       } else if (e.key === 'Escape') {
         e.preventDefault();
         onClose();
@@ -146,7 +243,8 @@ export function SlashCommandMenu({ slashState, editor, onClose }: Props) {
     return () => window.removeEventListener('keydown', handleKey, true);
   }, [slashState, editor, onClose, filtered, safeSelected]);
 
-  if (!slashState.active || filtered.length === 0 || !slashState.anchorRect) return null;
+  if (!slashState.active || filtered.length === 0 || !slashState.anchorRect)
+    return null;
 
   const rect = slashState.anchorRect;
   const top = rect.bottom + window.scrollY + 4;
@@ -161,12 +259,17 @@ export function SlashCommandMenu({ slashState, editor, onClose }: Props) {
       {filtered.map((cmd, i) => (
         <button
           key={cmd.trigger}
-          onClick={() => { executeCommand(editor, slashState, cmd.trigger); onClose(); }}
+          onClick={() => {
+            executeCommand(editor, slashState, cmd.trigger);
+            onClose();
+          }}
           className={`w-full text-left px-3 py-2 text-sm transition-colors
             ${i === safeSelected ? 'bg-accent/10 text-accent' : 'text-text dark:text-text-dark hover:bg-border dark:hover:bg-border-dark'}`}
         >
           <span className="font-medium">{cmd.label}</span>
-          <span className="ml-2 text-xs text-text-muted dark:text-text-muted-dark">{cmd.description}</span>
+          <span className="ml-2 text-xs text-text-muted dark:text-text-muted-dark">
+            {cmd.description}
+          </span>
         </button>
       ))}
     </div>,

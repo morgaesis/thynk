@@ -671,12 +671,9 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
         const posStr = copyButton.getAttribute('data-code-block-pos');
         if (posStr) {
           const pos = parseInt(posStr, 10);
-          let codeContent = '';
-          editor.state.doc.forEach((node, offset) => {
-            if (node.type.name === 'codeBlock' && offset === pos) {
-              codeContent = node.textContent;
-            }
-          });
+          const node = editor.state.doc.nodeAt(pos);
+          const codeContent =
+            node?.type.name === 'codeBlock' ? node.textContent : '';
           if (codeContent) {
             navigator.clipboard.writeText(codeContent).then(() => {
               addToast('success', 'Code copied to clipboard');

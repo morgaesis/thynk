@@ -75,12 +75,17 @@ function setMarkdownContent(ed: TipTapEditor, content: string) {
     ed.commands.setContent('', { emitUpdate: false });
     return;
   }
-  
-  if (content.includes('<p>') || content.includes('<h') || content.includes('<ul>') || content.includes('<ol>')) {
+
+  if (
+    content.includes('<p>') ||
+    content.includes('<h') ||
+    content.includes('<ul>') ||
+    content.includes('<ol>')
+  ) {
     ed.commands.setContent(content, { emitUpdate: false });
   } else {
-    ed.commands.setContent(content, { 
-      contentType: 'markdown' 
+    ed.commands.setContent(content, {
+      contentType: 'markdown',
     } as Parameters<typeof ed.commands.setContent>[1]);
   }
 }
@@ -216,18 +221,22 @@ const CodeBlockCopyButton = Extension.create({
             doc.forEach((node, offset) => {
               if (node.type.name === 'codeBlock') {
                 decorations.push(
-                  Decoration.widget(offset, () => {
-                    const button = document.createElement('button');
-                    button.className = 'code-block-copy-button';
-                    button.type = 'button';
-                    button.setAttribute('aria-label', 'Copy code');
-                    button.innerHTML =
-                      '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
-                    button.dataset.codeBlockPos = String(offset);
-                    return button;
-                  }, {
-                    side: -1,
-                  }),
+                  Decoration.widget(
+                    offset,
+                    () => {
+                      const button = document.createElement('button');
+                      button.className = 'code-block-copy-button';
+                      button.type = 'button';
+                      button.setAttribute('aria-label', 'Copy code');
+                      button.innerHTML =
+                        '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
+                      button.dataset.codeBlockPos = String(offset);
+                      return button;
+                    },
+                    {
+                      side: -1,
+                    },
+                  ),
                 );
               }
             });
@@ -430,14 +439,14 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
     onUpdate: ({ editor: e }) => {
       const note = activeNoteRef.current;
       if (!note) return;
-      
+
       // Save to local buffer immediately (short debounce to avoid excessive writes)
       const currentContent = getHTML(e);
       if (bufferDebounceRef.current) clearTimeout(bufferDebounceRef.current);
       bufferDebounceRef.current = setTimeout(() => {
         contentBuffer.saveBuffer(note.id, currentContent);
       }, 300);
-      
+
       if (debounceRef.current) clearTimeout(debounceRef.current);
       debounceRef.current = setTimeout(() => {
         updateNote(note.id, { content: currentContent });
@@ -533,7 +542,7 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
       // Check for unsaved buffer and restore if it has newer content
       const bufferedContent = contentBuffer.getBuffer(activeNote.id);
       const serverContent = activeNote.content || '';
-      
+
       if (bufferedContent && bufferedContent !== serverContent) {
         // Buffer has unsaved changes - restore from buffer
         setMarkdownContent(editor, bufferedContent);
@@ -541,7 +550,7 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
       } else {
         setMarkdownContent(editor, serverContent);
       }
-      
+
       // Clear the buffer after loading (it's now in the editor)
       contentBuffer.clearBuffer(activeNote.id);
     }
@@ -739,6 +748,15 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
             <span>·</span>
             <span className="tabular-nums">
               {new Date(activeNote.updated_at).toLocaleString()}
+            </span>
+            <span>·</span>
+            <span className="tabular-nums">
+              {(() => {
+                const text = editor?.getText() ?? '';
+                const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+                const chars = text.length;
+                return `${words} words · ${chars} chars`;
+              })()}
             </span>
             {activeNote.last_updated_by && (
               <>

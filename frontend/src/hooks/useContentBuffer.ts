@@ -42,24 +42,3 @@ export const contentBuffer: ContentBufferAPI = {
     return buffer !== serverContent;
   },
 };
-
-export function useContentBuffer(noteId: string | undefined) {
-  return {
-    saveBuffer: (content: string) => {
-      if (!noteId) return;
-      contentBuffer.saveBuffer(noteId, content);
-    },
-    getBuffer: () => {
-      if (!noteId) return null;
-      return contentBuffer.getBuffer(noteId);
-    },
-    clearBuffer: () => {
-      if (!noteId) return;
-      contentBuffer.clearBuffer(noteId);
-    },
-    hasUnsavedChanges: (serverContent: string) => {
-      if (!noteId) return false;
-      return contentBuffer.hasUnsavedChanges(noteId, serverContent);
-    },
-  };
-}

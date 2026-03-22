@@ -246,7 +246,8 @@
 67. ~~Favorites Section Listener Pattern~~ -- FavoritesSection no longer refetches favorites on every notes change. Uses a module-level listener that fires only when a favorite is toggled. Removed unused fetchNotes import from TreeItem. All 159 frontend tests pass (2026-03-22)
 68. ~~Fix buildTreeFromPaths for Nested Directories~~ -- The local tree builder had a bug where nested paths (e.g. a/b/c.md) lost directory structure because child maps weren't connected to parents. Rewritten with a simpler algorithm that directly builds a tree array. All 159 frontend tests pass (2026-03-22)
 69. ~~O(1) Child Lookup in File Tree Builder~~ -- buildTreeFromPaths now uses per-directory Maps for O(1) child lookup instead of O(n) children.find(). All 159 frontend tests pass (2026-03-22)
+70. ~~Remove Dead Code~~ -- Removed unused useContentBuffer hook function (only the contentBuffer singleton is used). All 159 frontend tests pass (2026-03-22)
 
 ---
 
-Last Updated: 2026-03-22 (O(1) child lookup in file tree builder, all 159 frontend tests pass)
+Last Updated: 2026-03-22 (Remove dead code, all 159 frontend tests pass)

@@ -276,6 +276,8 @@ export function CommandPaletteInner({
             onChange={handleQueryChange}
             onKeyDown={handleKeyDown}
             placeholder="Search notes..."
+            spellCheck={false}
+            autoCapitalize="off"
             className="flex-1 bg-transparent border-none outline-none text-sm
                        text-text dark:text-text-dark
                        placeholder:text-text-muted dark:placeholder:text-text-muted-dark"

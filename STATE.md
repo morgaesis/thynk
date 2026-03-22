@@ -243,7 +243,8 @@
 64. ~~Optimistic Drag-and-Drop Move~~ -- Sidebar drag-and-drop move now updates the local notes list using the moveNote API response instead of refetching all notes from the server. All 159 frontend tests pass (2026-03-22)
 65. ~~Local File Tree Construction~~ -- File tree now built locally from notes paths via buildTreeFromPaths() instead of calling getTree() API on every notes change. Eliminates an API round-trip on every create/delete/move operation. All 159 frontend tests pass (2026-03-22)
 66. ~~Upload Success Toast~~ -- File upload now shows a success toast ("Uploaded filename") on completion, consistent with copy and other operations. All 159 frontend tests pass (2026-03-22)
+67. ~~Favorites Section Listener Pattern~~ -- FavoritesSection no longer refetches favorites on every notes change. Uses a module-level listener that fires only when a favorite is toggled. Removed unused fetchNotes import from TreeItem. All 159 frontend tests pass (2026-03-22)
 
 ---
 
-Last Updated: 2026-03-22 (Upload success toast, all 159 frontend tests pass)
+Last Updated: 2026-03-22 (Favorites section listener pattern, all 159 frontend tests pass)

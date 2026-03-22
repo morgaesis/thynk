@@ -83,6 +83,15 @@ function buildTreeFromPaths(notes: NoteMetadata[]): TreeNode[] {
   return toNodes(root);
 }
 
+// Module-level counter to signal favorites changes without depending on notes
+let favoritesVersion = 0;
+const favoritesListeners = new Set<() => void>();
+
+function notifyFavoritesChange() {
+  favoritesVersion++;
+  for (const fn of favoritesListeners) fn();
+}
+
 // Count files in a directory node (hoisted outside TreeItem to avoid recreation)
 function countFiles(n: TreeNode): number {
   if (!n.children) return 1;
@@ -107,7 +116,6 @@ function TreeItem({
   const activeNote = useNoteStore((s) => s.activeNote);
   const openNoteByPath = useNoteStore((s) => s.openNoteByPath);
   const deleteNote = useNoteStore((s) => s.deleteNote);
-  const fetchNotes = useNoteStore((s) => s.fetchNotes);
   const addToast = useUIStore((s) => s.addToast);
   const setShowGraph = useUIStore((s) => s.setShowGraph);
   const [hoveredPath, setHoveredPath] = useState(false);
@@ -183,7 +191,7 @@ function TreeItem({
     setFavoriting(true);
     try {
       await toggleFavorite(noteMeta.id);
-      await fetchNotes();
+      notifyFavoritesChange();
     } catch {
       addToast('error', 'Failed to toggle favorite');
     } finally {
@@ -312,16 +320,26 @@ function TreeItem({
 function FavoritesSection() {
   const [favorites, setFavorites] = useState<NoteMetadata[]>([]);
   const [expanded, setExpanded] = useState(true);
-  const notes = useNoteStore((s) => s.notes);
   const openNote = useNoteStore((s) => s.openNote);
   const activeNote = useNoteStore((s) => s.activeNote);
   const setShowGraph = useUIStore((s) => s.setShowGraph);
 
   useEffect(() => {
-    getFavorites()
-      .then(setFavorites)
-      .catch(() => {});
-  }, [notes]);
+    let cancelled = false;
+    const load = () => {
+      getFavorites()
+        .then((f) => {
+          if (!cancelled) setFavorites(f);
+        })
+        .catch(() => {});
+    };
+    load();
+    favoritesListeners.add(load);
+    return () => {
+      cancelled = true;
+      favoritesListeners.delete(load);
+    };
+  }, []);
 
   if (favorites.length === 0) return null;
 

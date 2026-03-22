@@ -783,9 +783,9 @@ export function Sidebar() {
             </span>
             <p className="text-xs text-text-muted dark:text-text-muted-dark">
               <kbd className="px-1 py-0.5 rounded bg-border dark:bg-border-dark text-[10px]">
-                Ctrl+Shift+N
+                Ctrl+B
               </kbd>{' '}
-              New
+              Sidebar
             </p>
           </div>
           {/* User info + settings + logout */}

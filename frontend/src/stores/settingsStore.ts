@@ -11,10 +11,14 @@ export interface ShortcutAction {
 }
 
 export const DEFAULT_SHORTCUTS: Record<string, ShortcutAction> = {
-  'command-palette': { label: 'Command palette / Search', defaultKey: 'Ctrl+K' },
+  'command-palette': {
+    label: 'Command palette / Search',
+    defaultKey: 'Ctrl+K',
+  },
   'new-note': { label: 'New note', defaultKey: 'Ctrl+Shift+N' },
-  'save': { label: 'Save', defaultKey: 'Ctrl+S' },
+  save: { label: 'Save', defaultKey: 'Ctrl+S' },
   'focus-title': { label: 'Focus title', defaultKey: 'F2' },
+  'toggle-sidebar': { label: 'Toggle sidebar', defaultKey: 'Ctrl+B' },
 };
 
 export interface SettingsStore {

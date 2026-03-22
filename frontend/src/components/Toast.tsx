@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import { VscClose, VscCheck, VscWarning, VscInfo } from 'react-icons/vsc';
 import { useUIStore } from '../stores/uiStore';
 
@@ -25,6 +25,8 @@ interface ToastData {
   message: string;
 }
 
+const DISMISS_MS = 5000;
+
 function ToastItem({
   toast,
   onDismiss,
@@ -32,10 +34,34 @@ function ToastItem({
   toast: ToastData;
   onDismiss: () => void;
 }) {
-  useEffect(() => {
-    const timer = setTimeout(onDismiss, 4000);
-    return () => clearTimeout(timer);
+  const [paused, setPaused] = useState(false);
+  const remainingRef = useRef(DISMISS_MS);
+  const startRef = useRef(Date.now());
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const scheduleDismiss = useCallback(() => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    startRef.current = Date.now();
+    timerRef.current = setTimeout(onDismiss, remainingRef.current);
   }, [onDismiss]);
+
+  useEffect(() => {
+    scheduleDismiss();
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, [scheduleDismiss]);
+
+  const handleMouseEnter = useCallback(() => {
+    setPaused(true);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    remainingRef.current -= Date.now() - startRef.current;
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    setPaused(false);
+    scheduleDismiss();
+  }, [scheduleDismiss]);
 
   const icons = {
     success: <VscCheck size={15} />,
@@ -52,8 +78,11 @@ function ToastItem({
 
   return (
     <div
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       className={`flex items-center gap-3 px-4 py-3 rounded-lg border shadow-lg
-                  pointer-events-auto max-w-sm text-sm
+                  pointer-events-auto max-w-sm text-sm transition-all duration-200
+                  ${paused ? 'scale-[1.02]' : ''}
                   bg-surface dark:bg-surface-dark
                   ${colors[toast.type]}`}
     >

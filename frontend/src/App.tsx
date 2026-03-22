@@ -17,6 +17,7 @@ function App() {
   const checkSession = useAuthStore((s) => s.checkSession);
   const theme = useUIStore((s) => s.theme);
   const toggleCommandPalette = useUIStore((s) => s.toggleCommandPalette);
+  const toggleSidebar = useUIStore((s) => s.toggleSidebar);
   const addToast = useUIStore((s) => s.addToast);
   const shortcuts = useSettingsStore((s) => s.shortcuts);
   const createNote = useNoteStore((s) => s.createNote);
@@ -72,7 +73,8 @@ function App() {
       // Command palette supports two default bindings
       if (
         pressed === paletteKey ||
-        (!(shortcuts['command-palette']) && (pressed === 'Ctrl+K' || pressed === 'Ctrl+P'))
+        (!shortcuts['command-palette'] &&
+          (pressed === 'Ctrl+K' || pressed === 'Ctrl+P'))
       ) {
         e.preventDefault();
         toggleCommandPalette();
@@ -88,11 +90,21 @@ function App() {
       } else if (pressed === boundKey('focus-title')) {
         e.preventDefault();
         focusTitleRef.current?.();
+      } else if (pressed === boundKey('toggle-sidebar')) {
+        e.preventDefault();
+        toggleSidebar();
       }
     }
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [toggleCommandPalette, createNote, activeNote, updateNote, shortcuts]);
+  }, [
+    toggleCommandPalette,
+    toggleSidebar,
+    createNote,
+    activeNote,
+    updateNote,
+    shortcuts,
+  ]);
 
   // WebSocket connection — auto-reconnects via ReconnectingWebSocket.
   // The reconnecting indicator is only shown after an unexpected disconnect
@@ -255,10 +267,12 @@ function App() {
             className="w-[640px] max-w-[95vw] max-h-[90vh] overflow-hidden rounded-xl shadow-xl
                         border border-border dark:border-border-dark"
           >
-            <SettingsPage onClose={() => {
-              setSettingsOpen(false);
-              window.history.back();
-            }} />
+            <SettingsPage
+              onClose={() => {
+                setSettingsOpen(false);
+                window.history.back();
+              }}
+            />
           </div>
         </div>
       )}

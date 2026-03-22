@@ -233,7 +233,8 @@ See `STATE.md` for current blockers and active work.
 - **Theme support** - Custom CSS themes with selector in settings (DONE: 8 presets, data-theme attribute, 2026-03-20)
 - ~~**Notifications**~~ - Bell icon, not full navbar line (DONE: bell icon in sidebar header with dropdown panel, unread badge, 2026-03-20)
 - ~~**Modal closing**~~ - ESC and click-outside should close modals (DONE: ImportModal and TemplateSelector now close on ESC, 2026-03-18)
-- **Theme support** - Custom CSS themes, selector in settings
+- **Sidebar toggle** - Ctrl+B keyboard shortcut to toggle sidebar (DONE: configurable shortcut, 2026-03-22)
+- **Toast UX** - Toast auto-dismiss pauses on hover so users can read longer messages (DONE: 5s timer with hover pause, 2026-03-22)
 
 ### Infrastructure
 

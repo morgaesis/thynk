@@ -83,12 +83,10 @@ function buildTreeFromPaths(notes: NoteMetadata[]): TreeNode[] {
   return toNodes(root);
 }
 
-// Module-level counter to signal favorites changes without depending on notes
-let favoritesVersion = 0;
+// Module-level listener to signal favorites changes without depending on notes
 const favoritesListeners = new Set<() => void>();
 
 function notifyFavoritesChange() {
-  favoritesVersion++;
   for (const fn of favoritesListeners) fn();
 }
 

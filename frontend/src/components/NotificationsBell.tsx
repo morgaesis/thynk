@@ -108,10 +108,15 @@ export function NotificationsBell() {
                         border border-border dark:border-border-dark
                         rounded-lg shadow-lg overflow-hidden"
         >
-          <div className="px-3 py-2 border-b border-border dark:border-border-dark">
+          <div className="px-3 py-2 border-b border-border dark:border-border-dark flex items-center justify-between">
             <span className="text-xs font-semibold text-text dark:text-text-dark uppercase tracking-wider">
               Notifications
             </span>
+            {notifications.length > 0 && (
+              <span className="text-[10px] text-text-muted dark:text-text-muted-dark">
+                {notifications.length}
+              </span>
+            )}
           </div>
           <div className="max-h-64 overflow-y-auto">
             {loading ? (

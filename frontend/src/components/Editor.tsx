@@ -845,9 +845,15 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
             </span>
             <span>
               <kbd className="px-1.5 py-0.5 rounded bg-border dark:bg-border-dark text-[10px]">
-                Ctrl+B
+                Ctrl+Shift+N
               </kbd>{' '}
-              Sidebar
+              New Note
+            </span>
+            <span>
+              <kbd className="px-1.5 py-0.5 rounded bg-border dark:bg-border-dark text-[10px]">
+                Ctrl+G
+              </kbd>{' '}
+              Graph
             </span>
           </div>
         </div>

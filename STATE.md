@@ -237,7 +237,8 @@
 58. ~~Disable Spellcheck on Title~~ -- Note title input now has spellCheck={false} since titles are often filenames/technical terms where browser spellcheck red squiggles are unhelpful. All 159 frontend tests pass (2026-03-22)
 59. ~~Skip Serialization on Selection-Only Changes~~ -- Editor onUpdate now tracks document version to skip getHTML() serialization and buffer save when only the selection moved (not the content). Autocomplete still triggers on selection changes. Also disabled spellcheck on sidebar new note input. All 159 frontend tests pass (2026-03-22)
 60. ~~Command Palette Input Polish~~ -- Search input now has spellCheck={false} and autoCapitalize="off" to avoid browser interference with search queries. All 159 frontend tests pass (2026-03-22)
+61. ~~Welcome Screen Shortcut Hints~~ -- Updated empty state keyboard shortcut hints to show Ctrl+Shift+N (New Note) and Ctrl+G (Graph) instead of the less useful Ctrl+B. All 159 frontend tests pass (2026-03-22)
 
 ---
 
-Last Updated: 2026-03-22 (Command palette input polish, all 159 frontend tests pass)
+Last Updated: 2026-03-22 (Welcome screen shortcut hints, all 159 frontend tests pass)

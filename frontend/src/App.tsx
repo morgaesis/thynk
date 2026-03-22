@@ -80,6 +80,10 @@ function App() {
         toggleCommandPalette();
       } else if (pressed === boundKey('new-note')) {
         e.preventDefault();
+        // Save current note before creating a new one
+        if (activeSaveRef.current) {
+          activeSaveRef.current();
+        }
         const title = `Untitled ${new Date().toISOString().slice(0, 10)}`;
         createNote(title);
       } else if (pressed === boundKey('save')) {

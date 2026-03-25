@@ -5,6 +5,8 @@ export type LineHeight = number; // e.g. 1.4, 1.6, 1.8
 
 export type AIProvider = 'openai' | 'anthropic' | 'ollama';
 
+export const EXPERIMENTAL_AI = false;
+
 export interface ShortcutAction {
   label: string;
   defaultKey: string;

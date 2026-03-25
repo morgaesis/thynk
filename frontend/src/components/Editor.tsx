@@ -310,6 +310,7 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
   });
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const bufferDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastRemoteSaveRef = useRef<string>('');
   const lastDocVersionRef = useRef(0);
   const titleRef = useRef<HTMLInputElement>(null);
   const activeNoteRef = useRef(activeNote);
@@ -509,12 +510,13 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
       if (bufferDebounceRef.current) clearTimeout(bufferDebounceRef.current);
       bufferDebounceRef.current = setTimeout(() => {
         contentBuffer.saveBuffer(note.id, currentContent);
-      }, 300);
+      }, 150);
 
       if (debounceRef.current) clearTimeout(debounceRef.current);
       debounceRef.current = setTimeout(() => {
+        lastRemoteSaveRef.current = currentContent;
         updateNote(note.id, { content: currentContent });
-      }, 1000);
+      }, 500);
 
       // Update word count
       const text = e.getText();
@@ -566,6 +568,7 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
       if (debounceRef.current) clearTimeout(debounceRef.current);
       if (bufferDebounceRef.current) clearTimeout(bufferDebounceRef.current);
       const content = getHTML(e);
+      lastRemoteSaveRef.current = content;
       updateNote(note.id, { content });
       contentBuffer.clearBuffer(note.id);
     },
@@ -626,6 +629,9 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
         setMarkdownContent(editor, serverContent);
       }
 
+      // Initialize remote save tracker
+      lastRemoteSaveRef.current = bufferedContent || serverContent || '';
+
       // Clear the buffer after loading (it's now in the editor)
       contentBuffer.clearBuffer(activeNote.id);
 
@@ -636,8 +642,19 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
       const readMin = Math.max(1, Math.ceil(words / 200));
       setTimeout(() => setWordCount({ words, chars, readMin }), 0);
 
-      // Auto-focus editor when note is opened
-      editor.commands.focus('end');
+      // Auto-focus strategy: new/empty notes get title focus for immediate rename;
+      // existing notes get editor body focus
+      const isNewNote =
+        !serverContent || serverContent === '<p></p>' || serverContent === '';
+      if (isNewNote) {
+        // Focus title and select all text for immediate rename
+        setTimeout(() => {
+          titleRef.current?.focus();
+          titleRef.current?.select();
+        }, 50);
+      } else {
+        editor.commands.focus('end');
+      }
     }
   }, [editor, activeNote?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -658,6 +675,7 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
         data.title = newTitle;
       }
     }
+    lastRemoteSaveRef.current = content;
     updateNote(note.id, data);
     contentBuffer.clearBuffer(note.id);
   }, [updateNote]);
@@ -902,6 +920,11 @@ export function Editor({ onRegisterSave, onRegisterFocusTitle }: Props) {
           <div className="flex items-center gap-3 mb-4 text-xs text-text-muted dark:text-text-muted-dark">
             {saving ? (
               <span>Saving…</span>
+            ) : contentBuffer.hasUnsavedChanges(
+                activeNote.id,
+                activeNote.content || '',
+              ) ? (
+              <span className="text-yellow-500">Unsaved</span>
             ) : (
               <span
                 className={`transition-colors duration-300 ${justSaved ? 'text-green-500' : ''}`}

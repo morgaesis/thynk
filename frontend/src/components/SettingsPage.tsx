@@ -4,6 +4,7 @@ import { useUIStore, THEMES } from '../stores/uiStore';
 import {
   useSettingsStore,
   DEFAULT_SHORTCUTS,
+  EXPERIMENTAL_AI,
   type AIProvider,
 } from '../stores/settingsStore';
 import { useAuthStore } from '../stores/authStore';
@@ -474,80 +475,84 @@ export function SettingsPage({ onClose }: SettingsPageProps) {
           </section>
 
           {/* AI Section */}
-          <section className="mb-8">
-            <SectionTitle>AI Assistant</SectionTitle>
-            <div className="bg-sidebar dark:bg-sidebar-dark rounded-lg border border-border dark:border-border-dark px-4">
-              <Row label="Provider">
-                <RadioGroup
-                  options={AI_PROVIDERS}
-                  value={aiProvider}
-                  onChange={setAiProvider}
-                />
-              </Row>
-              <Row label="API Key">
-                <input
-                  type="password"
-                  value={aiApiKey}
-                  onChange={(e) => setAiApiKey(e.target.value)}
-                  placeholder={
-                    aiProvider === 'ollama' ? 'Leave empty for local' : 'sk-...'
-                  }
-                  className="w-48 px-2 py-1 text-sm rounded border border-border dark:border-border-dark
-                           bg-surface dark:bg-surface-dark text-text dark:text-text-dark"
-                />
-              </Row>
-              <Row label="Model">
-                <div className="flex items-center gap-2">
-                  <select
-                    value={aiModel}
-                    onChange={(e) => setAiModel(e.target.value)}
-                    disabled={modelsLoading}
-                    className="px-2 py-1 text-sm rounded border border-border dark:border-border-dark
-                           bg-surface dark:bg-surface-dark text-text dark:text-text-dark disabled:opacity-50"
-                  >
-                    {modelsLoading ? (
-                      <option value="">Loading…</option>
-                    ) : (
-                      <>
-                        {(fetchedModels[aiProvider].length > 0
-                          ? fetchedModels[aiProvider].map((m) => ({
-                              value: m.id,
-                              label: m.name,
-                            }))
-                          : FALLBACK_MODELS[aiProvider]
-                        ).map((m) => (
-                          <option key={m.value} value={m.value}>
-                            {m.label}
-                          </option>
-                        ))}
-                      </>
-                    )}
-                  </select>
-                  <button
-                    onClick={() => void handleRefreshModels()}
-                    disabled={modelsLoading}
-                    className="p-1 text-text-muted dark:text-text-muted-dark hover:text-text dark:hover:text-text-dark disabled:opacity-50"
-                    title="Refresh model list"
-                  >
-                    <VscRefresh
-                      size={14}
-                      className={modelsLoading ? 'animate-spin' : ''}
-                    />
-                  </button>
-                </div>
-              </Row>
-            </div>
-            <p className="mt-1 text-xs text-text-muted dark:text-text-muted-dark px-1">
-              Your API key is stored locally and never sent to our servers.
-              {aiProvider === 'ollama' &&
-                ' Ensure Ollama is running locally on port 11434.'}
-              {modelsError && (
-                <span className="block text-red-500 mt-1">
-                  Could not fetch models: {modelsError}. Using default list.
-                </span>
-              )}
-            </p>
-          </section>
+          {EXPERIMENTAL_AI && (
+            <section className="mb-8">
+              <SectionTitle>AI Assistant</SectionTitle>
+              <div className="bg-sidebar dark:bg-sidebar-dark rounded-lg border border-border dark:border-border-dark px-4">
+                <Row label="Provider">
+                  <RadioGroup
+                    options={AI_PROVIDERS}
+                    value={aiProvider}
+                    onChange={setAiProvider}
+                  />
+                </Row>
+                <Row label="API Key">
+                  <input
+                    type="password"
+                    value={aiApiKey}
+                    onChange={(e) => setAiApiKey(e.target.value)}
+                    placeholder={
+                      aiProvider === 'ollama'
+                        ? 'Leave empty for local'
+                        : 'sk-...'
+                    }
+                    className="w-48 px-2 py-1 text-sm rounded border border-border dark:border-border-dark
+                             bg-surface dark:bg-surface-dark text-text dark:text-text-dark"
+                  />
+                </Row>
+                <Row label="Model">
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={aiModel}
+                      onChange={(e) => setAiModel(e.target.value)}
+                      disabled={modelsLoading}
+                      className="px-2 py-1 text-sm rounded border border-border dark:border-border-dark
+                             bg-surface dark:bg-surface-dark text-text dark:text-text-dark disabled:opacity-50"
+                    >
+                      {modelsLoading ? (
+                        <option value="">Loading…</option>
+                      ) : (
+                        <>
+                          {(fetchedModels[aiProvider].length > 0
+                            ? fetchedModels[aiProvider].map((m) => ({
+                                value: m.id,
+                                label: m.name,
+                              }))
+                            : FALLBACK_MODELS[aiProvider]
+                          ).map((m) => (
+                            <option key={m.value} value={m.value}>
+                              {m.label}
+                            </option>
+                          ))}
+                        </>
+                      )}
+                    </select>
+                    <button
+                      onClick={() => void handleRefreshModels()}
+                      disabled={modelsLoading}
+                      className="p-1 text-text-muted dark:text-text-muted-dark hover:text-text dark:hover:text-text-dark disabled:opacity-50"
+                      title="Refresh model list"
+                    >
+                      <VscRefresh
+                        size={14}
+                        className={modelsLoading ? 'animate-spin' : ''}
+                      />
+                    </button>
+                  </div>
+                </Row>
+              </div>
+              <p className="mt-1 text-xs text-text-muted dark:text-text-muted-dark px-1">
+                Your API key is stored locally and never sent to our servers.
+                {aiProvider === 'ollama' &&
+                  ' Ensure Ollama is running locally on port 11434.'}
+                {modelsError && (
+                  <span className="block text-red-500 mt-1">
+                    Could not fetch models: {modelsError}. Using default list.
+                  </span>
+                )}
+              </p>
+            </section>
+          )}
 
           {/* Account Section */}
           <section className="mb-8">

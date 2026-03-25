@@ -200,6 +200,26 @@ Each phase builds on the previous. No phase can be skipped.
 
 ---
 
+## UX Improvements (Based on User Research)
+
+See `.planning/research/user-loved-features.md` for compiled research on Notion, Obsidian, and Apple Notes.
+
+### Principles Applied
+
+- **Instant feedback**: Auto-save debounce reduced from 1000ms to 500ms
+- **Clarity over confusion**: Save status shows "Unsaved" (local buffer) vs "Saved" (confirmed remote)
+- **Apple Notes-style creation**: New notes focus title immediately for rename
+- **Obsidian-style modals**: Click outside to close calendar and settings panels
+- **Progressive disclosure**: AI model selection behind `EXPERIMENTAL_AI` flag
+
+### Research Sources
+
+- Notion: All-in-one workspace, distraction-free editor, meeting notes, block-based editing
+- Obsidian: Local Markdown vaults, bidirectional linking, graph view, daily notes
+- Apple Notes: Smart Folders, instant creation, OCR search, biometric protection
+
+---
+
 ## Known Issues & Backlog
 
 See `STATE.md` for current blockers and active work.
@@ -218,6 +238,7 @@ See `STATE.md` for current blockers and active work.
 - ~~**404 on refresh**~~ - Opening note then refreshing gives 404, but note appears in UI (FIXED: spa_fallback handler now serves index.html for non-API paths)
 - ~~**WebSocket failures**~~ - External signaling servers `y-webrtc-signaling-eu.herokuapp.com` and `signaling.yjs.dev` fail (FIXED: removed external fallback, now uses self-hosted signaling only)
 - ~~**History navigation**~~ - Browser back/forward doesn't work between notes and settings (FIXED: openNoteByPath now fetches note from API when not in local cache)
+- **Save UX jank** - Auto-save debounce too slow (1000ms), unclear local-vs-remote status (FIXED: reduced to 500ms, added "Unsaved" indicator, 2026-03-25)
 
 ### Features Needed
 
@@ -229,12 +250,15 @@ See `STATE.md` for current blockers and active work.
 
 ### UI/UX
 
-- **Settings** - Modal overlay, not separate page (DONE: centered modal with X button, ESC key, 2026-03-19)
+- **Settings** - Modal overlay, not separate page (DONE: centered modal with X button, ESC key, click-outside, 2026-03-25)
 - **Theme support** - Custom CSS themes with selector in settings (DONE: 8 presets, data-theme attribute, 2026-03-20)
 - ~~**Notifications**~~ - Bell icon, not full navbar line (DONE: bell icon in sidebar header with dropdown panel, unread badge, 2026-03-20)
 - ~~**Modal closing**~~ - ESC and click-outside should close modals (DONE: ImportModal and TemplateSelector now close on ESC, 2026-03-18)
 - **Sidebar toggle** - Ctrl+B keyboard shortcut to toggle sidebar (DONE: configurable shortcut, 2026-03-22)
 - **Toast UX** - Toast auto-dismiss pauses on hover so users can read longer messages (DONE: 5s timer with hover pause, 2026-03-22)
+- **New note rename** - Create note immediately, focus title for rename (DONE: empty notes focus title + select all, 2026-03-25)
+- **Calendar close** - Click outside calendar modal to close (DONE: backdrop click closes, 2026-03-25)
+- **AI model selection** - Behind EXPERIMENTAL_AI feature flag (DONE: gated, default off, 2026-03-25)
 
 ### Infrastructure
 
@@ -264,5 +288,5 @@ See `STATE.md` for current blockers and active work.
 
 ---
 
-_Document Version: 2.0_
+_Document Version: 2.1_
 _Status: Active_

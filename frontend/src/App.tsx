@@ -287,10 +287,19 @@ function App() {
       <CommandPalette />
       <ToastContainer />
       {settingsOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setSettingsOpen(false);
+              window.history.back();
+            }
+          }}
+        >
           <div
             className="w-[640px] max-w-[95vw] max-h-[90vh] overflow-hidden rounded-xl shadow-xl
                         border border-border dark:border-border-dark"
+            onClick={(e) => e.stopPropagation()}
           >
             <SettingsPage
               onClose={() => {
@@ -302,10 +311,16 @@ function App() {
         </div>
       )}
       {isCalendarPage && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) window.history.back();
+          }}
+        >
           <div
             className="w-[900px] max-w-[95vw] h-[600px] max-h-[90vh] rounded-xl shadow-xl
                         overflow-hidden border border-border dark:border-border-dark"
+            onClick={(e) => e.stopPropagation()}
           >
             <CalendarView onClose={() => window.history.back()} />
           </div>

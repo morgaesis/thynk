@@ -1,50 +1,23 @@
 # Thynk
 
-A fast, local-first knowledge management platform. Not an Obsidian clone, not an Atlassian clone. Takes the best of each: speed and markdown-native from Obsidian, structured data and project planning from Notion, compliance and document control from Confluence, task management from Asana. All in one tool, all batteries included.
+Thynk is a product vision for a fast, local-first knowledge workspace. It aims to combine the durable Markdown ownership of Obsidian, the structured planning surfaces of Notion, the controlled-document discipline of Confluence, and the task orientation of Asana without turning basic workflows into a plugin hunt.
 
-## Features
+This repository has been intentionally reset. The previous implementation has been removed; only the high-level product and UX direction remains.
 
-- Markdown-native editing with TipTap/ProseMirror
-- Full-text search via SQLite FTS5 (sub-100ms)
-- Bi-directional wiki-links and graph view
-- Database views: list, kanban, timeline
-- Calendar and daily notes workflow
-- Page properties (YAML frontmatter UI)
-- Page locking with lease/heartbeat
-- Tags, favorites, templates
-- Import/export (Obsidian vaults, Markdown)
-- Vim mode
-- Dark/light theme
-- Real-time filesystem sync via WebSocket
+## Product Direction
 
-## Tech Stack
+- Local-first knowledge management with optional cloud sync.
+- Markdown-native notes stored in open, portable files with structured metadata.
+- Fast search, linking, graph navigation, daily notes, and project views as core features.
+- Built-in workflows for teams that need page locking, auditability, mentions, and collaboration.
+- Optional BYOK AI for writing help, semantic search, and workspace Q&A without vendor lock-in.
+- Browser-first experience, with desktop and mobile apps as future packaging targets.
 
-- **Backend**: Rust + Axum (async HTTP server)
-- **Frontend**: React + TypeScript + Vite + Tailwind CSS
-- **Editor**: TipTap (ProseMirror)
-- **Database**: SQLite (metadata, FTS5 search, indexes)
-- **Storage**: Filesystem (markdown files)
-- **State**: Zustand
-- **Desktop (planned)**: Tauri 2.0
+## Retained Docs
 
-## Getting Started
-
-```bash
-# Start the backend (defaults to port 3001, data in ./data)
-cargo run
-
-# In another terminal, start the frontend dev server
-cd frontend && bun dev
-```
-
-Open <http://localhost:5173> in your browser.
-
-Configure the data directory:
-
-```bash
-THYNK_DATA_DIR=/path/to/notes cargo run
-```
+- `VISION.md` captures the product promise, audience, principles, and scope.
+- `UX.md` captures the high-level interaction model and experience direction.
 
 ## License
 
-Functional Source License (FSL) — see [LICENSE](LICENSE).
+No license file is included in this reset. Choose an explicit license before distributing new code.

@@ -1,29 +1,20 @@
-# Dependencies
-node_modules/
-
-# Build output
-target/
-dist/
-
-# Environment
+# Environment and local data
 .env
 .env.*
 !.env.example
+data/
+tmp/
+.cache/
 
-# IDE
+# Dependencies and build output
+node_modules/
+target/
+dist/
+
+# Editors and OS files
 .idea/
 .vscode/
 *.swp
 *.swo
-
-# OS
 .DS_Store
 Thumbs.db
-
-# Local working files
-TODO.md
-tmp/
-.cache/
-data/
-.gsd/
-gsd-logs/

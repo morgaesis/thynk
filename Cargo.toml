@@ -1,0 +1,8 @@
+[workspace]
+members = ["crates/thynk-server"]
+resolver = "2"
+
+[workspace.package]
+edition = "2024"
+license = "LicenseRef-FSL"
+repository = "https://github.com/morgaesis/thynk"

@@ -1,9 +1,11 @@
 # Dependencies
 node_modules/
+*.tsbuildinfo
 
 # Build output
 target/
 dist/
+apps/web/dist/
 
 # Environment
 .env
@@ -24,3 +26,8 @@ Thumbs.db
 TODO.md
 tmp/
 .cache/
+.thynk/
+agentops/
+AGENTOPS_BOOTSTRAP.md
+thynk_agentops_prompt.md
+tools/agentops-*
